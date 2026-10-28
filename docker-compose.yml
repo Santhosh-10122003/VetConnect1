@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vetconnect_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-vetconnect}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vetconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vetconnect_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-vetconnect}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      SPRING_PROFILES_ACTIVE: dev
+      VETCONNECT_JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      VETCONNECT_JWT_EXPIRATION_MS: 86400000
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-simulated}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      CARE_CURRENCY: ${CARE_CURRENCY:-USD}
+      CARE_CURRENCY_SYMBOL: ${CARE_CURRENCY_SYMBOL:-$}
+      CLINIC_ADVANCE_PERCENT: ${CLINIC_ADVANCE_PERCENT:-50}
+
+volumes:
+  pgdata:

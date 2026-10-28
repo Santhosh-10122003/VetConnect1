@@ -1,0 +1,80 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: vetconnect-backend
+  profiles:
+    active: dev
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:vetconnect}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+vetconnect:
+  jwt:
+    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    expiration-ms: 86400000 # 24 hours
+    refresh-expiration-ms: 604800000 # 7 days
+  cors:
+    allowed-origins: "*"
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: "*"
+  # Payments: "simulated" (test buttons, no money) or "razorpay". For Razorpay set the three RAZORPAY_* values; use
+  # rzp_test_ keys to try it without real money, and CARE_CURRENCY=INR (Razorpay accounts are normally in rupees).
+  payments:
+    gateway: ${PAYMENT_GATEWAY:simulated}
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID:}
+      key-secret: ${RAZORPAY_KEY_SECRET:}
+  care:
+    currency: ${CARE_CURRENCY:USD}
+    currency-symbol: ${CARE_CURRENCY_SYMBOL:$}
+  clinic:
+    advance-percent: ${CLINIC_ADVANCE_PERCENT:50}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  file:
+    name: logs/vetconnect.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 14
+      total-size-cap: 200MB
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{requestId}] [%thread] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{requestId}] [%thread] %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.vetconnect: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN

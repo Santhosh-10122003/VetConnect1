@@ -1,0 +1,50 @@
+import { StyleSheet } from 'react-native';
+import { colors } from './colors';
+
+/** Layout primitives reused by the screens added after the first customer set. */
+export const shared = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 16, paddingBottom: 40 },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 10 },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  label: { fontSize: 12, color: colors.textSecondary, fontWeight: '600', marginBottom: 2 },
+  value: { fontSize: 14, color: colors.text, fontWeight: '500' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  chipTextActive: { color: '#FFFFFF' },
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 4,
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  segmentItem: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  segmentItemActive: { backgroundColor: colors.card },
+  segmentText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  segmentTextActive: { color: colors.primary },
+});
