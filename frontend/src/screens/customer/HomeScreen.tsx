@@ -85,12 +85,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.section}>Explore</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cards}>
         <TouchableOpacity style={[styles.promo, { backgroundColor: colors.mintDark }]} onPress={() => tabs('FindDoctors')} activeOpacity={0.9} testID="home-promo-vet">
-          <Text style={styles.promoEmoji}>🐶</Text>
           <Text style={styles.promoTitle}>See a vet{'\n'}near you</Text>
           <View style={styles.promoBtn}><Text style={styles.promoBtnText}>Book now</Text></View>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.promo, { backgroundColor: '#14171C' }]} onPress={() => tabs('PetCare')} activeOpacity={0.9} testID="home-promo-care">
-          <Text style={styles.promoEmoji}>🐱</Text>
           <Text style={[styles.promoTitle, { color: '#FFFFFF' }]}>Pamper{'\n'}your pet</Text>
           <View style={[styles.promoBtn, { backgroundColor: colors.mintDark }]}><Text style={styles.promoBtnText}>Explore</Text></View>
         </TouchableOpacity>
@@ -155,7 +153,6 @@ const styles = StyleSheet.create({
   section: { fontSize: 20, fontWeight: '800', color: colors.primary, marginTop: 24, marginBottom: 14 },
   cards: { gap: 14, paddingRight: 8 },
   promo: { width: 210, borderRadius: 24, padding: 18, minHeight: 170, overflow: 'hidden' },
-  promoEmoji: { position: 'absolute', right: 6, bottom: 6, fontSize: 76 },
   promoTitle: { fontSize: 22, fontWeight: '800', color: colors.primary, lineHeight: 27 },
   promoBtn: { marginTop: 14, alignSelf: 'flex-start', backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18 },
   promoBtnText: { fontSize: 13, fontWeight: '800', color: colors.primary },

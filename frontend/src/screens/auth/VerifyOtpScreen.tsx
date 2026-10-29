@@ -16,7 +16,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'VerifyOtp'>;
 const RESEND_SECONDS = 30;
 
 export const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { email } = route.params;
+  const { mobile } = route.params;
   const { verifyOtp } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -34,14 +34,14 @@ export const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   const submit = async () => {
     const trimmed = code.trim();
     if (!/^\d{6}$/.test(trimmed)) {
-      setError('Enter the 6-digit code from your email.');
+      setError('Enter the 6-digit code we sent to your mobile.');
       return;
     }
     setError(null);
     setLoading(true);
     try {
       // On success the auth context signs the user in and the navigator switches to their home screen.
-      await verifyOtp(email, trimmed);
+      await verifyOtp(mobile, trimmed);
     } catch (e) {
       setError(getErrorMessage(e, 'Verification failed. Please try again.'));
     } finally {
@@ -52,10 +52,10 @@ export const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   const resend = async () => {
     setResending(true);
     try {
-      await authApi.resendOtp(email);
+      await authApi.resendOtp(mobile);
       setSecondsLeft(RESEND_SECONDS);
       setError(null);
-      notify('Code sent', `We sent a new code to ${email}.`);
+      notify('Code sent', `We sent a new code to ${mobile}.`);
     } catch (e) {
       notify('Could not resend', getErrorMessage(e));
     } finally {
@@ -65,11 +65,11 @@ export const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <AppHeader title="Verify your email" showBack onBack={() => navigation.goBack()} />
+      <AppHeader title="Verify your mobile number" showBack onBack={() => navigation.goBack()} />
       <KeyboardScroll contentContainerStyle={styles.content}>
         <Text style={styles.title}>Enter the 6-digit code</Text>
         <Text style={styles.instructions}>
-          We sent a verification code to {email}. It expires in 10 minutes.
+          We sent a verification code by text message to {mobile}. It expires in 10 minutes.
         </Text>
 
         <AppInput

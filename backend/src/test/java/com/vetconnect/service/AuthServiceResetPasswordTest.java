@@ -73,7 +73,7 @@ class AuthServiceResetPasswordTest {
     void forgotPassword_unknownEmail_createsNothing() {
         when(userRepository.findByEmail("ghost@x.com")).thenReturn(Optional.empty());
 
-        authService.forgotPassword(new ForgotPasswordRequest("ghost@x.com"));
+        authService.forgotPassword(ForgotPasswordRequest.builder().email("ghost@x.com").build());
 
         verify(passwordResetTokenRepository, never()).save(any());
     }
@@ -83,7 +83,7 @@ class AuthServiceResetPasswordTest {
         when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.of(user));
         when(passwordResetTokenRepository.findByUserAndUsedFalse(user)).thenReturn(List.of());
 
-        authService.forgotPassword(new ForgotPasswordRequest("a@b.com"));
+        authService.forgotPassword(ForgotPasswordRequest.builder().email("a@b.com").build());
 
         ArgumentCaptor<PasswordResetToken> captor = ArgumentCaptor.forClass(PasswordResetToken.class);
         verify(passwordResetTokenRepository).save(captor.capture());

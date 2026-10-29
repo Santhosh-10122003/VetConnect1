@@ -6,7 +6,7 @@ import { shared } from '../../theme/shared';
 import type { Appointment } from '../../api/appointmentApi';
 import { AppButton } from '../common/AppButton';
 import { AppInput } from '../common/AppInput';
-import { hhmm } from '../../utils/helpers';
+import { confirmAction, hhmm } from '../../utils/helpers';
 
 interface Props {
   appt: Appointment;
@@ -23,8 +23,9 @@ export const RescheduleRequestCard: React.FC<Props> = ({ appt, busy, onApprove, 
   const [error, setError] = useState('');
   if (!req) return null;
 
-  const decline = () => {
+  const decline = async () => {
     if (reason.trim().length < 3) { setError('Give the owner a short reason, e.g. that day is fully booked.'); return; }
+    if (!(await confirmAction('Decline reschedule', 'The customer keeps the original time and sees your reason.', 'Decline', true))) return;
     onDecline(reason.trim());
   };
 

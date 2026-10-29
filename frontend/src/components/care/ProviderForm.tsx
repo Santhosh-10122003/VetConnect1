@@ -7,6 +7,7 @@ import { AppButton } from '../common/AppButton';
 import { LocationPicker, LocationValue, emptyLocation, LocationErrors } from '../common/LocationPicker';
 import { TouchableOpacity } from 'react-native';
 import { CATEGORIES, CareCategory, ProviderPayload } from '../../api/careApi';
+import { PayoutFields, PayoutValues, emptyPayout, payoutErrors, payoutPayload } from './PayoutFields';
 
 export interface ProviderFormValues {
   businessName: string;
@@ -16,10 +17,11 @@ export interface ProviderFormValues {
   address: string;
   categories: CareCategory[];
   location: LocationValue;
+  payout: PayoutValues;
 }
 
 export const emptyProviderForm: ProviderFormValues = {
-  businessName: '', description: '', phone: '', registrationNumber: '', address: '', categories: [], location: emptyLocation,
+  businessName: '', description: '', phone: '', registrationNumber: '', address: '', categories: [], location: emptyLocation, payout: emptyPayout,
 };
 
 /** The turn from the form's values into what the API wants. */
@@ -36,6 +38,7 @@ export const toPayload = (f: ProviderFormValues): ProviderPayload => ({
   latitude: f.location.latitude,
   longitude: f.location.longitude,
   categories: f.categories,
+  ...payoutPayload(f.payout),
 });
 
 interface Props {
@@ -45,10 +48,12 @@ interface Props {
   onSubmit: (values: ProviderFormValues) => void;
   /** Shown above the buttons, e.g. a server error. */
   error?: string | null;
+  /** A clinic whose doctor profile already has payment details: they are reused, so the section is not shown. */
+  reusePayout?: boolean;
 }
 
 /** Business details shared by the vet-clinic "offer pet care" setup and by editing the profile. */
-export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, onSubmit, error }) => {
+export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, onSubmit, error, reusePayout }) => {
   const [f, setF] = useState<ProviderFormValues>(initial);
   const [tried, setTried] = useState(false);
   const set = <K extends keyof ProviderFormValues>(k: K, v: ProviderFormValues[K]) => setF((x) => ({ ...x, [k]: v }));
@@ -63,9 +68,11 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
   else if (!f.location.city.trim()) loc.city = 'Select a district';
   if (f.location.latitude == null) loc.pin = 'Pin your business on the map so pet owners can navigate to you.';
 
+  const payErr = reusePayout ? {} : payoutErrors(f.payout);
+
   const submit = () => {
     setTried(true);
-    if (Object.keys(errors).length || Object.keys(loc).length) return;
+    if (Object.keys(errors).length || Object.keys(loc).length || Object.keys(payErr).length) return;
     onSubmit(f);
   };
 
@@ -95,8 +102,11 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
         onChange={(l) => set('location', l)}
         errors={tried ? loc : undefined}
       />
+      {reusePayout
+        ? <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 14 }}>Payments go to the payment details saved on your doctor profile.</Text>
+        : <PayoutFields value={f.payout} onChange={(v) => set('payout', v)} showErrors={tried} />}
       {error ? <Text style={{ color: colors.danger, marginBottom: 10 }}>{error}</Text> : null}
-      <AppButton title={submitLabel} onPress={submit} loading={saving} />
+      <AppButton title={submitLabel} onPress={() => (reusePayout ? onSubmit({ ...f, payout: { ...f.payout, method: null } }) : submit())} loading={saving} />
     </View>
   );
 };

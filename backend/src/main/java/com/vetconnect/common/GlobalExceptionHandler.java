@@ -81,7 +81,7 @@ public class GlobalExceptionHandler {
                 ApiResponse.<Map<String, String>>builder()
                         .success(false)
                         .message(ex.getMessage())
-                        .data(Map.of("code", "EMAIL_NOT_VERIFIED", "email", ex.getEmail()))
+                        .data(Map.of("code", "EMAIL_NOT_VERIFIED", "email", ex.getEmail(), "mobile", ex.getMobile() == null ? "" : ex.getMobile()))
                         .build());
     }
 

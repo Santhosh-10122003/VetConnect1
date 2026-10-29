@@ -7,6 +7,7 @@ import { ProviderBookingsScreen } from '../screens/provider/ProviderBookingsScre
 import { ProviderServicesScreen } from '../screens/provider/ProviderServicesScreen';
 import { ProviderServiceEditScreen } from '../screens/provider/ProviderServiceEditScreen';
 import { ProviderHoursScreen } from '../screens/provider/ProviderHoursScreen';
+import { WalletScreen } from '../screens/shared/WalletScreen';
 import { ProviderProfileScreen } from '../screens/provider/ProviderProfileScreen';
 
 const Stack = createNativeStackNavigator<ProviderStackParamList>();
@@ -21,6 +22,7 @@ export const ProviderStack: React.FC = () => (
     <Stack.Screen name="ProviderServiceEdit" component={ProviderServiceEditScreen} />
     <Stack.Screen name="ProviderHours" component={ProviderHoursScreen} />
     <Stack.Screen name="ProviderProfile" component={ProviderProfileScreen} />
+    <Stack.Screen name="ProviderWallet" component={WalletScreen} />
   </Stack.Navigator>
 );
 

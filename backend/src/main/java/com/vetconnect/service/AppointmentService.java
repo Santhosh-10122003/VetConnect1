@@ -99,6 +99,11 @@ public class AppointmentService {
             throw new BookingConflictException("The selected time slot (" + request.getStartTime() + ") is already booked. Please choose another slot.");
         }
 
+        if (doctorService.isSlotBlocked(doctor.getId(), request.getAppointmentDate(), request.getStartTime())) {
+            log.warn("Appointment request rejected: {}", "The doctor marked that slot as unavailable");
+            throw new BookingConflictException("The doctor is not available at " + request.getStartTime() + ". Please choose another slot.");
+        }
+
         String refCode = "VC-" + request.getAppointmentDate().format(DateTimeFormatter.BASIC_ISO_DATE) + "-"
                 + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
@@ -519,7 +524,7 @@ public class AppointmentService {
     private void ensureSlotFree(Long doctorId, LocalDate date, java.time.LocalTime start, String message) {
         if (date.isBefore(LocalDate.now())) throw new BadRequestException("Appointment date cannot be in the past");
         boolean taken = appointmentRepository.existsByDoctorIdAndAppointmentDateAndStartTimeAndStatusNotIn(
-                doctorId, date, start, AppointmentStatus.SLOT_RELEASED);
+                doctorId, date, start, AppointmentStatus.SLOT_RELEASED) || doctorService.isSlotBlocked(doctorId, date, start);
         if (taken) {
             log.warn("Appointment request rejected: {}", message);
             throw new BookingConflictException(message);

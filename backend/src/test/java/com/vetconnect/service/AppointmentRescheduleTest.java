@@ -54,7 +54,7 @@ class AppointmentRescheduleTest {
 
     @BeforeEach
     void setUp() {
-        CarePaymentService payments = new CarePaymentService(paymentRepository, new com.vetconnect.payment.SimulatedPaymentGateway(), CLOCK);
+        CarePaymentService payments = new CarePaymentService(paymentRepository, new com.vetconnect.payment.SimulatedPaymentGateway(), CLOCK, mock(WalletService.class));
         service = new AppointmentService(appointmentRepository, customerProfileRepository, doctorProfileRepository, petRepository,
                 userRepository, reviewRepository, medicalRecordRepository, notificationService, doctorService, payments, new AppProperties(), CLOCK);
 

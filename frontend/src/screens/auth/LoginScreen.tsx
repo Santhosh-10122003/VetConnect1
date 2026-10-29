@@ -17,36 +17,37 @@ import { AppInput } from '../../components/common/AppInput';
 import { useAuth } from '../../context/AuthContext';
 import { AuthStackParamList } from '../../navigation/types';
 import { getErrorMessage } from '../../utils/helpers';
-import { EmailField } from '../../components/common/EmailField';
-import { emailError, normalizeEmail } from '../../utils/validators';
+import { PhoneField, phoneForServer } from '../../components/common/PhoneField';
+import { phoneError } from '../../utils/validators';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter both email and password.');
+    if (!mobile.trim() || !password) {
+      setError('Please enter both your mobile number and password.');
       return;
     }
-    const emailProblem = emailError(email);
-    if (emailProblem) {
-      setError(emailProblem);
+    // an older account can still type the email it registered with
+    const problem = mobile.includes('@') ? null : phoneError(mobile);
+    if (problem) {
+      setError(problem);
       return;
     }
     setError(null);
     setLoading(true);
     try {
-      await login({ email: normalizeEmail(email), password });
+      await login({ mobile: phoneForServer(mobile), password });
     } catch (err: any) {
       if (err.response?.status === 403 && err.response?.data?.data?.code === 'EMAIL_NOT_VERIFIED') {
         // Right password, but the sign-up code was never confirmed; the server has just sent a new one.
-        navigation.navigate('VerifyOtp', { email: normalizeEmail(email) });
+        navigation.navigate('VerifyOtp', { mobile: err.response?.data?.data?.mobile || phoneForServer(mobile) });
         return;
       }
       const msg = getErrorMessage(err, 'Login failed. Please check your credentials.');
@@ -57,8 +58,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const fillQuickAccount = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
+  const fillQuickAccount = (demoMobile: string, demoPass: string) => {
+    setMobile(demoMobile);
     setPassword(demoPass);
     setError(null);
   };
@@ -83,19 +84,19 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.demoButtonsRow}>
             <TouchableOpacity
               style={styles.demoChip}
-              onPress={() => fillQuickAccount('john.doe@example.com', 'Customer@1234')}
+              onPress={() => fillQuickAccount('+1 555-0201', 'Customer@1234')}
             >
               <Text style={styles.demoChipText}>Customer</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.demoChip}
-              onPress={() => fillQuickAccount('dr.sarah@vetconnect.com', 'Doctor@1234')}
+              onPress={() => fillQuickAccount('+1 555-0111', 'Doctor@1234')}
             >
               <Text style={styles.demoChipText}>Doctor</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.demoChip}
-              onPress={() => fillQuickAccount('admin@vetconnect.com', 'Admin@1234')}
+              onPress={() => fillQuickAccount('+1 555-0100', 'Admin@1234')}
             >
               <Text style={styles.demoChipText}>Admin</Text>
             </TouchableOpacity>
@@ -103,7 +104,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.form}>
-          <EmailField label="Email Address" value={email} onChange={setEmail} forceError={!!error} testID="login-email" />
+          <PhoneField label="Mobile Number" value={mobile} onChange={setMobile} forceError={!!error} allowEmail testID="login-mobile" />
 
           <AppInput
             label="Password"

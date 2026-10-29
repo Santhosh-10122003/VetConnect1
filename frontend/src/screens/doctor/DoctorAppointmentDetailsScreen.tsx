@@ -12,7 +12,7 @@ import { RescheduleRequestCard } from '../../components/appointment/RescheduleRe
 import { LoadingView } from '../../components/common/LoadingView';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { DoctorStackParamList } from '../../navigation/types';
-import { confirmAction, getErrorMessage, hhmm, money, notify, petAge } from '../../utils/helpers';
+import { confirmAction, getErrorMessage, hhmm, money, notify, petAge, visibleEmail } from '../../utils/helpers';
 
 type Props = NativeStackScreenProps<DoctorStackParamList, 'DoctorAppointmentDetails'>;
 
@@ -102,7 +102,7 @@ export const DoctorAppointmentDetailsScreen: React.FC<Props> = ({ navigation, ro
           <Text style={shared.sectionTitle}>Owner</Text>
           <Field label="Name" value={appt.customerName} />
           <Field label="Phone" value={appt.customerPhone} />
-          <Field label="Email" value={appt.customerEmail} />
+          {!!visibleEmail(appt.customerEmail) && <Field label="Email" value={visibleEmail(appt.customerEmail)} />}
           {appt.customerPhone ? (
             <AppButton title="Call Owner" variant="mint" onPress={() => Linking.openURL(`tel:${appt.customerPhone}`)} />
           ) : null}

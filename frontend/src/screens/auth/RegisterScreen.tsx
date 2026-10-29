@@ -13,12 +13,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { AppButton } from '../../components/common/AppButton';
 import { AppInput } from '../../components/common/AppInput';
-import { EmailField } from '../../components/common/EmailField';
+import { PhoneField } from '../../components/common/PhoneField';
 import { LocationPicker, LocationValue, LocationErrors, emptyLocation } from '../../components/common/LocationPicker';
-import { emailError, passwordError, confirmPasswordError, normalizeEmail } from '../../utils/validators';
+import { phoneError, passwordError, confirmPasswordError, normalizePhone } from '../../utils/validators';
 import { useAuth } from '../../context/AuthContext';
 import { getCurrencySymbol, getErrorMessage } from '../../utils/helpers';
 import { CATEGORIES, CareCategory } from '../../api/careApi';
+import { PayoutFields, PayoutValues, emptyPayout, payoutErrors, payoutPayload } from '../../components/care/PayoutFields';
 import { AuthStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
@@ -31,9 +32,8 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Common fields
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('+91 ');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
 
   // Customer fields
   const [location, setLocation] = useState<LocationValue>(emptyLocation);
@@ -55,6 +55,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   const [businessAbout, setBusinessAbout] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   const [categories, setCategories] = useState<CareCategory[]>([]);
+  const [payout, setPayout] = useState<PayoutValues>(emptyPayout);
   const toggleCategory = (c: CareCategory) =>
     setCategories((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]));
 
@@ -75,7 +76,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
       setError('Please enter your full name.');
       return;
     }
-    if (emailError(email) || passwordError(password) || confirmPasswordError(password, confirmPassword)) {
+    if (phoneError(mobile) || passwordError(password) || confirmPasswordError(password, confirmPassword)) {
       setError('Please fix the highlighted fields.');
       return;
     }
@@ -83,6 +84,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
       if (!businessName.trim()) return setError('Please enter your business name.');
       if (categories.length === 0) return setError('Choose at least one service: grooming, boarding or training.');
       if (!businessAddress.trim()) return setError('Please enter your street address.');
+    }
+    if (role !== 'ROLE_CUSTOMER' && Object.keys(payoutErrors(payout)).length) {
+      return setError('Please add your payment details (UPI id or bank account) so you can receive payments.');
     }
     if (Object.keys(locationErrors).length) {
       setError(role === 'ROLE_CUSTOMER'
@@ -99,10 +103,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
       const result = await register({
         role,
         fullName: fullName.trim(),
-        email: normalizeEmail(email),
         password,
         confirmPassword,
-        phone: phone.trim() || undefined,
+        phone: normalizePhone(mobile),
         city: role !== 'ROLE_DOCTOR' ? location.city.trim() : undefined,
         postalCode: role !== 'ROLE_DOCTOR' ? location.postalCode.trim() || undefined : undefined,
         clinicCity: role === 'ROLE_DOCTOR' ? location.city.trim() : undefined,
@@ -115,6 +118,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         businessName: role === 'ROLE_PROVIDER' ? businessName.trim() : undefined,
         description: role === 'ROLE_PROVIDER' ? businessAbout.trim() || undefined : undefined,
         categories: role === 'ROLE_PROVIDER' ? categories : undefined,
+        ...(role !== 'ROLE_CUSTOMER' ? payoutPayload(payout) : {}),
         emergencyContact: role === 'ROLE_CUSTOMER' ? emergencyContact : undefined,
         clinicName: role === 'ROLE_DOCTOR' ? clinicName.trim() || undefined : undefined,
         clinicAddress: role === 'ROLE_DOCTOR' ? clinicAddress.trim() || undefined : undefined,
@@ -124,7 +128,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         bio: role === 'ROLE_DOCTOR' ? bio : undefined,
       });
       // The account exists but is unverified: confirm the emailed code before signing in.
-      navigation.navigate('VerifyOtp', { email: result.email });
+      navigation.navigate('VerifyOtp', { mobile: result.mobile });
     } catch (err: any) {
       const msg = getErrorMessage(err, 'Registration failed. Please verify details.');
       setError(msg);
@@ -186,16 +190,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
             icon="person-outline"
           />
 
-          <EmailField value={email} onChange={setEmail} forceError={submitted} testID="reg-email" />
-
-          <AppInput
-            label="Phone Number"
-            placeholder="+1 555-0199"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            icon="call-outline"
-          />
+          <PhoneField value={mobile} onChange={setMobile} forceError={submitted} testID="reg-mobile" />
 
           <AppInput
             label="Password *"
@@ -272,6 +267,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
                 icon="map-outline"
               />
               <LocationPicker value={location} onChange={setLocation} pinRequired districtLabel="District / City *" errors={submitted ? locationErrors : undefined} />
+              <PayoutFields value={payout} onChange={setPayout} showErrors={submitted} />
               <AppInput
                 label="Registration / Licence Number"
                 placeholder="Optional"
@@ -297,6 +293,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
                 icon="map-outline"
               />
               <LocationPicker value={location} onChange={setLocation} pinRequired districtLabel="Clinic District / City *" errors={submitted ? locationErrors : undefined} />
+              <PayoutFields value={payout} onChange={setPayout} showErrors={submitted} />
               <AppInput
                 label="License / Registration Number"
                 placeholder="e.g. VET-US-10294"

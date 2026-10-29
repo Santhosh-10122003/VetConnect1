@@ -17,6 +17,7 @@ type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderSetup'>;
 /** A vet doctor adds a pet-care business, starting from what the clinic profile already knows. */
 export const ProviderSetupScreen: React.FC<Props> = ({ navigation }) => {
   const [initial, setInitial] = useState<ProviderFormValues | null>(null);
+  const [reusePayout, setReusePayout] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,7 @@ export const ProviderSetupScreen: React.FC<Props> = ({ navigation }) => {
     doctorApi.getMyDoctorProfile()
       .then((r) => {
         const d = r.data;
+        setReusePayout(!!d.payoutComplete);
         setInitial({
           ...emptyProviderForm,
           businessName: d.clinicName ? `${d.clinicName} Pet Care` : '',
@@ -49,6 +51,7 @@ export const ProviderSetupScreen: React.FC<Props> = ({ navigation }) => {
         </Text>
         <ProviderForm
           initial={initial}
+          reusePayout={reusePayout}
           submitLabel="Create pet-care profile"
           saving={saving}
           error={error}

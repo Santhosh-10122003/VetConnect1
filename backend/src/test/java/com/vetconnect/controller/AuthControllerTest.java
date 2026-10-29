@@ -42,6 +42,7 @@ class AuthControllerTest {
     void register_Success() throws Exception {
         RegisterRequest request = RegisterRequest.builder()
                 .email("newuser@example.com")
+                .phone("+919876500001")
                 .password("Password@123")
                 .fullName("New User")
                 .role(Role.ROLE_CUSTOMER)

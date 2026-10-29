@@ -90,6 +90,14 @@ public final class CareDtos {
         private Instant resubmittedAt;
         private String resubmitNote;
         private String ownerName;
+        // owner / admin only: where the business is paid (the account number is masked)
+        private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+        private String upiId;
+        private String accountHolderName;
+        private String bankAccountMasked;
+        private String ifscCode;
+        private String bankName;
+        private Boolean payoutComplete;
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
@@ -129,6 +137,18 @@ public final class CareDtos {
         @Max(value = 240, message = "Slots must be at most 240 minutes")
         private Integer slotMinutes;
         private String avatarUrl;
+        // Where the business gets paid: required when creating a profile; when updating, leave them all empty to keep what is saved
+        private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+        @Size(max = 100, message = "UPI id is too long")
+        private String upiId;
+        @Size(max = 100, message = "Account holder name is too long")
+        private String accountHolderName;
+        @Size(max = 30, message = "Account number is too long")
+        private String bankAccountNumber;
+        @Size(max = 15, message = "IFSC code is too long")
+        private String ifscCode;
+        @Size(max = 100, message = "Bank name is too long")
+        private String bankName;
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor

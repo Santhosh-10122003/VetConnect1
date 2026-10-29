@@ -3,6 +3,7 @@ package com.vetconnect.service;
 import com.vetconnect.common.PageResponse;
 import com.vetconnect.common.exceptions.BadRequestException;
 import com.vetconnect.domain.entities.ProviderProfile;
+import com.vetconnect.domain.entities.User;
 import com.vetconnect.dto.care.CareDtos.ProviderDto;
 import com.vetconnect.common.exceptions.ResourceNotFoundException;
 import com.vetconnect.domain.entities.DoctorProfile;
@@ -45,11 +46,11 @@ public class AdminService {
     @Transactional(readOnly = true)
     public AdminDashboardStatsDto getDashboardStats() {
         long totalCustomers = customerProfileRepository.count();
-        long totalDoctors = doctorProfileRepository.count();
-        long pendingVerifications = doctorProfileRepository.findByVerificationStatus(VerificationStatus.PENDING).size();
-        long resubmittedVerifications = doctorProfileRepository.findByVerificationStatus(VerificationStatus.RESUBMITTED).size();
-        long pendingProviders = providerRepository.findByVerificationStatus(VerificationStatus.PENDING).size();
-        long resubmittedProviders = providerRepository.findByVerificationStatus(VerificationStatus.RESUBMITTED).size();
+        long totalDoctors = doctorProfileRepository.findAll().stream().filter(d -> emailConfirmed(d.getUser())).count();
+        long pendingVerifications = verifiedDoctors(VerificationStatus.PENDING).size();
+        long resubmittedVerifications = verifiedDoctors(VerificationStatus.RESUBMITTED).size();
+        long pendingProviders = verifiedProviders(VerificationStatus.PENDING).size();
+        long resubmittedProviders = verifiedProviders(VerificationStatus.RESUBMITTED).size();
         long totalPets = petRepository.count();
         long totalAppointments = appointmentRepository.count();
         long completedAppointments = appointmentRepository.countByStatus(AppointmentStatus.COMPLETED);
@@ -72,9 +73,30 @@ public class AdminService {
     }
 
     /** First-time applicants waiting for a decision. */
+    private static boolean emailConfirmed(User user) {
+        return user != null && !Boolean.FALSE.equals(user.getEmailVerified());
+    }
+
+    /** A profile created at sign-up exists before the email code is confirmed; the admin only sees confirmed ones. */
+    private List<DoctorProfile> verifiedDoctors(VerificationStatus status) {
+        return doctorProfileRepository.findByVerificationStatus(status).stream()
+                .filter(d -> emailConfirmed(d.getUser())).collect(Collectors.toList());
+    }
+
+    private List<ProviderProfile> verifiedProviders(VerificationStatus status) {
+        return providerRepository.findByVerificationStatus(status).stream()
+                .filter(p -> emailConfirmed(p.getUser())).collect(Collectors.toList());
+    }
+
+    private static void requireConfirmedEmail(User user, String who) {
+        if (!emailConfirmed(user)) {
+            throw new BadRequestException("This " + who + " has not confirmed their email yet, so they cannot be reviewed.");
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<DoctorProfileDto> getPendingDoctors() {
-        return doctorProfileRepository.findByVerificationStatus(VerificationStatus.PENDING)
+        return verifiedDoctors(VerificationStatus.PENDING)
                 .stream()
                 .map(doctorService::toOwnerDto)
                 .collect(Collectors.toList());
@@ -83,7 +105,7 @@ public class AdminService {
     /** Doctors who were rejected, fixed their details and asked to be reviewed again. */
     @Transactional(readOnly = true)
     public List<DoctorProfileDto> getResubmittedDoctors() {
-        return doctorProfileRepository.findByVerificationStatus(VerificationStatus.RESUBMITTED)
+        return verifiedDoctors(VerificationStatus.RESUBMITTED)
                 .stream()
                 .sorted(java.util.Comparator.comparing(DoctorProfile::getResubmittedAt,
                         java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
@@ -96,6 +118,7 @@ public class AdminService {
         DoctorProfile doctor = doctorProfileRepository.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with ID: " + doctorId));
 
+        requireConfirmedEmail(doctor.getUser(), "doctor");
         VerificationStatus decision = request.getStatus();
         if (decision != VerificationStatus.APPROVED && decision != VerificationStatus.REJECTED) {
             log.warn("Verification rejected: invalid decision {} for doctorId={}", decision, doctorId);
@@ -129,13 +152,13 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<ProviderDto> getPendingProviders() {
-        return providerRepository.findByVerificationStatus(VerificationStatus.PENDING)
+        return verifiedProviders(VerificationStatus.PENDING)
                 .stream().map(providerService::toOwnerDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<ProviderDto> getResubmittedProviders() {
-        return providerRepository.findByVerificationStatus(VerificationStatus.RESUBMITTED)
+        return verifiedProviders(VerificationStatus.RESUBMITTED)
                 .stream()
                 .sorted(java.util.Comparator.comparing(ProviderProfile::getResubmittedAt,
                         java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
@@ -147,12 +170,17 @@ public class AdminService {
     public ProviderDto updateProviderVerification(Long providerId, DoctorVerificationRequest request) {
         ProviderProfile p = providerRepository.findById(providerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Provider not found with ID: " + providerId));
+        requireConfirmedEmail(p.getUser(), "business");
         VerificationStatus decision = request.getStatus();
         if (decision != VerificationStatus.APPROVED && decision != VerificationStatus.REJECTED) {
             log.warn("Provider verification rejected: invalid decision {} for providerId={}", decision, providerId);
             throw new BadRequestException("Decision must be APPROVED or REJECTED.");
         }
         String reason = request.getRemarks().trim();
+        if (decision == VerificationStatus.APPROVED && !p.isPayoutComplete()) {
+            log.warn("Provider approval refused: providerId={} has no payment details", providerId);
+            throw new BadRequestException("Payment details are missing. The business has to add where it gets paid before it can be approved.");
+        }
 
         p.setVerificationStatus(decision);
         p.setVerificationReason(reason);

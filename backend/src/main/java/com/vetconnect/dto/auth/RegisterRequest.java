@@ -22,7 +22,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class RegisterRequest {
 
-    @NotBlank(message = "Email is required")
+    /** Optional: the account is identified by the mobile number. */
     @Email(message = "Email must be valid")
     @Size(max = 254, message = "Email is too long")
     @Pattern(regexp = "^(?!.*\\.\\.)[A-Za-z0-9](?:[A-Za-z0-9._%+-]{0,62}[A-Za-z0-9])?@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,24}$", message = "Enter a valid email address, like name@example.com")
@@ -35,6 +35,7 @@ public class RegisterRequest {
     /** When supplied it must equal the password (the app always sends it). */
     private String confirmPassword;
 
+    @NotBlank(message = "Mobile number is required")
     private String phone;
 
     @NotNull(message = "Role is required (ROLE_CUSTOMER or ROLE_DOCTOR)")
@@ -47,6 +48,13 @@ public class RegisterRequest {
     private String businessName;
     private String description;
     private java.util.Set<com.vetconnect.domain.enums.CareCategory> categories;
+    // Where the business gets paid (required for ROLE_PROVIDER)
+    private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+    private String upiId;
+    private String accountHolderName;
+    private String bankAccountNumber;
+    private String ifscCode;
+    private String bankName;
 
     // Doctor specific fields (optional during registration if customer)
     private String licenseNumber;

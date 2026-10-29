@@ -55,7 +55,8 @@ class DoctorServiceLocationTest {
     @BeforeEach
     void setUp() {
         service = new DoctorService(doctorProfileRepository, availabilityRepository, specializationRepository,
-                appointmentRepository, customerProfileRepository, userRepository, notificationService, new AppProperties());
+                appointmentRepository, customerProfileRepository, userRepository, notificationService, new AppProperties(),
+                mock(com.vetconnect.repository.DoctorBlockedSlotRepository.class));
         sarah = doctor(1L, "Dr. Sarah", "Springfield", 39.7817, -89.6501, "4.50");
         raj = doctor(2L, "Dr. Raj", "West Bay", 39.9000, -89.4500, "4.90");
         emily = doctor(3L, "Dr. Emily", "Northview", 40.3000, -89.2000, "5.00");
@@ -66,7 +67,8 @@ class DoctorServiceLocationTest {
     }
 
     private DoctorProfile doctor(Long id, String name, String city, Double lat, Double lon, String rating) {
-        return DoctorProfile.builder().id(id).fullName(name).clinicCity(city).latitude(lat).longitude(lon)
+        return DoctorProfile.builder().id(id).fullName(name).clinicCity(city)
+                .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("dr" + id + "@upi").latitude(lat).longitude(lon)
                 .clinicName("Clinic").clinicAddress("Addr").licenseNumber("L" + id)
                 .ratingAvg(new BigDecimal(rating)).consultationFee(BigDecimal.TEN)
                 .verificationStatus(VerificationStatus.APPROVED).specializations(new HashSet<>())

@@ -26,6 +26,7 @@ public class CarePaymentService {
     private final CarePaymentRepository paymentRepository;
     private final PaymentGateway gateway;
     private final Clock clock;
+    private final WalletService walletService;
 
     public boolean isTestMode() {
         return gateway.isTestMode();
@@ -81,6 +82,7 @@ public class CarePaymentService {
         payment.setFailureReason(null);
         payment.setGatewayPaymentId(paymentId);
         paymentRepository.save(payment);
+        walletService.creditAdvance(payment);
         log.info("Payment succeeded: paymentId={} ref={} amount={} gatewayPaymentId={}", payment.getId(), payment.reference(), payment.getAmount(), paymentId);
     }
 
@@ -113,6 +115,7 @@ public class CarePaymentService {
         payment.setPaidAt(clock.instant());
         payment.setGatewayPaymentId("sim_pay_" + payment.getId());
         paymentRepository.save(payment);
+        walletService.creditAdvance(payment);
         log.info("Payment succeeded: paymentId={} ref={} amount={}", payment.getId(), payment.reference(), payment.getAmount());
     }
 
@@ -152,6 +155,7 @@ public class CarePaymentService {
         payment.setStatus(payment.getRefundedAmount().compareTo(payment.getAmount()) >= 0 ? PaymentStatus.REFUNDED : PaymentStatus.PARTIALLY_REFUNDED);
         payment.setRefundedAt(clock.instant());
         paymentRepository.save(payment);
+        walletService.debitRefund(payment, amount);
         log.info("Refund issued: paymentId={} ref={} amount={} refundId={} why={}",
                 payment.getId(), payment.reference(), amount, refundId, why);
         return amount;

@@ -43,6 +43,14 @@ public class DoctorProfileDto {
     private Instant resubmittedAt;
     private String resubmitNote;
     private String avatarUrl;
+    // Only filled for the doctor themself and for admins: where the doctor is paid (the account number is masked)
+    private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+    private String upiId;
+    private String accountHolderName;
+    private String bankAccountMasked;
+    private String ifscCode;
+    private String bankName;
+    private Boolean payoutComplete;
     private List<SpecializationDto> specializations;
     private List<DoctorAvailabilityDto> availabilities;
 

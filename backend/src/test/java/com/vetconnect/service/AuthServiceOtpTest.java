@@ -56,7 +56,7 @@ class AuthServiceOtpTest {
     }
 
     private RegisterRequest.RegisterRequestBuilder customerRequest() {
-        return RegisterRequest.builder().email("New@Example.com").password("secret1").fullName("New Customer")
+        return RegisterRequest.builder().email("New@Example.com").phone("+91 98765 43210").password("secret1").fullName("New Customer")
                 .role(Role.ROLE_CUSTOMER).city("Springfield");
     }
 
@@ -133,11 +133,14 @@ class AuthServiceOtpTest {
         });
 
         authService.register(customerRequest().role(Role.ROLE_DOCTOR).city(null).clinicCity("West Bay")
-                .country("India").state("Tamil Nadu").latitude(11.0).longitude(76.9).build());
+                .country("India").state("Tamil Nadu").latitude(11.0).longitude(76.9)
+                .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("drtest@okaxis").build());
 
         ArgumentCaptor<DoctorProfile> doctor = ArgumentCaptor.forClass(DoctorProfile.class);
         verify(doctorProfileRepository).save(doctor.capture());
         assertEquals(VerificationStatus.PENDING, doctor.getValue().getVerificationStatus());
+        assertEquals("drtest@okaxis", doctor.getValue().getUpiId());
+        assertTrue(doctor.getValue().isPayoutComplete());
         assertEquals("West Bay", doctor.getValue().getClinicCity());
         assertEquals("India", doctor.getValue().getClinicCountry());
         assertEquals("Tamil Nadu", doctor.getValue().getClinicState());
@@ -253,5 +256,105 @@ class AuthServiceOtpTest {
         authService.resendOtp(ResendOtpRequest.builder().email("v@x.com").build());
 
         verify(emailOtpService, never()).issue(any(), anyBoolean());
+    }
+
+    @Test
+    void register_doctorMustGivePaymentDetails() {
+        stubSaveUser();
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(doctorProfileRepository.existsByLicenseNumberIgnoreCase(any())).thenReturn(false);
+        RegisterRequest.RegisterRequestBuilder doctorRequest = customerRequest().role(Role.ROLE_DOCTOR).city(null).clinicCity("West Bay")
+                .country("India").state("Tamil Nadu").latitude(11.0).longitude(76.9);
+
+        BadRequestException none = assertThrows(BadRequestException.class, () -> authService.register(doctorRequest.build()));
+        assertTrue(none.getMessage().contains("Payment details are required"));
+        assertThrows(BadRequestException.class, () -> authService.register(doctorRequest.payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("bad").build()));
+        assertThrows(BadRequestException.class, () -> authService.register(doctorRequest.payoutMethod(com.vetconnect.domain.enums.PayoutMethod.BANK)
+                .upiId(null).accountHolderName("Dr T").bankAccountNumber("12").ifscCode("HDFC0001234").build()));
+        verify(doctorProfileRepository, never()).save(any());
+    }
+
+    // ------------------------------------------------------------------ mobile numbers
+
+    @Test
+    void register_storesTheMobileNumberInInternationalForm_andNeedsNoEmail() {
+        stubSaveUser();
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByPhone(any())).thenReturn(false);
+
+        var response = authService.register(customerRequest().email(null).phone("+91 98765-43210").build());
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        assertEquals("+919876543210", saved.getValue().getPhone());
+        assertEquals("m919876543210@mobile.vetconnect.local", saved.getValue().getEmail(), "an internal address, never shown or emailed");
+        assertEquals("+919876543210", response.getMobile());
+        assertFalse(saved.getValue().getEmailVerified());
+        verify(emailOtpService).issue(any(User.class), eq(false));
+    }
+
+    @Test
+    void register_aMobileNumberCanOnlyBeUsedOnce() {
+        when(userRepository.existsByPhone("+919876543210")).thenReturn(true);
+        BadRequestException e = assertThrows(BadRequestException.class, () -> authService.register(customerRequest().build()));
+        assertTrue(e.getMessage().contains("already registered"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void register_rejectsNumbersThatAreNotInternationalMobileNumbers() {
+        for (String bad : new String[]{"98765 43210", "+0123456789", "+12", "abc", "+91 98765 4321012345678", "   "}) {
+            assertThrows(BadRequestException.class, () -> authService.register(customerRequest().phone(bad).build()), bad);
+        }
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void register_acceptsADoubleZeroPrefix() {
+        stubSaveUser();
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(userRepository.existsByPhone(any())).thenReturn(false);
+        authService.register(customerRequest().phone("0091 98765 43210").build());
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        assertEquals("+919876543210", saved.getValue().getPhone());
+    }
+
+    @Test
+    void login_findsTheAccountByMobileNumber_andOlderAccountsByEmail() {
+        User byPhone = User.builder().id(5L).email("m919876543210@mobile.vetconnect.local").phone("+919876543210").emailVerified(false).isActive(true).role(Role.ROLE_CUSTOMER).build();
+        when(userRepository.findByPhone("+919876543210")).thenReturn(java.util.Optional.of(byPhone));
+        when(authenticationManager.authenticate(any())).thenReturn(null);
+        when(emailOtpService.issue(any(User.class), eq(true))).thenReturn(true);
+
+        com.vetconnect.common.exceptions.EmailNotVerifiedException e = assertThrows(com.vetconnect.common.exceptions.EmailNotVerifiedException.class,
+                () -> authService.login(com.vetconnect.dto.auth.LoginRequest.builder().mobile("98765 43210".replace("98765", "+91 98765")).password("secret1").build()));
+        assertEquals("+919876543210", e.getMobile(), "the app is told which number to verify");
+
+        verify(authenticationManager).authenticate(argThat(a -> "m919876543210@mobile.vetconnect.local".equals(a.getPrincipal())));
+
+        User old = User.builder().id(6L).email("old@example.com").emailVerified(false).isActive(true).role(Role.ROLE_CUSTOMER).build();
+        when(userRepository.findByEmail("old@example.com")).thenReturn(java.util.Optional.of(old));
+        assertThrows(com.vetconnect.common.exceptions.EmailNotVerifiedException.class,
+                () -> authService.login(com.vetconnect.dto.auth.LoginRequest.builder().mobile("Old@Example.com").password("secret1").build()));
+    }
+
+    @Test
+    void login_withoutAnyIdentifierIsRefused() {
+        assertThrows(BadRequestException.class, () -> authService.login(com.vetconnect.dto.auth.LoginRequest.builder().password("secret1").build()));
+    }
+
+    @Test
+    void verifyOtp_findsTheAccountByMobileNumber() {
+        User u = User.builder().id(7L).email("m1@mobile.vetconnect.local").phone("+919876543210").emailVerified(false).isActive(true).role(Role.ROLE_CUSTOMER).build();
+        when(userRepository.findByPhone("+919876543210")).thenReturn(java.util.Optional.of(u));
+        doThrow(new BadRequestException(EmailOtpServiceMessages.INVALID)).when(emailOtpService).verify(eq(u), eq("000000"));
+        assertThrows(BadRequestException.class, () -> authService.verifyOtp(
+                com.vetconnect.dto.auth.VerifyOtpRequest.builder().mobile("+91 98765 43210").otp("000000").build()));
+        verify(emailOtpService).verify(u, "000000");
+    }
+
+    private static final class EmailOtpServiceMessages {
+        static final String INVALID = "Invalid or expired verification code.";
     }
 }

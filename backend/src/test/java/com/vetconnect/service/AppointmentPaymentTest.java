@@ -52,6 +52,8 @@ class AppointmentPaymentTest {
     @Mock private NotificationService notificationService;
     @Mock private DoctorService doctorService;
     @Mock private CarePaymentRepository paymentRepository;
+    @Mock private WalletTransactionRepository walletRepository;
+    private final List<WalletTransaction> ledger = new ArrayList<>();
 
     private final List<BigDecimal> refunds = new ArrayList<>();
     private final List<CarePayment> payments = new ArrayList<>();
@@ -72,7 +74,10 @@ class AppointmentPaymentTest {
             @Override public boolean verifySignature(String orderId, String paymentId, String signature) { return signatureOk; }
             @Override public String refund(CarePayment payment, BigDecimal amount) { refunds.add(amount); return "refund_1"; }
         };
-        CarePaymentService paymentService = new CarePaymentService(paymentRepository, gateway, CLOCK);
+        when(walletRepository.save(any())).thenAnswer(i -> { ledger.add(i.getArgument(0)); return i.getArgument(0); });
+        when(walletRepository.existsByPaymentIdAndType(anyLong(), any())).thenAnswer(i ->
+                ledger.stream().anyMatch(t -> t.getType() == i.getArgument(1) && t.getPayment() != null && i.getArgument(0).equals(t.getPayment().getId())));
+        CarePaymentService paymentService = new CarePaymentService(paymentRepository, gateway, CLOCK, new WalletService(walletRepository, new AppProperties()));
         service = new AppointmentService(appointmentRepository, customerProfileRepository, doctorProfileRepository, petRepository,
                 userRepository, reviewRepository, medicalRecordRepository, notificationService, doctorService, paymentService,
                 new AppProperties(), CLOCK);
@@ -357,5 +362,60 @@ class AppointmentPaymentTest {
         held();
         assertThrows(BadRequestException.class, () -> service.confirmAppointment(99L, 2L, null));
         assertThrows(BadRequestException.class, () -> service.completeAppointment(99L, 2L, null));
+    }
+
+    // ------------------------------------------------------------------ the doctor's wallet
+
+    private BigDecimal balance() {
+        return ledger.stream().map(t -> t.getType() == WalletTxnType.CREDIT ? t.getAmount() : t.getAmount().negate()).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Test
+    void aPaidAdvanceIsCreditedToTheDoctorsWallet() {
+        held();
+        assertTrue(ledger.isEmpty(), "nothing is credited before the payment");
+        service.settleTestPayment(1L, 99L, Outcome.SUCCESS);
+        assertEquals(1, ledger.size());
+        WalletTransaction t = ledger.get(0);
+        assertEquals(doctorUser, t.getUser(), "it goes to the doctor, not the customer");
+        assertEquals(WalletTxnType.CREDIT, t.getType());
+        assertEquals(new BigDecimal("40.00"), t.getAmount());
+        assertTrue(t.getDescription().contains("VC-") || t.getDescription().contains("vet visit"));
+    }
+
+    @Test
+    void aDeclinedOrUnpaidAttemptCreditsNothing() {
+        held();
+        service.settleTestPayment(1L, 99L, Outcome.FAILURE);
+        service.cancelAppointment(99L, 1L, null);
+        assertTrue(ledger.isEmpty());
+    }
+
+    @Test
+    void aRefundTakesTheMoneyBackOutOfTheWallet() {
+        held();
+        service.settleTestPayment(1L, 99L, Outcome.SUCCESS);
+        service.rejectAppointment(99L, 2L, StatusUpdateRequest.builder().reason("Fully booked").build());
+        assertEquals(2, ledger.size());
+        assertEquals(WalletTxnType.DEBIT, ledger.get(1).getType());
+        assertEquals(0, BigDecimal.ZERO.compareTo(balance()), "credit and refund cancel out");
+    }
+
+    @Test
+    void aCustomerCancellingLateLeavesTheAdvanceWithTheDoctor() {
+        Appointment a = paid(AppointmentStatus.CONFIRMED, 5); // inside the 24 hour window: no refund
+        ledger.add(WalletTransaction.builder().user(doctorUser).type(WalletTxnType.CREDIT).amount(new BigDecimal("40.00")).currency("USD").description("x").payment(payments.get(0)).build());
+        service.cancelAppointment(99L, 1L, null);
+        assertEquals(AppointmentStatus.CANCELLED, a.getStatus());
+        assertEquals(new BigDecimal("40.00"), balance(), "the doctor keeps it");
+    }
+
+    @Test
+    void theSamePaymentIsNeverCreditedTwice() {
+        held();
+        service.settleTestPayment(1L, 99L, Outcome.SUCCESS);
+        // a replayed confirmation must not add money again
+        new WalletService(walletRepository, new AppProperties()).creditAdvance(payments.get(0));
+        assertEquals(1, ledger.size());
     }
 }

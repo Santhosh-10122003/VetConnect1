@@ -72,7 +72,9 @@ public class EmailOtpService {
                 .expiryDate(Instant.now().plusMillis(appProperties.getOtp().getExpirationMs()))
                 .build());
 
-        log.warn("[SIMULATED EMAIL] Verification code for {}: {} (valid {} minutes)", user.getEmail(), code, expiryMinutes());
+        // No SMS provider is configured: the "text message" is written to the server log.
+        log.warn("[SIMULATED SMS] Verification code for {} [{}]: {} (valid {} minutes)",
+                user.getPhone() != null ? user.getPhone() : user.getEmail(), user.getEmail(), code, expiryMinutes());
         return true;
     }
 

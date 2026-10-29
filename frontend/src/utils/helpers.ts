@@ -83,3 +83,7 @@ export const setCurrencySymbol = (symbol: string) => { currencySymbol = symbol |
 
 export const money = (amount: number | string | undefined | null, digits = 2): string =>
   `${currencySymbol}${Number(amount ?? 0).toFixed(digits)}`;
+
+/** The email to show, or undefined for the internal address of an account that signed up with a mobile number only. */
+export const visibleEmail = (email?: string | null): string | undefined =>
+  !email || email.endsWith('@mobile.vetconnect.local') ? undefined : email;

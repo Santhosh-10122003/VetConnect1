@@ -121,4 +121,55 @@ class AdminServiceDecisionTest {
         verify(doctorService).toOwnerDto(resubmitted);
         verify(doctorService, times(2)).toOwnerDto(any());
     }
+
+    @Test
+    void aPetCareBusinessWithoutPaymentDetailsCannotBeApproved_butCanBeRejected() {
+        com.vetconnect.domain.entities.ProviderProfile biz = com.vetconnect.domain.entities.ProviderProfile.builder().id(9L).businessName("No Pay Pets")
+                .user(doctorUser).verificationStatus(VerificationStatus.PENDING).build();
+        when(providerRepository.findById(9L)).thenReturn(Optional.of(biz));
+        lenient().when(providerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(providerService.toOwnerDto(any())).thenReturn(new com.vetconnect.dto.care.CareDtos.ProviderDto());
+
+        BadRequestException e = assertThrows(BadRequestException.class, () -> service.updateProviderVerification(9L, decision(VerificationStatus.APPROVED, "looks fine")));
+        assertTrue(e.getMessage().contains("Payment details are missing"));
+        assertEquals(VerificationStatus.PENDING, biz.getVerificationStatus());
+
+        service.updateProviderVerification(9L, decision(VerificationStatus.REJECTED, "Add your payment details"));
+        assertEquals(VerificationStatus.REJECTED, biz.getVerificationStatus());
+
+        biz.setPayoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI);
+        biz.setUpiId("nopay@upi");
+        service.updateProviderVerification(9L, decision(VerificationStatus.APPROVED, "details added"));
+        assertEquals(VerificationStatus.APPROVED, biz.getVerificationStatus());
+    }
+
+    @Test
+    void anAccountThatHasNotConfirmedItsEmailIsNotInTheAdminQueue_andCannotBeDecided() {
+        User unverifiedUser = User.builder().id(60L).email("new@x.com").emailVerified(false).build();
+        DoctorProfile unverified = DoctorProfile.builder().id(11L).fullName("Dr. Unverified").user(unverifiedUser)
+                .verificationStatus(VerificationStatus.PENDING).specializations(new HashSet<>()).build();
+        when(doctorProfileRepository.findByVerificationStatus(VerificationStatus.PENDING)).thenReturn(List.of(doctor, unverified));
+        when(doctorProfileRepository.findById(11L)).thenReturn(Optional.of(unverified));
+
+        service.getPendingDoctors();
+        verify(doctorService).toOwnerDto(doctor);
+        verify(doctorService, never()).toOwnerDto(unverified);
+
+        BadRequestException e = assertThrows(BadRequestException.class, () -> service.updateDoctorVerification(11L, decision(VerificationStatus.APPROVED, "ok")));
+        assertTrue(e.getMessage().contains("has not confirmed their email"));
+        assertEquals(VerificationStatus.PENDING, unverified.getVerificationStatus());
+
+        com.vetconnect.domain.entities.ProviderProfile biz = com.vetconnect.domain.entities.ProviderProfile.builder().id(12L).businessName("Unverified Pets")
+                .user(unverifiedUser).verificationStatus(VerificationStatus.PENDING).build();
+        com.vetconnect.domain.entities.ProviderProfile okBiz = com.vetconnect.domain.entities.ProviderProfile.builder().id(13L).businessName("Verified Pets")
+                .user(doctorUser).verificationStatus(VerificationStatus.PENDING).build();
+        when(providerRepository.findByVerificationStatus(VerificationStatus.PENDING)).thenReturn(List.of(biz, okBiz));
+        when(providerRepository.findById(12L)).thenReturn(Optional.of(biz));
+        lenient().when(providerService.toOwnerDto(any())).thenReturn(new com.vetconnect.dto.care.CareDtos.ProviderDto());
+
+        service.getPendingProviders();
+        verify(providerService).toOwnerDto(okBiz);
+        verify(providerService, never()).toOwnerDto(biz);
+        assertThrows(BadRequestException.class, () -> service.updateProviderVerification(12L, decision(VerificationStatus.REJECTED, "no")));
+    }
 }

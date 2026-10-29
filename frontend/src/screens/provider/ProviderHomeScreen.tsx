@@ -11,6 +11,7 @@ import { AppHeader } from '../../components/common/AppHeader';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
+import { WalletCard } from '../../components/payment/WalletCard';
 import { ProviderStatusCard } from '../../components/care/ProviderStatusCard';
 import { ProviderStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
@@ -89,7 +90,20 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={shared.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
       >
+        <WalletCard onPress={() => navigation.navigate('ProviderWallet')} />
+
         <ProviderStatusCard profile={profile} onChanged={setProfile} />
+
+        {profile.payoutComplete === false && (
+          <TouchableOpacity style={styles.payoutWarn} onPress={() => navigation.navigate('ProviderProfile')} activeOpacity={0.9} testID="payout-missing">
+            <Ionicons name="wallet-outline" size={22} color={colors.danger} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.payoutWarnTitle}>Add your payment details</Text>
+              <Text style={styles.payoutWarnText}>Customers cannot see or book you, and you cannot be approved, until you say where you get paid (UPI or bank account).</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.danger} />
+          </TouchableOpacity>
+        )}
 
         {profile.verificationStatus !== 'APPROVED' && (
           <Text style={styles.notice}>Customers cannot find or book you until you are approved.</Text>
@@ -116,6 +130,9 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  payoutWarn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FEF2F2', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#FECACA' },
+  payoutWarnTitle: { fontSize: 14, fontWeight: '800', color: colors.danger },
+  payoutWarnText: { fontSize: 12, color: colors.text, marginTop: 2, lineHeight: 17 },
   setupTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginTop: 10 },
   setupText: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginVertical: 10 },
   notice: { fontSize: 12, color: colors.textSecondary, marginBottom: 12, textAlign: 'center' },

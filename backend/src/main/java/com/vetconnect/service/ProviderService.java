@@ -1,5 +1,6 @@
 package com.vetconnect.service;
 
+import com.vetconnect.common.PayoutRules;
 import com.vetconnect.common.LocationMatch;
 import com.vetconnect.common.PageResponse;
 import com.vetconnect.common.exceptions.BadRequestException;
@@ -41,6 +42,7 @@ public class ProviderService {
     private final CareAvailabilityService availabilityService;
     private final AppProperties appProperties;
     private final Clock clock;
+    private final DoctorProfileRepository doctorRepository;
 
     // ================================================================== the provider's own profile
 
@@ -63,6 +65,18 @@ public class ProviderService {
             throw new BadRequestException("You already have a pet-care profile.");
         }
         ProviderProfile p = ProviderProfile.builder().user(user).build();
+        // a clinic that already gave payment details on its doctor profile does not have to type them again
+        if (user.getRole() == Role.ROLE_DOCTOR) {
+            DoctorProfile d = doctorRepository.findByUserId(userId).filter(DoctorProfile::isPayoutComplete).orElse(null);
+            if (d != null) {
+                p.setPayoutMethod(d.getPayoutMethod());
+                p.setUpiId(d.getUpiId());
+                p.setAccountHolderName(d.getAccountHolderName());
+                p.setBankAccountNumber(d.getBankAccountNumber());
+                p.setIfscCode(d.getIfscCode());
+                p.setBankName(d.getBankName());
+            }
+        }
         apply(p, request, true);
         defaultHours(p);
         p = providerRepository.save(p);
@@ -184,6 +198,7 @@ public class ProviderService {
     public PageResponse<ProviderDto> search(UserPrincipal viewer, CareCategory category, String query, Double radiusKm, Pageable pageable) {
         String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
         List<ProviderProfile> candidates = providerRepository.findByVerificationStatus(VerificationStatus.APPROVED).stream()
+                .filter(ProviderProfile::isPayoutComplete)
                 .filter(p -> category == null || p.getCategories().contains(category))
                 .filter(p -> q.isEmpty() || p.getBusinessName().toLowerCase(Locale.ROOT).contains(q)
                         || (p.getDescription() != null && p.getDescription().toLowerCase(Locale.ROOT).contains(q))
@@ -274,6 +289,7 @@ public class ProviderService {
     public void assertCustomerCanAccess(CustomerProfile customer, ProviderProfile provider) {
         boolean ok = customer != null
                 && provider.getVerificationStatus() == VerificationStatus.APPROVED
+                && provider.isPayoutComplete()
                 && LocationMatch.inArea(placeOf(customer), placeOf(provider), appProperties.getLocation().getMaxRadiusKm());
         if (!ok) {
             log.warn("Provider access denied: providerId={} is not available to customerId={}",
@@ -292,6 +308,26 @@ public class ProviderService {
     /** Minutes one session of this service takes (add-ons without a duration add nothing). */
     public int sessionMinutes(CareService s) {
         return s.getDurationMinutes() != null ? s.getDurationMinutes() : 60;
+    }
+
+    /**
+     * Where the business gets paid is mandatory: a UPI id, or a bank account (holder name, account number, IFSC).
+     * Sending nothing is fine only when complete details are already saved; sending anything is checked in full.
+     */
+    private void applyPayout(ProviderProfile p, ProviderRequest r) {
+        boolean sent = PayoutRules.anySent(r.getPayoutMethod(), r.getUpiId(), r.getAccountHolderName(), r.getBankAccountNumber(), r.getIfscCode(), r.getBankName());
+        if (!sent) {
+            if (p.isPayoutComplete()) return;
+            throw new BadRequestException(PayoutRules.REQUIRED_MESSAGE);
+        }
+        PayoutRules.Fields f = PayoutRules.normalize(r.getPayoutMethod(), r.getUpiId(), r.getAccountHolderName(), r.getBankAccountNumber(),
+                r.getIfscCode(), r.getBankName(), p.getPayoutMethod(), p.getBankAccountNumber());
+        p.setPayoutMethod(f.method());
+        p.setUpiId(f.upiId());
+        p.setAccountHolderName(f.holder());
+        p.setBankAccountNumber(f.account());
+        p.setIfscCode(f.ifsc());
+        p.setBankName(f.bankName());
     }
 
     private ProviderProfile mine(Long userId) {
@@ -317,6 +353,8 @@ public class ProviderService {
         if (r.getCategories().contains(CareCategory.BOARDING) && boarding <= 0) {
             throw new BadRequestException("Boarding needs a capacity of at least 1 pet.");
         }
+
+        applyPayout(p, r);
 
         p.setBusinessName(r.getBusinessName().trim());
         p.setDescription(blankToNull(r.getDescription()));
@@ -435,6 +473,9 @@ public class ProviderService {
                 .resubmittedAt(p.getResubmittedAt())
                 .resubmitNote(p.getResubmitNote())
                 .email(p.getUser().getEmail())
+                .payoutMethod(p.getPayoutMethod()).upiId(p.getUpiId()).accountHolderName(p.getAccountHolderName())
+                .bankAccountMasked(PayoutRules.mask(p.getBankAccountNumber())).ifscCode(p.getIfscCode()).bankName(p.getBankName())
+                .payoutComplete(p.isPayoutComplete())
                 .build();
     }
 

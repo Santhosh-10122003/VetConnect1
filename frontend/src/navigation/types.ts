@@ -5,9 +5,9 @@ export type AuthStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: { defaultRole?: 'ROLE_CUSTOMER' | 'ROLE_DOCTOR' } | undefined;
-  VerifyOtp: { email: string };
+  VerifyOtp: { mobile: string };
   ForgotPassword: undefined;
-  ResetPassword: { email?: string } | undefined;
+  ResetPassword: { mobile?: string } | undefined;
 };
 
 export type CustomerTabParamList = {
@@ -53,6 +53,8 @@ export type DoctorStackParamList = {
   DoctorAppointmentDetails: { appointmentId: number };
   ConsultationNotes: { appointmentId: number; petId: number; petName: string };
   DoctorNotifications: undefined;
+  DoctorWallet: undefined;
+  DoctorSlots: undefined;
 };
 
 export type ProviderStackParamList = {
@@ -63,6 +65,7 @@ export type ProviderStackParamList = {
   ProviderServiceEdit: { serviceId?: number } | undefined;
   ProviderHours: undefined;
   ProviderProfile: undefined;
+  ProviderWallet: undefined;
 };
 
 export type AdminStackParamList = {

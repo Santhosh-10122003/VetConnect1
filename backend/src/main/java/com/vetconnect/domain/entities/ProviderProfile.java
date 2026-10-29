@@ -79,6 +79,26 @@ public class ProviderProfile {
     @Builder.Default
     private Integer advancePercent = 30;
 
+    /** Where this business is paid. Required: see {@link #isPayoutComplete()}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payout_method", length = 10)
+    private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+
+    @Column(name = "upi_id", length = 100)
+    private String upiId;
+
+    @Column(name = "account_holder_name", length = 100)
+    private String accountHolderName;
+
+    @Column(name = "bank_account_number", length = 30)
+    private String bankAccountNumber;
+
+    @Column(name = "ifsc_code", length = 15)
+    private String ifscCode;
+
+    @Column(name = "bank_name", length = 100)
+    private String bankName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false, length = 30)
     @Builder.Default
@@ -117,6 +137,17 @@ public class ProviderProfile {
     @OneToMany(mappedBy = "provider", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProviderHours> hours = new ArrayList<>();
+
+    /** True when the chosen way of getting paid (UPI id, or holder + account + IFSC) is fully filled in. */
+    public boolean isPayoutComplete() {
+        if (payoutMethod == com.vetconnect.domain.enums.PayoutMethod.UPI) return upiId != null && !upiId.isBlank();
+        if (payoutMethod == com.vetconnect.domain.enums.PayoutMethod.BANK) {
+            return accountHolderName != null && !accountHolderName.isBlank()
+                    && bankAccountNumber != null && !bankAccountNumber.isBlank()
+                    && ifscCode != null && !ifscCode.isBlank();
+        }
+        return false;
+    }
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

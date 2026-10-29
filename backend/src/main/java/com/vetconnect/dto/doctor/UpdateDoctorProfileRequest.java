@@ -43,6 +43,13 @@ public class UpdateDoctorProfileRequest {
     private BigDecimal consultationFee;
     private String bio;
     private String avatarUrl;
+    // Where the doctor gets paid: required unless complete details are already saved
+    private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+    private String upiId;
+    private String accountHolderName;
+    private String bankAccountNumber;
+    private String ifscCode;
+    private String bankName;
     private Set<Long> specializationIds;
     private List<DoctorAvailabilityDto> availabilities;
 }

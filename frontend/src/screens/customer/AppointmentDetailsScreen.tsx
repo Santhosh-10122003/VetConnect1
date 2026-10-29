@@ -86,6 +86,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
   };
 
   const withdraw = async () => {
+    if (!(await confirmAction('Withdraw request', 'Your appointment stays at its current time.', 'Withdraw', true))) return;
     setBusy(true);
     try {
       await appointmentApi.withdrawReschedule(appt.id);

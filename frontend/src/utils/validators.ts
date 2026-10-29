@@ -67,3 +67,21 @@ export const confirmPasswordError = (password: string, confirm: string): string 
   if (password !== confirm) return 'Passwords do not match';
   return null;
 };
+
+/**
+ * Mobile numbers are typed with their country code (+91 98765 43210) and sent in international form.
+ */
+export const normalizePhone = (raw: string): string => {
+  let s = raw.trim().replace(/[\s().-]/g, '');
+  if (s.startsWith('00')) s = '+' + s.slice(2);
+  return s;
+};
+
+export const phoneError = (raw: string): string | null => {
+  const value = raw.trim();
+  if (!value || value === '+') return 'Enter your mobile number';
+  const s = normalizePhone(value);
+  if (!s.startsWith('+')) return 'Start with your country code, like +91';
+  if (!/^\+[1-9][0-9]{6,14}$/.test(s)) return 'Enter a valid mobile number, like +91 98765 43210';
+  return null;
+};

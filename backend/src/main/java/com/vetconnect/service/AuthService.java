@@ -1,5 +1,6 @@
 package com.vetconnect.service;
 
+import com.vetconnect.common.PhoneNumbers;
 import com.vetconnect.common.exceptions.BadRequestException;
 import com.vetconnect.common.exceptions.EmailNotVerifiedException;
 import com.vetconnect.common.exceptions.ResourceNotFoundException;
@@ -61,7 +62,13 @@ public class AuthService {
      */
     @Transactional
     public RegistrationResponse register(RegisterRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
+        // The account is identified by the mobile number; an email is optional.
+        String phone = PhoneNumbers.normalize(request.getPhone());
+        if (userRepository.existsByPhone(phone)) {
+            log.warn("Registration rejected: mobile number already registered ({})", phone);
+            throw new BadRequestException("This mobile number is already registered. Please log in instead.");
+        }
+        String email = hasText(request.getEmail()) ? request.getEmail().toLowerCase().trim() : PhoneNumbers.placeholderEmail(phone);
         if (userRepository.existsByEmail(email)) {
             log.warn("Registration rejected: email already registered ({})", email);
             throw new BadRequestException("Email is already registered: " + email);
@@ -98,7 +105,7 @@ public class AuthService {
         User user = User.builder()
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
+                .phone(phone)
                 .role(role)
                 .isActive(true)
                 .emailVerified(false)
@@ -133,7 +140,10 @@ public class AuthService {
                     .phone(request.getPhone()).registrationNumber(blankToNull(request.getLicenseNumber()))
                     .address(request.getAddress()).city(city.trim()).state(blankToNull(request.getState())).country(blankToNull(request.getCountry()))
                     .postalCode(blankToNull(request.getPostalCode())).latitude(request.getLatitude()).longitude(request.getLongitude())
-                    .categories(request.getCategories()).build()).getId();
+                    .categories(request.getCategories())
+                    .payoutMethod(request.getPayoutMethod()).upiId(request.getUpiId()).accountHolderName(request.getAccountHolderName())
+                    .bankAccountNumber(request.getBankAccountNumber()).ifscCode(request.getIfscCode()).bankName(request.getBankName())
+                    .build()).getId();
         } else if (role == Role.ROLE_DOCTOR) {
             // The license is optional in the app: a blank value must not be stored (it is UNIQUE).
             String licenseNumber = hasText(request.getLicenseNumber())
@@ -143,8 +153,17 @@ public class AuthService {
                 log.warn("Registration rejected: license number already registered ({})", licenseNumber);
                 throw new BadRequestException("This license number is already registered.");
             }
+            // Where the doctor is paid is required at sign-up, like for pet-care businesses.
+            if (!com.vetconnect.common.PayoutRules.anySent(request.getPayoutMethod(), request.getUpiId(), request.getAccountHolderName(),
+                    request.getBankAccountNumber(), request.getIfscCode(), request.getBankName())) {
+                throw new BadRequestException(com.vetconnect.common.PayoutRules.REQUIRED_MESSAGE);
+            }
+            var payout = com.vetconnect.common.PayoutRules.normalize(request.getPayoutMethod(), request.getUpiId(), request.getAccountHolderName(),
+                    request.getBankAccountNumber(), request.getIfscCode(), request.getBankName(), null, null);
             DoctorProfile doctor = DoctorProfile.builder()
                     .user(user)
+                    .payoutMethod(payout.method()).upiId(payout.upiId()).accountHolderName(payout.holder())
+                    .bankAccountNumber(payout.account()).ifscCode(payout.ifsc()).bankName(payout.bankName())
                     .fullName(request.getFullName())
                     .licenseNumber(licenseNumber)
                     .clinicName(hasText(request.getClinicName()) ? request.getClinicName().trim() : "VetConnect Partner Clinic")
@@ -186,11 +205,12 @@ public class AuthService {
         }
 
         emailOtpService.issue(user, false);
-        log.info("User registered (awaiting email verification): userId={} email={} role={} profileId={} city={}",
-                user.getId(), user.getEmail(), role, profileId, city.trim());
+        log.info("User registered (awaiting mobile verification): userId={} phone={} role={} profileId={} city={}",
+                user.getId(), user.getPhone(), role, profileId, city.trim());
 
         return RegistrationResponse.builder()
                 .email(user.getEmail())
+                .mobile(user.getPhone())
                 .verificationRequired(true)
                 .otpExpiresInMinutes(emailOtpService.expiryMinutes())
                 .build();
@@ -199,21 +219,21 @@ public class AuthService {
     /** Confirms the emailed code, marks the account verified and signs the user in. */
     @Transactional(noRollbackFor = BadRequestException.class)
     public AuthResponse verifyOtp(VerifyOtpRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
-        User user = userRepository.findByEmail(email).orElseThrow(() -> {
-            log.warn("OTP verification rejected: unknown email {}", email);
+        String who = identifierOf(request.getMobile(), request.getEmail());
+        User user = findByIdentifier(request.getMobile(), request.getEmail()).orElseThrow(() -> {
+            log.warn("OTP verification rejected: unknown account {}", who);
             return new BadRequestException(EmailOtpService.INVALID_MESSAGE);
         });
 
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new BadRequestException("This email address is already verified. Please log in.");
+            throw new BadRequestException("This mobile number is already verified. Please log in.");
         }
 
         emailOtpService.verify(user, request.getOtp());
 
         user.setEmailVerified(true);
         userRepository.save(user);
-        log.info("Email verified: userId={} email={}", user.getId(), user.getEmail());
+        log.info("Mobile verified: userId={} phone={}", user.getId(), user.getPhone());
 
         String accessToken = tokenProvider.generateTokenFromUserId(user.getId(), user.getEmail(), user.getRole().name());
         String refreshToken = createRefreshToken(user).getToken();
@@ -223,10 +243,10 @@ public class AuthService {
     /** Sends a new code. The answer is identical for unknown and already-verified emails. */
     @Transactional(noRollbackFor = BadRequestException.class)
     public void resendOtp(ResendOtpRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
-        var userOpt = userRepository.findByEmail(email);
+        String who = identifierOf(request.getMobile(), request.getEmail());
+        var userOpt = findByIdentifier(request.getMobile(), request.getEmail());
         if (userOpt.isEmpty() || Boolean.TRUE.equals(userOpt.get().getEmailVerified())) {
-            log.warn("OTP resend ignored for unknown or already verified account: {}", email);
+            log.warn("OTP resend ignored for unknown or already verified account: {}", who);
             return;
         }
         emailOtpService.issue(userOpt.get(), false);
@@ -236,19 +256,23 @@ public class AuthService {
 
     @Transactional(noRollbackFor = EmailNotVerifiedException.class)
     public AuthResponse login(LoginRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
-        log.debug("Login attempt: email={}", email);
+        String who = identifierOf(request.getMobile(), request.getEmail());
+        if (who.isEmpty()) throw new BadRequestException("Enter your mobile number.");
+        log.debug("Login attempt: {}", who);
+        User found = findByIdentifier(request.getMobile(), request.getEmail()).orElse(null);
+        // Spring Security signs in by the account's internal username (its email); an unknown number fails like a wrong password.
+        String principal = found != null ? found.getEmail() : who.toLowerCase();
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+                    new UsernamePasswordAuthenticationToken(principal, request.getPassword())
             );
         } catch (AuthenticationException ex) {
-            log.warn("Login failed: email={} reason={}", email, ex.getClass().getSimpleName());
+            log.warn("Login failed: {} reason={}", who, ex.getClass().getSimpleName());
             throw ex;
         }
 
-        User user = userRepository.findByEmail(email)
+        User user = found != null ? found : userRepository.findByEmail(principal)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!Boolean.TRUE.equals(user.getIsActive())) {
@@ -259,13 +283,13 @@ public class AuthService {
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
             // Right password, but the sign-up code was never confirmed: send a fresh one (if the last is old enough).
             boolean sent = emailOtpService.issue(user, true);
-            log.warn("Login blocked: email not verified, userId={} (new code sent: {})", user.getId(), sent);
-            throw new EmailNotVerifiedException(user.getEmail());
+            log.warn("Login blocked: mobile not verified, userId={} (new code sent: {})", user.getId(), sent);
+            throw new EmailNotVerifiedException(user.getEmail(), user.getPhone());
         }
 
         String accessToken = tokenProvider.generateToken(authentication);
         String refreshToken = createRefreshToken(user).getToken();
-        log.info("Login successful: userId={} email={} role={}", user.getId(), user.getEmail(), user.getRole());
+        log.info("Login successful: userId={} phone={} role={}", user.getId(), user.getPhone(), user.getRole());
         return buildAuthResponse(user, accessToken, refreshToken);
     }
 
@@ -300,13 +324,13 @@ public class AuthService {
 
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
-        log.info("Password reset requested for email: {}", email);
+        String who = identifierOf(request.getMobile(), request.getEmail());
+        log.info("Password reset requested for: {}", who);
 
         // Same outward behaviour whether or not the account exists (no account enumeration).
-        var userOpt = userRepository.findByEmail(email);
+        var userOpt = findByIdentifier(request.getMobile(), request.getEmail());
         if (userOpt.isEmpty() || !Boolean.TRUE.equals(userOpt.get().getIsActive())) {
-            log.warn("Password reset requested for unknown or inactive account: {}", email);
+            log.warn("Password reset requested for unknown or inactive account: {}", who);
             return;
         }
         User user = userOpt.get();
@@ -323,19 +347,19 @@ public class AuthService {
                 .expiryDate(Instant.now().plusMillis(appProperties.getReset().getTokenExpirationMs()))
                 .build());
 
-        // No mail service is configured: the "email" is written to the server log.
-        log.warn("[SIMULATED EMAIL] Password reset code for {}: {} (valid {} minutes)",
-                email, code, appProperties.getReset().getTokenExpirationMs() / 60000);
+        // No SMS provider is configured: the "text message" is written to the server log.
+        log.warn("[SIMULATED SMS] Password reset code for {} [{}]: {} (valid {} minutes)",
+                user.getPhone() != null ? user.getPhone() : user.getEmail(), user.getEmail(), code, appProperties.getReset().getTokenExpirationMs() / 60000);
     }
 
     // Keep the failed-attempt counter even though a BadRequestException is thrown.
     @Transactional(noRollbackFor = BadRequestException.class)
     public void resetPassword(ResetPasswordRequest request) {
-        String email = request.getEmail().toLowerCase().trim();
+        String who = identifierOf(request.getMobile(), request.getEmail());
         final String invalid = "Invalid or expired reset code.";
 
-        User user = userRepository.findByEmail(email).orElseThrow(() -> {
-            log.warn("Password reset rejected: unknown email {}", email);
+        User user = findByIdentifier(request.getMobile(), request.getEmail()).orElseThrow(() -> {
+            log.warn("Password reset rejected: unknown account {}", who);
             return new BadRequestException(invalid);
         });
 
@@ -370,7 +394,7 @@ public class AuthService {
     // ------------------------------------------------------------------ helpers
 
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
-        String fullName = user.getEmail();
+        String fullName = user.getPhone() != null ? user.getPhone() : user.getEmail();
         Long profileId = null;
         String verificationStatus = null;
 
@@ -402,7 +426,8 @@ public class AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(user.getId())
-                .email(user.getEmail())
+                .email(PhoneNumbers.isPlaceholderEmail(user.getEmail()) ? null : user.getEmail())
+                .phone(user.getPhone())
                 .role(user.getRole())
                 .fullName(fullName)
                 .profileId(profileId)
@@ -412,6 +437,26 @@ public class AuthService {
 
     private static boolean hasText(String v) {
         return v != null && !v.isBlank();
+    }
+
+    private static String identifierOf(String mobile, String email) {
+        if (hasText(mobile)) return mobile.trim();
+        return hasText(email) ? email.trim() : "";
+    }
+
+    /**
+     * Finds an account by its mobile number. Older accounts that never gave a number can still be found by their
+     * email, so nobody is locked out by the switch to mobile numbers.
+     */
+    private java.util.Optional<User> findByIdentifier(String mobile, String email) {
+        String id = identifierOf(mobile, email);
+        if (id.isEmpty()) return java.util.Optional.empty();
+        if (id.contains("@")) return userRepository.findByEmail(id.toLowerCase());
+        try {
+            return userRepository.findByPhone(PhoneNumbers.normalize(id));
+        } catch (BadRequestException e) {
+            return java.util.Optional.empty();
+        }
     }
 
     private static String blankToNull(String v) {

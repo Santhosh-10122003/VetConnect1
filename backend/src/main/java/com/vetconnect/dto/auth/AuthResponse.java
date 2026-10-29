@@ -17,6 +17,7 @@ public class AuthResponse {
     private String tokenType = "Bearer";
     private Long userId;
     private String email;
+    private String phone;
     private Role role;
     private String fullName;
     private Long profileId;

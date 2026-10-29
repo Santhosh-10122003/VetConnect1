@@ -11,6 +11,7 @@ import { ClinicLocationCard } from '../../components/common/ClinicLocationCard';
 import { ProviderStatusCard } from '../../components/care/ProviderStatusCard';
 import { ProviderForm, ProviderFormValues, toPayload } from '../../components/care/ProviderForm';
 import { ProviderStackParamList } from '../../navigation/types';
+import { payoutFromProvider } from '../../components/care/PayoutFields';
 import { getErrorMessage, notify } from '../../utils/helpers';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderProfile'>;
@@ -26,6 +27,7 @@ const toForm = (p: Provider): ProviderFormValues => ({
     country: p.country ?? '', state: p.state ?? '', city: p.city, postalCode: p.postalCode ?? '',
     latitude: p.latitude ?? undefined, longitude: p.longitude ?? undefined,
   },
+  payout: payoutFromProvider(p),
 });
 
 export const ProviderProfileScreen: React.FC<Props> = ({ navigation }) => {
@@ -89,6 +91,9 @@ export const ProviderProfileScreen: React.FC<Props> = ({ navigation }) => {
                 ['Phone', profile.phone],
                 ['Registration number', profile.registrationNumber],
                 ['Advance to book', `${profile.advancePercent}% of the price`],
+                ['Payment details', profile.payoutComplete
+                  ? (profile.payoutMethod === 'UPI' ? `UPI: ${profile.upiId}` : `Bank: ${profile.accountHolderName}, ${profile.bankAccountMasked}, ${profile.ifscCode}`)
+                  : 'Not added yet: customers cannot book you until you add them'],
               ].map(([k, v]) => (
                 <View key={k} style={{ marginBottom: 10 }}>
                   <Text style={shared.label}>{k}</Text>

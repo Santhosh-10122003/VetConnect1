@@ -73,6 +73,38 @@ public class DoctorController {
         return ResponseEntity.ok(ApiResponse.ok(slots));
     }
 
+    @GetMapping("/me/schedule")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "My day: every slot with what is on it (free, booked by a customer, marked as booked by me, break)")
+    public ResponseEntity<ApiResponse<List<com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto>>> getMySchedule(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(doctorService.getMySchedule(userPrincipal.getId(), date)));
+    }
+
+    @PostMapping("/me/blocked-slots")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Mark a free slot as booked (customers cannot take it)")
+    public ResponseEntity<ApiResponse<com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto>> blockSlot(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody com.vetconnect.dto.doctor.DoctorScheduleDtos.BlockSlotRequest request
+    ) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.ok("Slot marked as booked", doctorService.blockSlot(userPrincipal.getId(), request)));
+    }
+
+    @DeleteMapping("/me/blocked-slots/{blockId}")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Undo a slot I marked as booked (a customer's booking can never be undone here)")
+    public ResponseEntity<ApiResponse<Void>> unblockSlot(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long blockId
+    ) {
+        doctorService.unblockSlot(userPrincipal.getId(), blockId);
+        return ResponseEntity.ok(ApiResponse.ok("Slot is free again", null));
+    }
+
     @GetMapping("/profile/me")
     @PreAuthorize("hasRole('DOCTOR')")
     @Operation(summary = "Get current authenticated doctor's profile")

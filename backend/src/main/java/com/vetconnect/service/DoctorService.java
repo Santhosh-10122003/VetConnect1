@@ -51,6 +51,7 @@ public class DoctorService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final AppProperties appProperties;
+    private final com.vetconnect.repository.DoctorBlockedSlotRepository blockedSlotRepository;
 
     // ------------------------------------------------------------------ discovery (location aware)
 
@@ -218,6 +219,7 @@ public class DoctorService {
             doctor.setLongitude(null);
         }
 
+        applyPayout(doctor, request);
         doctor.setYearsOfExperience(request.getYearsOfExperience());
         doctor.setConsultationFee(request.getConsultationFee());
         if (request.getBio() != null) doctor.setBio(request.getBio());
@@ -235,6 +237,23 @@ public class DoctorService {
         doctor = doctorProfileRepository.save(doctor);
         log.info("Doctor profile updated: doctorId={} status={} city={}", doctor.getId(), doctor.getVerificationStatus(), doctor.getClinicCity());
         return toOwnerDto(doctor);
+    }
+
+    /** Where the doctor is paid is mandatory; sending nothing is fine only when complete details are already saved. */
+    private void applyPayout(DoctorProfile doctor, UpdateDoctorProfileRequest r) {
+        boolean sent = com.vetconnect.common.PayoutRules.anySent(r.getPayoutMethod(), r.getUpiId(), r.getAccountHolderName(), r.getBankAccountNumber(), r.getIfscCode(), r.getBankName());
+        if (!sent) {
+            if (doctor.isPayoutComplete()) return;
+            throw new BadRequestException(com.vetconnect.common.PayoutRules.REQUIRED_MESSAGE);
+        }
+        var f = com.vetconnect.common.PayoutRules.normalize(r.getPayoutMethod(), r.getUpiId(), r.getAccountHolderName(), r.getBankAccountNumber(),
+                r.getIfscCode(), r.getBankName(), doctor.getPayoutMethod(), doctor.getBankAccountNumber());
+        doctor.setPayoutMethod(f.method());
+        doctor.setUpiId(f.upiId());
+        doctor.setAccountHolderName(f.holder());
+        doctor.setBankAccountNumber(f.account());
+        doctor.setIfscCode(f.ifsc());
+        doctor.setBankName(f.bankName());
     }
 
     /** Replaces the weekly schedule without touching any profile field. */
@@ -296,57 +315,156 @@ public class DoctorService {
 
     // ------------------------------------------------------------------ slots
 
-    private List<AvailableSlotDto> computeSlots(DoctorProfile doctor, LocalDate date) {
-        Long doctorId = doctor.getId();
-        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
+    /** One slot of a doctor's working day, before anything is booked or blocked. */
+    private record Cell(LocalTime start, LocalTime end, boolean inBreak, boolean past) {
+    }
 
-        Optional<DoctorAvailability> availOpt = availabilityRepository.findByDoctorIdAndDayOfWeek(doctorId, dayOfWeek);
+    private List<Cell> grid(DoctorProfile doctor, LocalDate date) {
+        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
+        Optional<DoctorAvailability> availOpt = availabilityRepository.findByDoctorIdAndDayOfWeek(doctor.getId(), dayOfWeek);
         if (availOpt.isEmpty() || !Boolean.TRUE.equals(availOpt.get().getIsActive())) {
             return Collections.emptyList();
         }
-
         DoctorAvailability avail = availOpt.get();
         int slotDuration = avail.getSlotDurationMinutes();
 
-        // Existing active appointments on that day for that doctor
-        List<Appointment> bookedAppointments = appointmentRepository.findByDoctorIdAndAppointmentDateAndStatusNotIn(
-                doctorId, date, AppointmentStatus.SLOT_RELEASED
-        );
-        Set<LocalTime> bookedStartTimes = bookedAppointments.stream()
-                .map(Appointment::getStartTime)
-                .collect(Collectors.toSet());
-
-        List<AvailableSlotDto> slots = new ArrayList<>();
+        List<Cell> cells = new ArrayList<>();
         LocalTime current = avail.getStartTime();
         LocalTime end = avail.getEndTime();
-
         while (current.plusMinutes(slotDuration).isBefore(end) || current.plusMinutes(slotDuration).equals(end)) {
             LocalTime slotEnd = current.plusMinutes(slotDuration);
 
             // Check if slot falls into doctor's break time
-            boolean isInBreak = false;
-            if (avail.getBreakStartTime() != null && avail.getBreakEndTime() != null) {
-                if (!(current.isBefore(avail.getBreakStartTime()) && slotEnd.isBefore(avail.getBreakStartTime())) &&
-                    !(current.isAfter(avail.getBreakEndTime()) || current.equals(avail.getBreakEndTime()))) {
-                    isInBreak = true;
-                }
-            }
-
-            // Check if slot is in the past for today
+            // a slot is in the break only if it overlaps it (one that ends exactly when the break starts is fine)
+            boolean isInBreak = avail.getBreakStartTime() != null && avail.getBreakEndTime() != null
+                    && current.isBefore(avail.getBreakEndTime()) && slotEnd.isAfter(avail.getBreakStartTime());
             boolean isPast = date.equals(LocalDate.now()) && current.isBefore(LocalTime.now());
-
-            boolean isAvailable = !isInBreak && !isPast && !bookedStartTimes.contains(current);
-
-            slots.add(AvailableSlotDto.builder()
-                    .date(date)
-                    .startTime(current)
-                    .endTime(slotEnd)
-                    .available(isAvailable)
-                    .build());
-
+            cells.add(new Cell(current, slotEnd, isInBreak, isPast));
             current = slotEnd;
         }
-        return slots;
+        return cells;
+    }
+
+    private List<AvailableSlotDto> computeSlots(DoctorProfile doctor, LocalDate date) {
+        Set<LocalTime> bookedStartTimes = appointmentRepository.findByDoctorIdAndAppointmentDateAndStatusNotIn(
+                        doctor.getId(), date, AppointmentStatus.SLOT_RELEASED).stream()
+                .map(Appointment::getStartTime)
+                .collect(Collectors.toSet());
+        Set<LocalTime> blocked = blockedSlotRepository.findByDoctorIdAndDate(doctor.getId(), date).stream()
+                .map(com.vetconnect.domain.entities.DoctorBlockedSlot::getStartTime)
+                .collect(Collectors.toSet());
+
+        return grid(doctor, date).stream()
+                .map(c -> AvailableSlotDto.builder()
+                        .date(date).startTime(c.start()).endTime(c.end())
+                        .available(!c.inBreak() && !c.past() && !bookedStartTimes.contains(c.start()) && !blocked.contains(c.start()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // ------------------------------------------------------------------ the doctor's own view of a day, and blocking slots
+
+    private static final int MAX_DAYS_AHEAD = 180;
+
+    /** True when the doctor has marked that slot as booked themselves (customers cannot take it). */
+    @Transactional(readOnly = true)
+    public boolean isSlotBlocked(Long doctorId, LocalDate date, LocalTime start) {
+        return blockedSlotRepository.existsByDoctorIdAndDateAndStartTime(doctorId, date, start);
+    }
+
+    /**
+     * Every slot of the day with what is on it: free, booked by a customer, marked as booked by the doctor, a break
+     * or already past. Customer bookings can never be changed from here.
+     */
+    @Transactional(readOnly = true)
+    public List<com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto> getMySchedule(Long userId, LocalDate date) {
+        DoctorProfile doctor = ownDoctor(userId);
+        return schedule(doctor, date);
+    }
+
+    private List<com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto> schedule(DoctorProfile doctor, LocalDate date) {
+        Map<LocalTime, Appointment> booked = new HashMap<>();
+        appointmentRepository.findByDoctorIdAndAppointmentDateAndStatusNotIn(doctor.getId(), date, AppointmentStatus.SLOT_RELEASED)
+                .forEach(a -> booked.put(a.getStartTime(), a));
+        Map<LocalTime, com.vetconnect.domain.entities.DoctorBlockedSlot> blocked = new HashMap<>();
+        blockedSlotRepository.findByDoctorIdAndDate(doctor.getId(), date).forEach(b -> blocked.put(b.getStartTime(), b));
+
+        List<com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto> out = new ArrayList<>();
+        for (Cell c : grid(doctor, date)) {
+            var dto = com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto.builder().date(date).startTime(c.start()).endTime(c.end());
+            Appointment appt = booked.get(c.start());
+            var block = blocked.get(c.start());
+            if (appt != null) {
+                boolean awaiting = appt.getStatus() == AppointmentStatus.AWAITING_PAYMENT;
+                dto.status(com.vetconnect.dto.doctor.DoctorScheduleDtos.SlotStatus.BOOKED).appointmentStatus(appt.getStatus().name())
+                        .note(awaiting ? "Held while the customer pays the advance" : "Booked by a customer");
+                if (!awaiting) {
+                    dto.appointmentId(appt.getId()).reference(appt.getBookingReference()).petName(appt.getPet().getName())
+                            .customerName(appt.getCustomer().getFullName())
+                            .customerPhone(appt.getCustomer().getUser() != null ? appt.getCustomer().getUser().getPhone() : null);
+                }
+            } else if (block != null) {
+                dto.status(com.vetconnect.dto.doctor.DoctorScheduleDtos.SlotStatus.BLOCKED).blockId(block.getId()).reason(block.getReason())
+                        .blockedForName(block.getCustomerName()).blockedForPhone(block.getCustomerPhone())
+                        .note("Marked as booked by you").canUnblock(true);
+            } else if (c.inBreak()) {
+                dto.status(com.vetconnect.dto.doctor.DoctorScheduleDtos.SlotStatus.BREAK);
+            } else if (c.past()) {
+                dto.status(com.vetconnect.dto.doctor.DoctorScheduleDtos.SlotStatus.PAST);
+            } else {
+                dto.status(com.vetconnect.dto.doctor.DoctorScheduleDtos.SlotStatus.AVAILABLE).canBlock(!date.isBefore(LocalDate.now()));
+            }
+            out.add(dto.build());
+        }
+        return out;
+    }
+
+    /** Marks a free slot as booked by the doctor. A slot a customer holds cannot be taken over. */
+    @Transactional
+    public com.vetconnect.dto.doctor.DoctorScheduleDtos.ScheduleSlotDto blockSlot(Long userId, com.vetconnect.dto.doctor.DoctorScheduleDtos.BlockSlotRequest request) {
+        DoctorProfile doctor = ownDoctor(userId);
+        LocalDate date = request.getDate();
+        if (date.isBefore(LocalDate.now())) throw new BadRequestException("You cannot change a day that has already passed.");
+        if (date.isAfter(LocalDate.now().plusDays(MAX_DAYS_AHEAD))) throw new BadRequestException("You can only change the next " + MAX_DAYS_AHEAD + " days.");
+
+        Cell cell = grid(doctor, date).stream().filter(c -> c.start().equals(request.getStartTime())).findFirst()
+                .orElseThrow(() -> new BadRequestException("That is not one of your slots on that day."));
+        if (appointmentRepository.existsByDoctorIdAndAppointmentDateAndStartTimeAndStatusNotIn(doctor.getId(), date, cell.start(), AppointmentStatus.SLOT_RELEASED)) {
+            log.warn("Block refused: slot {} {} of doctorId={} is booked by a customer", date, cell.start(), doctor.getId());
+            throw new com.vetconnect.common.exceptions.BookingConflictException("This slot is booked by a customer, so it cannot be changed.");
+        }
+        if (blockedSlotRepository.existsByDoctorIdAndDateAndStartTime(doctor.getId(), date, cell.start())) {
+            throw new BadRequestException("You already marked this slot as booked.");
+        }
+        if (cell.inBreak()) throw new BadRequestException("That time is already your break.");
+        if (cell.past()) throw new BadRequestException("That time has already passed.");
+
+        String reason = request.getReason() == null || request.getReason().isBlank() ? null : request.getReason().trim();
+        String forName = request.getCustomerName() == null || request.getCustomerName().isBlank() ? null : request.getCustomerName().trim();
+        String forPhone = request.getCustomerPhone() == null || request.getCustomerPhone().isBlank() ? null : request.getCustomerPhone().trim();
+        if ((forName == null) != (forPhone == null)) throw new BadRequestException("Enter both the customer name and mobile number, or leave both empty.");
+        if (forPhone != null) {
+            forPhone = com.vetconnect.common.PhoneNumbers.normalize(forPhone);
+        }
+        blockedSlotRepository.save(com.vetconnect.domain.entities.DoctorBlockedSlot.builder()
+                .doctor(doctor).date(date).startTime(cell.start()).endTime(cell.end()).reason(reason).customerName(forName).customerPhone(forPhone).build());
+        log.info("Slot blocked by the doctor: doctorId={} {} {}", doctor.getId(), date, cell.start());
+        return schedule(doctor, date).stream().filter(x -> x.getStartTime().equals(cell.start())).findFirst().orElseThrow();
+    }
+
+    /** Undoes a block the doctor made. Only their own blocks can be undone: a customer's booking is never one. */
+    @Transactional
+    public void unblockSlot(Long userId, Long blockId) {
+        DoctorProfile doctor = ownDoctor(userId);
+        var block = blockedSlotRepository.findByIdAndDoctorId(blockId, doctor.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("That slot was not marked as booked by you."));
+        blockedSlotRepository.delete(block);
+        log.info("Slot unblocked by the doctor: doctorId={} {} {}", doctor.getId(), block.getDate(), block.getStartTime());
+    }
+
+    private DoctorProfile ownDoctor(Long userId) {
+        return doctorProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor profile not found for user ID: " + userId));
     }
 
     // ------------------------------------------------------------------ mapping
@@ -367,6 +485,9 @@ public class DoctorService {
                 .reviewedAt(d.getReviewedAt())
                 .resubmittedAt(d.getResubmittedAt())
                 .resubmitNote(d.getResubmitNote())
+                .payoutMethod(d.getPayoutMethod()).upiId(d.getUpiId()).accountHolderName(d.getAccountHolderName())
+                .bankAccountMasked(com.vetconnect.common.PayoutRules.mask(d.getBankAccountNumber())).ifscCode(d.getIfscCode()).bankName(d.getBankName())
+                .payoutComplete(d.isPayoutComplete())
                 .build();
     }
 

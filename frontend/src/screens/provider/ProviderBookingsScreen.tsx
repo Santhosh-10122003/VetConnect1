@@ -13,7 +13,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { BookingCard } from '../../components/care/BookingCard';
 import { ProviderStackParamList } from '../../navigation/types';
-import { getErrorMessage, money, notify, todayIso } from '../../utils/helpers';
+import { confirmAction, getErrorMessage, money, notify, todayIso } from '../../utils/helpers';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderBookings'>;
 type Group = 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
@@ -63,13 +63,15 @@ export const ProviderBookingsScreen: React.FC<Props> = ({ navigation, route }) =
     }
   };
 
-  const submitReason = (b: CareBooking) => {
+  const submitReason = async (b: CareBooking) => {
     if (reason.trim().length < 3) {
       setReasonError('Give the customer a short reason.');
       return;
     }
     setReasonError('');
-    if (asking?.kind === 'reject') act(b, () => careApi.reject(b.id, reason.trim()));
+    const rejecting = asking?.kind === 'reject';
+    if (!(await confirmAction(rejecting ? 'Decline booking' : 'Cancel booking', rejecting ? 'The customer will be told why, and any advance is refunded.' : 'The customer will be told why, and any advance is refunded.', rejecting ? 'Decline' : 'Cancel booking', true))) return;
+    if (rejecting) act(b, () => careApi.reject(b.id, reason.trim()));
     else act(b, () => careApi.providerCancel(b.id, reason.trim()));
   };
 

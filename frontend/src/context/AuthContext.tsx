@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<AuthResponseData>;
   register: (payload: RegisterPayload) => Promise<RegistrationResult>;
-  verifyOtp: (email: string, otp: string) => Promise<AuthResponseData>;
+  verifyOtp: (mobile: string, otp: string) => Promise<AuthResponseData>;
   logout: () => Promise<void>;
   updateUserData: (updated: Partial<AuthResponseData>) => void;
 }
@@ -67,8 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (await authApi.register(payload)).data;
   };
 
-  const verifyOtp = async (email: string, otp: string): Promise<AuthResponseData> => {
-    const res = await authApi.verifyOtp(email, otp);
+  const verifyOtp = async (mobile: string, otp: string): Promise<AuthResponseData> => {
+    const res = await authApi.verifyOtp(mobile, otp);
     const authData = res.data;
     await saveTokens(authData.accessToken, authData.refreshToken);
     await storage.setItem(USER_STORAGE_KEY, JSON.stringify(authData));

@@ -13,8 +13,9 @@ import { LocationPicker } from '../../components/common/LocationPicker';
 import { OsmMap } from '../../components/common/OsmMap';
 import { openDirections } from '../../utils/maps';
 import { AppButton } from '../../components/common/AppButton';
+import { PayoutFields, PayoutValues, emptyPayout, payoutErrors, payoutFromProvider, payoutPayload } from '../../components/care/PayoutFields';
 import { LoadingView } from '../../components/common/LoadingView';
-import { confirmAction, getErrorMessage, money, notify, getCurrencySymbol } from '../../utils/helpers';
+import { confirmAction, getErrorMessage, money, notify, getCurrencySymbol, visibleEmail } from '../../utils/helpers';
 
 const VERIFY_COPY = {
   APPROVED: { label: 'Verified', icon: 'shield-checkmark' as const, color: colors.success, bg: '#ECFDF5', text: 'Your profile is visible to pet owners.' },
@@ -35,6 +36,7 @@ export const DoctorProfileScreen: React.FC = () => {
     countryCode?: string; stateCode?: string; latitude?: number; longitude?: number;
     yearsOfExperience: string; consultationFee: string; bio: string;
   }>({ fullName: '', phone: '', clinicName: '', clinicAddress: '', clinicCity: '', clinicPostalCode: '', clinicCountry: '', clinicState: '', yearsOfExperience: '', consultationFee: '', bio: '' });
+  const [payout, setPayout] = useState<PayoutValues>(emptyPayout);
   const [note, setNote] = useState('');
   const [resubmitting, setResubmitting] = useState(false);
 
@@ -42,6 +44,7 @@ export const DoctorProfileScreen: React.FC = () => {
     try {
       const d = (await doctorApi.getMyDoctorProfile()).data;
       setDoctor(d);
+      setPayout(payoutFromProvider(d));
       setForm({
         fullName: d.fullName,
         phone: d.phone ?? '',
@@ -73,6 +76,7 @@ export const DoctorProfileScreen: React.FC = () => {
     if (!form.clinicCity.trim()) errs.clinicCity = 'Required so pet owners nearby can find you';
     if (form.latitude == null) errs.pin = 'Pin your clinic on the map so pet owners can navigate to you.';
     if (!/^\d+$/.test(form.yearsOfExperience)) errs.yearsOfExperience = 'Whole number';
+    if (Object.keys(payoutErrors(payout)).length) errs.payout = 'Add your payment details';
     if (form.consultationFee === '' || isNaN(Number(form.consultationFee)) || Number(form.consultationFee) < 0) errs.consultationFee = 'Valid amount';
     setErrors(errs);
     if (Object.keys(errs).length) return;
@@ -93,6 +97,7 @@ export const DoctorProfileScreen: React.FC = () => {
         yearsOfExperience: Number(form.yearsOfExperience),
         consultationFee: Number(form.consultationFee),
         bio: form.bio.trim() || undefined,
+        ...payoutPayload(payout),
         avatarUrl: doctor.avatarUrl,
         specializationIds: doctor.specializations.map((s) => s.id),
         // Keep the existing schedule: the endpoint treats a missing list as "no change" only if the backend does,
@@ -216,6 +221,7 @@ export const DoctorProfileScreen: React.FC = () => {
             />
             <AppInput label="Years of experience" value={form.yearsOfExperience} onChangeText={set('yearsOfExperience')} keyboardType="number-pad" error={errors.yearsOfExperience} />
             <AppInput label={`Consultation fee (${getCurrencySymbol()})`} value={form.consultationFee} onChangeText={set('consultationFee')} keyboardType="decimal-pad" error={errors.consultationFee} />
+            <PayoutFields value={payout} onChange={setPayout} showErrors={Object.keys(errors).length > 0} />
             <AppInput label="Bio" value={form.bio} onChangeText={set('bio')} multiline style={{ height: 100, textAlignVertical: 'top', paddingTop: 12 }} />
             <AppButton title="Save Changes" onPress={save} loading={saving} />
           </View>
@@ -228,7 +234,10 @@ export const DoctorProfileScreen: React.FC = () => {
               ['Location', [doctor.clinicCity, doctor.clinicState, doctor.clinicCountry, doctor.clinicPostalCode].filter(Boolean).join(', ') + (doctor.latitude != null ? ' (pinned on map)' : ' (not pinned yet)')],
               ['Experience', `${doctor.yearsOfExperience} years`],
               ['Consultation fee', money(doctor.consultationFee, 0)],
-              ['Email', doctor.email],
+              ['Payment details', doctor.payoutComplete
+                ? (doctor.payoutMethod === 'UPI' ? `UPI: ${doctor.upiId}` : `Bank: ${doctor.accountHolderName}, ${doctor.bankAccountMasked}, ${doctor.ifscCode}`)
+                : 'Not added yet'],
+              ['Email', visibleEmail(doctor.email)],
               ['Phone', doctor.phone],
               ['Bio', doctor.bio],
             ].map(([label, value]) => (

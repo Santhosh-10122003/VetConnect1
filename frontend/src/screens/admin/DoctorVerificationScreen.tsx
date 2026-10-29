@@ -14,7 +14,7 @@ import { AppInput } from '../../components/common/AppInput';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { AdminStackParamList } from '../../navigation/types';
-import { getErrorMessage, money, notify } from '../../utils/helpers';
+import { confirmAction, getErrorMessage, money, notify, visibleEmail } from '../../utils/helpers';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'DoctorVerification'>;
 
@@ -44,7 +44,10 @@ const fromDoctor = (d: DoctorProfile): Applicant => ({
     ['Location', [d.clinicCity, d.clinicPostalCode].filter(Boolean).join(' ') + (d.latitude != null ? ' (GPS saved)' : '')],
     ['Experience', `${d.yearsOfExperience} years`],
     ['Fee', money(d.consultationFee, 0)],
-    ['Contact', [d.email, d.phone].filter(Boolean).join(' · ')],
+    ['Payment details', d.payoutComplete
+      ? (d.payoutMethod === 'UPI' ? `UPI: ${d.upiId}` : `Bank: ${d.accountHolderName}, ${d.bankAccountMasked}, ${d.ifscCode}`)
+      : 'Not added yet'],
+    ['Contact', [d.phone, visibleEmail(d.email)].filter(Boolean).join(' · ')],
   ],
 });
 
@@ -60,7 +63,10 @@ const fromProvider = (p: Provider): Applicant => ({
     ['Registration', p.registrationNumber || '-'],
     ['Address', [p.address, p.city, p.state, p.country].filter(Boolean).join(', ')],
     ['Location', p.latitude != null ? 'Pinned on the map' : 'Not pinned'],
-    ['Contact', [p.email, p.phone].filter(Boolean).join(' · ')],
+    ['Payment details', p.payoutComplete
+      ? (p.payoutMethod === 'UPI' ? `UPI: ${p.upiId}` : `Bank: ${p.accountHolderName}, ${p.bankAccountMasked}, ${p.ifscCode}${p.bankName ? ', ' + p.bankName : ''}`)
+      : 'MISSING: cannot be approved'],
+    ['Contact', [p.phone, visibleEmail(p.email)].filter(Boolean).join(' · ')],
   ],
 });
 
@@ -117,6 +123,7 @@ export const DoctorVerificationScreen: React.FC<Props> = ({ navigation, route })
       );
       return;
     }
+    if (deciding.status === 'REJECTED' && !(await confirmAction('Reject application', `Reject this ${who}'s application? They will see your reason.`, 'Reject', true))) return;
     setBusyId(d.id);
     try {
       if (providerMode) await adminApi.updateProviderVerification(d.id, deciding.status, text);

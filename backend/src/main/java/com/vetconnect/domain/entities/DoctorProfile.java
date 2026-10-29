@@ -45,6 +45,30 @@ public class DoctorProfile {
     @Column(name = "clinic_city", nullable = false, length = 100)
     private String clinicCity;
 
+    /** Where this doctor is paid (the advance of appointments goes to the wallet; this is where it is paid out). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payout_method", length = 10)
+    private com.vetconnect.domain.enums.PayoutMethod payoutMethod;
+
+    @Column(name = "upi_id", length = 100)
+    private String upiId;
+
+    @Column(name = "account_holder_name", length = 100)
+    private String accountHolderName;
+
+    @Column(name = "bank_account_number", length = 30)
+    private String bankAccountNumber;
+
+    @Column(name = "ifsc_code", length = 15)
+    private String ifscCode;
+
+    @Column(name = "bank_name", length = 100)
+    private String bankName;
+
+    public boolean isPayoutComplete() {
+        return com.vetconnect.common.PayoutRules.complete(payoutMethod, upiId, accountHolderName, bankAccountNumber, ifscCode);
+    }
+
     @Column(name = "clinic_postal_code", length = 20)
     private String clinicPostalCode;
 

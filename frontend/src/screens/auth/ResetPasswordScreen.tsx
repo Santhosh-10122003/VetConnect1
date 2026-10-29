@@ -6,6 +6,7 @@ import { AppHeader } from '../../components/common/AppHeader';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppInput } from '../../components/common/AppInput';
 import { AppButton } from '../../components/common/AppButton';
+import { phoneForServer } from '../../components/common/PhoneField';
 import { authApi } from '../../api/authApi';
 import { AuthStackParamList } from '../../navigation/types';
 import { getErrorMessage } from '../../utils/helpers';
@@ -13,15 +14,15 @@ import { getErrorMessage } from '../../utils/helpers';
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
 export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
-  const [email, setEmail] = useState(route.params?.email || '');
+  const [mobile, setMobile] = useState(route.params?.mobile || '');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
-    if (!email || !code || !newPassword) {
-      Alert.alert('Required', 'Please enter your email, the reset code and a new password.');
+    if (!mobile || !code || !newPassword) {
+      Alert.alert('Required', 'Please enter your mobile number, the reset code and a new password.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -30,7 +31,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
     }
     setLoading(true);
     try {
-      await authApi.resetPassword(email.trim(), code.trim(), newPassword);
+      await authApi.resetPassword(phoneForServer(mobile), code.trim(), newPassword);
       Alert.alert('Success', 'Password has been updated. Please log in with your new password.', [
         { text: 'Log In', onPress: () => navigation.navigate('Login') },
       ]);
@@ -49,11 +50,11 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.subtitle}>Choose a strong password with at least 6 characters.</Text>
 
         <AppInput
-          label="Email"
-          placeholder="name@example.com"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
+          label="Mobile number"
+          placeholder="+91 98765 43210"
+          value={mobile}
+          onChangeText={setMobile}
+          keyboardType="phone-pad"
           autoCapitalize="none"
           icon="mail-outline"
         />

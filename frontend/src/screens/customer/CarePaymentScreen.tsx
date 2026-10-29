@@ -142,7 +142,7 @@ export const CarePaymentScreen: React.FC<Props> = ({ navigation, route }) => {
           payment={payment}
           amount={booking.advanceAmount}
           description={`Advance for ${booking.reference}`}
-          prefill={{ name: user?.fullName, email: user?.email }}
+          prefill={{ name: user?.fullName, email: user?.email ?? undefined, contact: user?.phone ?? undefined }}
           busy={busy === 'pay' || busy === 'fail' || busy === 'retry' ? busy : null}
           onTest={(o) => run(o === 'SUCCESS' ? 'pay' : 'fail', () => careApi.pay(booking.id, o))}
           onRetry={() => run('retry', () => careApi.retryPayment(booking.id))}

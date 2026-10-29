@@ -21,7 +21,40 @@ export interface DoctorAvailability {
 
 export type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESUBMITTED';
 
+export type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED' | 'BREAK' | 'PAST';
+
+export interface ScheduleSlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: SlotStatus;
+  /** For slots the doctor marked as booked: what to send to undo it. */
+  blockId?: number | null;
+  reason?: string | null;
+  /** Who the doctor booked a blocked slot for. */
+  blockedForName?: string | null;
+  blockedForPhone?: string | null;
+  // for slots held by a customer
+  appointmentId?: number | null;
+  reference?: string | null;
+  petName?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  appointmentStatus?: string | null;
+  note?: string | null;
+  canBlock: boolean;
+  canUnblock: boolean;
+}
+
 export interface DoctorProfile {
+  /** Where the doctor is paid (owner view; the account number is masked). */
+  payoutMethod?: 'UPI' | 'BANK' | null;
+  upiId?: string | null;
+  accountHolderName?: string | null;
+  bankAccountMasked?: string | null;
+  ifscCode?: string | null;
+  bankName?: string | null;
+  payoutComplete?: boolean;
   id: number;
   userId: number;
   email: string;
@@ -85,6 +118,21 @@ export const doctorApi = {
   async getDoctorById(doctorId: number) {
     const res = await apiClient.get<{ success: boolean; data: DoctorProfile }>(`/doctors/${doctorId}`);
     return res.data;
+  },
+
+  /** The doctor's own view of a day: every slot with what is on it. */
+  async getMySchedule(date: string) {
+    const res = await apiClient.get<{ success: boolean; data: ScheduleSlot[] }>('/doctors/me/schedule', { params: { date } });
+    return res.data.data;
+  },
+
+  async blockSlot(date: string, startTime: string, who?: { customerName?: string; customerPhone?: string }, reason?: string) {
+    const res = await apiClient.post<{ success: boolean; data: ScheduleSlot }>('/doctors/me/blocked-slots', { date, startTime, reason, ...who });
+    return res.data.data;
+  },
+
+  async unblockSlot(blockId: number) {
+    await apiClient.delete(`/doctors/me/blocked-slots/${blockId}`);
   },
 
   async getDoctorAvailability(doctorId: number, date: string) {

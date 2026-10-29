@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegistrationResponse {
     private String email;
+    /** The mobile number the verification code was sent to. */
+    private String mobile;
     private boolean verificationRequired;
     private int otpExpiresInMinutes;
 }

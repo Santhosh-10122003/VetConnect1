@@ -117,7 +117,7 @@ export const AppointmentPaymentScreen: React.FC<Props> = ({ navigation, route })
           payment={payment}
           amount={appt.advanceAmount}
           description={`Advance for appointment ${appt.bookingReference}`}
-          prefill={{ name: user?.fullName, email: user?.email }}
+          prefill={{ name: user?.fullName, email: user?.email ?? undefined, contact: user?.phone ?? undefined }}
           busy={busy === 'pay' || busy === 'fail' || busy === 'retry' ? busy : null}
           onTest={(o) => run(o === 'SUCCESS' ? 'pay' : 'fail', () => appointmentApi.simulatePayment(appt.id, o))}
           onRetry={() => run('retry', () => appointmentApi.retryPayment(appt.id))}

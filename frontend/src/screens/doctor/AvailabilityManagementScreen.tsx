@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Switch, TextInput } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { View, Text, StyleSheet, Switch, TextInput, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { doctorApi, DoctorProfile, DoctorAvailability } from '../../api/doctorApi';
@@ -56,6 +57,7 @@ const TimeField: React.FC<{ label: string; value: string; onChange: (v: string) 
 );
 
 export const AvailabilityManagementScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [rows, setRows] = useState<DayRow[]>([]);
   const [saving, setSaving] = useState(false);
@@ -143,6 +145,15 @@ export const AvailabilityManagementScreen: React.FC = () => {
     <View style={shared.screen}>
       <AppHeader title="Calendar & Slots" subtitle="Weekly working hours" />
       <KeyboardScroll contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
+        <TouchableOpacity style={styles.daysCard} onPress={() => navigation.navigate('DoctorSlots' as never)} activeOpacity={0.9} testID="open-day-slots">
+          <Ionicons name="time" size={26} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.daysTitle}>See booked slots and block time</Text>
+            <Text style={styles.daysSub}>Check what customers booked on any day, and mark a free slot as booked yourself.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+        </TouchableOpacity>
+
         {rows.map((r, i) => (
           <View key={r.dayOfWeek} style={shared.card}>
             <View style={shared.rowBetween}>
@@ -182,6 +193,9 @@ export const AvailabilityManagementScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  daysCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.mint, borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.mintDark },
+  daysTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
+  daysSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
   day: { fontSize: 16, fontWeight: '700', color: colors.text },
   state: { fontSize: 12, fontWeight: '600', marginRight: 8 },
   pair: { flexDirection: 'row', gap: 12 },

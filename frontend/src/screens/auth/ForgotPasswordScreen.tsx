@@ -7,24 +7,24 @@ import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppInput } from '../../components/common/AppInput';
 import { AppButton } from '../../components/common/AppButton';
 import { authApi } from '../../api/authApi';
-import { EmailField } from '../../components/common/EmailField';
-import { emailError, normalizeEmail } from '../../utils/validators';
+import { PhoneField, phoneForServer } from '../../components/common/PhoneField';
+import { phoneError } from '../../utils/validators';
 import { AuthStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
 export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [attempted, setAttempted] = useState(false);
 
   const handleSubmit = async () => {
     setAttempted(true);
-    if (emailError(email)) return;
+    if (!mobile.includes('@') && phoneError(mobile)) return;
     setLoading(true);
     try {
-      await authApi.forgotPassword(normalizeEmail(email));
+      await authApi.forgotPassword(phoneForServer(mobile));
       setSent(true);
     } catch {
       setSent(true); // Always show sent for security
@@ -41,10 +41,10 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           <>
             <Text style={styles.title}>Reset Your Password</Text>
             <Text style={styles.instructions}>
-              Enter your email address and we will send you verification instructions to reset your password.
+              Enter your mobile number and we will text you a code to reset your password.
             </Text>
 
-            <EmailField label="Registered Email" value={email} onChange={setEmail} forceError={attempted} testID="forgot-email" />
+            <PhoneField label="Registered Mobile Number" value={mobile} onChange={setMobile} forceError={attempted} allowEmail testID="forgot-mobile" />
 
             <AppButton
               title="Send Reset Instructions"
@@ -57,11 +57,11 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.successBox}>
             <Text style={styles.successTitle}>Instructions Sent!</Text>
             <Text style={styles.successText}>
-              If an account exists for {email}, a reset code has been sent. Enter the code to choose a new password. The code expires in 30 minutes.
+              If an account exists for {mobile}, a reset code has been sent. Enter the code to choose a new password. The code expires in 30 minutes.
             </Text>
             <AppButton
               title="Enter New Password"
-              onPress={() => navigation.navigate('ResetPassword', { email })}
+              onPress={() => navigation.navigate('ResetPassword', { mobile: phoneForServer(mobile) })}
               style={styles.btn}
             />
           </View>

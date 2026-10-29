@@ -359,6 +359,8 @@ public class DataInitializer implements CommandLineRunner {
                 .address(address).city(city).latitude(lat).longitude(lng)
                 .concurrentCapacity(concurrent).boardingCapacity(boarding).slotMinutes(slotMinutes).advancePercent(30)
                 .verificationStatus(VerificationStatus.APPROVED)
+                .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI)
+                .upiId(business.toLowerCase().replaceAll("[^a-z]", "") + "@upi")
                 .build();
         p.getCategories().addAll(categories);
         for (int day = 1; day <= 7; day++) {

@@ -9,6 +9,8 @@ import { shared } from '../../theme/shared';
 import { doctorApi, DoctorProfile } from '../../api/doctorApi';
 import { Appointment } from '../../api/appointmentApi';
 import { AppHeader } from '../../components/common/AppHeader';
+import { WalletCard } from '../../components/payment/WalletCard';
+import { TodaySlotsCard } from '../../components/doctor/TodaySlotsCard';
 import { AppointmentCard } from '../../components/appointment/AppointmentCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
@@ -95,6 +97,18 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
+        <WalletCard onPress={() => navigation.navigate('DoctorWallet')} />
+
+        <TodaySlotsCard onPress={() => navigation.navigate('DoctorSlots')} />
+
+        {doctor.payoutComplete === false && (
+          <TouchableOpacity style={styles.payoutWarn} onPress={() => navigation.navigate('DoctorTabs', { screen: 'DoctorProfile' })} activeOpacity={0.9} testID="payout-missing">
+            <Ionicons name="wallet-outline" size={20} color={colors.danger} />
+            <Text style={styles.payoutWarnText}>Add your payment details in Profile so your earnings can be paid out to you.</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.danger} />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.stats}>
           <Stat icon="today-outline" value={todays.length} label="Today" tint={colors.primary} />
           <Stat
@@ -127,6 +141,8 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  payoutWarn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FEF2F2', borderRadius: 14, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: '#FECACA' },
+  payoutWarnText: { flex: 1, fontSize: 12, color: colors.text, lineHeight: 17 },
   banner: {
     flexDirection: 'row',
     gap: 10,

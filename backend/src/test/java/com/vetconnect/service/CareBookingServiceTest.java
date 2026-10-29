@@ -69,7 +69,7 @@ class CareBookingServiceTest {
             @Override public String createOrder(String ref, BigDecimal amount, String currency) { return "order_" + ref; }
             @Override public String refund(CarePayment payment, BigDecimal amount) { refunds.add(amount); return "refund_1"; }
         };
-        CarePaymentService paymentService = new CarePaymentService(paymentRepository, gateway, CLOCK);
+        CarePaymentService paymentService = new CarePaymentService(paymentRepository, gateway, CLOCK, mock(WalletService.class));
         service = new CareBookingService(bookingRepository, providerRepository, serviceRepository, customerRepository, petRepository,
                 reviewRepository, paymentService, availabilityService, providerService, notificationService, new AppProperties(), CLOCK);
 

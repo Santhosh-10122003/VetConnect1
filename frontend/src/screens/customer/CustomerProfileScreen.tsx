@@ -15,7 +15,7 @@ import { LocationPicker } from '../../components/common/LocationPicker';
 import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
 import { CustomerStackParamList, CustomerTabParamList } from '../../navigation/types';
-import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { confirmAction, getErrorMessage, notify, visibleEmail } from '../../utils/helpers';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<CustomerTabParamList, 'Profile'>,
@@ -103,7 +103,7 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.avatarText}>{profile.fullName.charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={styles.name}>{profile.fullName}</Text>
-          <Text style={styles.email}>{profile.email}</Text>
+          <Text style={styles.email}>{profile.phone || visibleEmail(profile.email)}</Text>
         </View>
 
         {editing ? (

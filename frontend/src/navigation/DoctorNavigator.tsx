@@ -12,6 +12,8 @@ import { AvailabilityManagementScreen } from '../screens/doctor/AvailabilityMana
 import { ConsultationNotesScreen } from '../screens/doctor/ConsultationNotesScreen';
 import { DoctorProfileScreen } from '../screens/doctor/DoctorProfileScreen';
 import { ProviderStack } from './ProviderNavigator';
+import { DoctorSlotsScreen } from '../screens/doctor/DoctorSlotsScreen';
+import { WalletScreen } from '../screens/shared/WalletScreen';
 import { NotificationsScreen } from '../screens/customer/NotificationsScreen';
 
 const Tab = createBottomTabNavigator<DoctorTabParamList>();
@@ -51,5 +53,7 @@ export const DoctorNavigator: React.FC = () => (
     <Stack.Screen name="DoctorAppointmentDetails" component={DoctorAppointmentDetailsScreen} />
     <Stack.Screen name="ConsultationNotes" component={ConsultationNotesScreen} />
     <Stack.Screen name="DoctorNotifications" component={NotificationsScreen} />
+    <Stack.Screen name="DoctorWallet" component={WalletScreen} />
+    <Stack.Screen name="DoctorSlots" component={DoctorSlotsScreen} />
   </Stack.Navigator>
 );

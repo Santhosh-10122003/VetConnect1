@@ -78,6 +78,14 @@ export interface Provider {
   reviewedAt?: string;
   resubmittedAt?: string;
   resubmitNote?: string;
+  // owner / admin only: where the business is paid (the account number is masked)
+  payoutMethod?: 'UPI' | 'BANK' | null;
+  upiId?: string | null;
+  accountHolderName?: string | null;
+  bankAccountMasked?: string | null;
+  ifscCode?: string | null;
+  bankName?: string | null;
+  payoutComplete?: boolean;
 }
 
 export interface ProviderPayload {
@@ -97,6 +105,13 @@ export interface ProviderPayload {
   concurrentCapacity?: number;
   boardingCapacity?: number;
   slotMinutes?: number;
+  // where the business gets paid: required
+  payoutMethod?: 'UPI' | 'BANK';
+  upiId?: string;
+  accountHolderName?: string;
+  bankAccountNumber?: string;
+  ifscCode?: string;
+  bankName?: string;
 }
 
 export interface ServicePayload {

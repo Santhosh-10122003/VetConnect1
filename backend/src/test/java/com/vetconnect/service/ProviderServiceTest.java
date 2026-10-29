@@ -35,6 +35,7 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProviderServiceTest {
 
+    @Mock private DoctorProfileRepository doctorProfileRepository;
     @Mock private ProviderProfileRepository providerRepository;
     @Mock private CareServiceRepository serviceRepository;
     @Mock private CareReviewRepository reviewRepository;
@@ -51,7 +52,7 @@ class ProviderServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProviderService(providerRepository, serviceRepository, reviewRepository, customerRepository, userRepository,
-                notificationService, availabilityService, new AppProperties(), Clock.fixed(Instant.parse("2027-03-01T10:00:00Z"), ZoneOffset.UTC));
+                notificationService, availabilityService, new AppProperties(), Clock.fixed(Instant.parse("2027-03-01T10:00:00Z"), ZoneOffset.UTC), doctorProfileRepository);
         providerUser = User.builder().id(20L).email("p@x.com").role(Role.ROLE_PROVIDER).build();
         doctorUser = User.builder().id(30L).email("d@x.com").role(Role.ROLE_DOCTOR).build();
         customerUser = User.builder().id(10L).email("c@x.com").role(Role.ROLE_CUSTOMER).build();
@@ -79,12 +80,14 @@ class ProviderServiceTest {
 
     private ProviderRequest.ProviderRequestBuilder request() {
         return ProviderRequest.builder().businessName(" Happy Paws ").address("1 Main St").city("Springfield")
-                .latitude(39.78).longitude(-89.65).categories(EnumSet.of(CareCategory.GROOMING));
+                .latitude(39.78).longitude(-89.65).categories(EnumSet.of(CareCategory.GROOMING))
+                .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("happypaws@okaxis");
     }
 
     private ProviderProfile provider(Long id, String city, Double lat, Double lng, VerificationStatus status, CareCategory... cats) {
         ProviderProfile p = ProviderProfile.builder().id(id).user(providerUser).businessName("P" + id).address("a").city(city)
-                .latitude(lat).longitude(lng).verificationStatus(status).build();
+                .latitude(lat).longitude(lng).verificationStatus(status)
+                .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("p" + id + "@upi").build();
         p.getCategories().addAll(Arrays.asList(cats));
         return p;
     }
@@ -323,5 +326,78 @@ class ProviderServiceTest {
         UserPrincipal otherDoctor = UserPrincipal.builder().id(30L).email("d@x.com").role(Role.ROLE_DOCTOR).build();
 
         assertThrows(ResourceNotFoundException.class, () -> service.detail(4L, otherDoctor));
+    }
+
+    // ================================================================== payment details (mandatory)
+
+    @Test
+    void creatingAProfileWithoutPaymentDetailsIsRefused() {
+        BadRequestException e = assertThrows(BadRequestException.class, () -> service.createProfile(20L, request().payoutMethod(null).upiId(null).build()));
+        assertTrue(e.getMessage().contains("Payment details are required"));
+    }
+
+    @Test
+    void aUpiIdIsEnoughButMustLookLikeOne() {
+        assertThrows(BadRequestException.class, () -> service.createProfile(20L, request().upiId("not a upi").build()));
+        assertThrows(BadRequestException.class, () -> service.createProfile(20L, request().upiId("nobank").build()));
+        ProviderDto dto = service.createProfile(20L, request().upiId(" shop.owner-1@okhdfcbank ").build());
+        assertEquals(com.vetconnect.domain.enums.PayoutMethod.UPI, dto.getPayoutMethod());
+        assertEquals("shop.owner-1@okhdfcbank", dto.getUpiId());
+        assertTrue(dto.getPayoutComplete());
+    }
+
+    @Test
+    void bankDetailsNeedHolderAccountAndIfsc_andTheAccountNumberIsMasked() {
+        ProviderRequest.ProviderRequestBuilder bank = request().payoutMethod(com.vetconnect.domain.enums.PayoutMethod.BANK).upiId(null);
+        assertThrows(BadRequestException.class, () -> service.createProfile(20L, bank.accountHolderName("").bankAccountNumber("123456789012").ifscCode("HDFC0001234").build()));
+        assertThrows(BadRequestException.class, () -> service.createProfile(20L, bank.accountHolderName("Asha K").bankAccountNumber("12AB").ifscCode("HDFC0001234").build()));
+        assertThrows(BadRequestException.class, () -> service.createProfile(20L, bank.accountHolderName("Asha K").bankAccountNumber("123456789012").ifscCode("BAD123").build()));
+        ProviderDto dto = service.createProfile(20L, bank.accountHolderName("Asha K").bankAccountNumber("1234 5678 9012").ifscCode(" hdfc0001234 ").bankName("HDFC").build());
+        assertEquals("Asha K", dto.getAccountHolderName());
+        assertEquals("********9012", dto.getBankAccountMasked(), "only the last four digits are returned");
+        assertEquals("HDFC0001234", dto.getIfscCode());
+        assertNull(dto.getUpiId());
+    }
+
+    @Test
+    void updatingWithoutPaymentDetailsKeepsTheSavedOnes_butAnIncompleteProfileMustAddThem() {
+        ProviderProfile p = provider(7L, "Springfield", 39.78, -89.65, VerificationStatus.APPROVED, CareCategory.GROOMING);
+        when(providerRepository.findByUserId(20L)).thenReturn(Optional.of(p));
+        service.updateMine(20L, request().payoutMethod(null).upiId(null).build());
+        assertEquals("p7@upi", p.getUpiId());
+
+        p.setPayoutMethod(null);
+        p.setUpiId(null);
+        assertThrows(BadRequestException.class, () -> service.updateMine(20L, request().payoutMethod(null).upiId(null).build()));
+    }
+
+    @Test
+    void leavingTheAccountNumberEmptyKeepsTheSavedBankAccount() {
+        ProviderProfile p = provider(7L, "Springfield", 39.78, -89.65, VerificationStatus.APPROVED, CareCategory.GROOMING);
+        p.setPayoutMethod(com.vetconnect.domain.enums.PayoutMethod.BANK);
+        p.setUpiId(null);
+        p.setAccountHolderName("Asha K");
+        p.setBankAccountNumber("123456789012");
+        p.setIfscCode("HDFC0001234");
+        when(providerRepository.findByUserId(20L)).thenReturn(Optional.of(p));
+        service.updateMine(20L, request().payoutMethod(com.vetconnect.domain.enums.PayoutMethod.BANK).upiId(null)
+                .accountHolderName("Asha Kumar").bankAccountNumber("").ifscCode("HDFC0001234").build());
+        assertEquals("123456789012", p.getBankAccountNumber());
+        assertEquals("Asha Kumar", p.getAccountHolderName());
+    }
+
+    @Test
+    void aProviderWithoutPaymentDetailsIsNotShownToCustomersOrBookable() {
+        ProviderProfile ok = provider(1L, "Springfield", 39.78, -89.65, VerificationStatus.APPROVED, CareCategory.GROOMING);
+        ProviderProfile missing = provider(2L, "Springfield", 39.79, -89.66, VerificationStatus.APPROVED, CareCategory.GROOMING);
+        missing.setPayoutMethod(null);
+        missing.setUpiId(null);
+        when(providerRepository.findByVerificationStatus(VerificationStatus.APPROVED)).thenReturn(List.of(ok, missing));
+        when(providerRepository.findById(2L)).thenReturn(Optional.of(missing));
+
+        var found = service.search(customerPrincipal, null, null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+        assertEquals(List.of(1L), found.getContent().stream().map(ProviderDto::getId).toList());
+        assertThrows(com.vetconnect.common.exceptions.ResourceNotFoundException.class, () -> service.detail(2L, customerPrincipal));
+        assertThrows(com.vetconnect.common.exceptions.ResourceNotFoundException.class, () -> service.assertCustomerCanAccess(customer, missing));
     }
 }
