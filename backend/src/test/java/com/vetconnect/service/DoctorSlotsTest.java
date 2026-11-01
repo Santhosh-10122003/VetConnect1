@@ -44,6 +44,7 @@ class DoctorSlotsTest {
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
     @Mock private DoctorBlockedSlotRepository blockedRepository;
+    @Mock private com.vetconnect.repository.DoctorLeaveRepository leaveRepository;
 
     private final List<DoctorBlockedSlot> blocks = new ArrayList<>();
     private final List<Appointment> appointments = new ArrayList<>();
@@ -57,10 +58,12 @@ class DoctorSlotsTest {
         return d;
     }
 
+    private final List<com.vetconnect.domain.entities.DoctorLeave> leaves = new ArrayList<>();
+
     @BeforeEach
     void setUp() {
         service = new DoctorService(doctorProfileRepository, availabilityRepository, specializationRepository, appointmentRepository,
-                customerProfileRepository, userRepository, notificationService, new AppProperties(), blockedRepository);
+                customerProfileRepository, userRepository, notificationService, new AppProperties(), blockedRepository, leaveRepository);
         doctor = DoctorProfile.builder().id(20L).fullName("Dr. T").user(User.builder().id(2L).build()).build();
         other = DoctorProfile.builder().id(21L).fullName("Dr. Other").user(User.builder().id(3L).build()).build();
         when(doctorProfileRepository.findByUserId(2L)).thenReturn(Optional.of(doctor));
@@ -86,6 +89,21 @@ class DoctorSlotsTest {
         when(blockedRepository.findByIdAndDoctorId(anyLong(), anyLong())).thenAnswer(i ->
                 blocks.stream().filter(b -> b.getId().equals(i.getArgument(0)) && b.getDoctor().getId().equals(i.getArgument(1))).findFirst());
         doAnswer(i -> blocks.remove(i.getArgument(0))).when(blockedRepository).delete(any(DoctorBlockedSlot.class));
+        when(leaveRepository.existsByDoctorIdAndFromDateLessThanEqualAndToDateGreaterThanEqual(anyLong(), any(), any())).thenAnswer(i ->
+                leaves.stream().anyMatch(l -> !l.getFromDate().isAfter(i.getArgument(1)) && !l.getToDate().isBefore(i.getArgument(2))));
+        when(leaveRepository.findByDoctorIdAndToDateGreaterThanEqualOrderByFromDateAsc(anyLong(), any())).thenAnswer(i ->
+                leaves.stream().filter(l -> !l.getToDate().isBefore(i.getArgument(1))).toList());
+        when(leaveRepository.save(any(com.vetconnect.domain.entities.DoctorLeave.class))).thenAnswer(i -> {
+            var l = (com.vetconnect.domain.entities.DoctorLeave) i.getArgument(0);
+            l.setId(500L + leaves.size());
+            leaves.add(l);
+            return l;
+        });
+        when(leaveRepository.findByIdAndDoctorId(anyLong(), anyLong())).thenAnswer(i ->
+                leaves.stream().filter(l -> l.getId().equals(i.getArgument(0)) && l.getDoctor().getId().equals(i.getArgument(1))).findFirst());
+        doAnswer(i -> leaves.remove(i.getArgument(0))).when(leaveRepository).delete(any(com.vetconnect.domain.entities.DoctorLeave.class));
+        when(appointmentRepository.countByDoctorIdAndAppointmentDateBetweenAndStatusNotIn(anyLong(), any(), any(), any())).thenAnswer(i ->
+                appointments.stream().filter(a -> !a.getAppointmentDate().isBefore(i.getArgument(1)) && !a.getAppointmentDate().isAfter(i.getArgument(2))).count());
     }
 
     private Appointment customerBooking(LocalTime start, AppointmentStatus status) {
@@ -199,5 +217,55 @@ class DoctorSlotsTest {
                 BlockSlotRequest.builder().date(day).startTime(LocalTime.of(9, 30)).customerName("Ravi").build()));
         assertThrows(com.vetconnect.common.exceptions.BadRequestException.class, () -> service.blockSlot(2L,
                 BlockSlotRequest.builder().date(day).startTime(LocalTime.of(9, 30)).customerName("Ravi").customerPhone("12").build()));
+    }
+
+    // ---------------------------------------------------------------- leave
+
+    private com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveRequest leave(LocalDate from, LocalDate to) {
+        return com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveRequest.builder().fromDate(from).toDate(to).reason("Conference").build();
+    }
+
+    @Test
+    void aDayOnLeaveHasNoSlotsAndCannotBeBooked() {
+        assertEquals(6, service.getMySchedule(2L, day).size());
+        var saved = service.addLeave(2L, leave(day, day.plusDays(2)));
+        assertEquals(3, saved.getDays());
+        assertEquals(0, service.getMySchedule(2L, day).size(), "no slots on a day away");
+        assertEquals(0, service.getMySchedule(2L, day.plusDays(2)).size());
+        assertTrue(service.isSlotBlocked(20L, day.plusDays(1), LocalTime.of(9, 0)), "booking is refused on leave days");
+        assertTrue(service.getAvailableSlots(20L, day, null).isEmpty(), "customers see nothing to book");
+    }
+
+    @Test
+    void removingTheLeaveOpensTheDaysAgain() {
+        var saved = service.addLeave(2L, leave(day, null));
+        assertEquals(1, saved.getDays());
+        service.removeLeave(2L, saved.getId());
+        assertEquals(6, service.getMySchedule(2L, day).size());
+        assertThrows(ResourceNotFoundException.class, () -> service.removeLeave(2L, saved.getId()));
+    }
+
+    @Test
+    void leaveIsRefusedWhileACustomerHoldsAnAppointmentThatDay() {
+        customerBooking(LocalTime.of(9, 0), AppointmentStatus.CONFIRMED);
+        var e = assertThrows(com.vetconnect.common.exceptions.BookingConflictException.class, () -> service.addLeave(2L, leave(day, day.plusDays(1))));
+        assertTrue(e.getMessage().contains("1 booked appointment"));
+        assertTrue(service.myLeave(2L).isEmpty());
+    }
+
+    @Test
+    void leaveHasSensibleLimits() {
+        assertThrows(BadRequestException.class, () -> service.addLeave(2L, leave(LocalDate.now().minusDays(1), null)));
+        assertThrows(BadRequestException.class, () -> service.addLeave(2L, leave(day.plusDays(3), day)));
+        assertThrows(BadRequestException.class, () -> service.addLeave(2L, leave(day, day.plusDays(70))));
+        service.addLeave(2L, leave(day.plusDays(5), day.plusDays(7)));
+        assertThrows(BadRequestException.class, () -> service.addLeave(2L, leave(day.plusDays(7), day.plusDays(9))), "overlaps existing leave");
+        assertEquals(1, service.myLeave(2L).size());
+    }
+
+    @Test
+    void anotherDoctorCannotRemoveMyLeave() {
+        var saved = service.addLeave(2L, leave(day, null));
+        assertThrows(ResourceNotFoundException.class, () -> service.removeLeave(3L, saved.getId()));
     }
 }

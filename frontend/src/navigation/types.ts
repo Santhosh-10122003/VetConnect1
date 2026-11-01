@@ -35,8 +35,10 @@ export type CustomerStackParamList = {
   CareBook: { providerId: number; serviceId: number };
   CarePayment: { bookingId: number };
   CareBookings: undefined;
+  BecomeBusiness: undefined;
   CareBookingDetails: { bookingId: number };
   CareReview: { bookingId: number; providerName: string };
+  AppGuide: { initialIndex?: number } | undefined;
 };
 
 export type DoctorTabParamList = {
@@ -55,6 +57,7 @@ export type DoctorStackParamList = {
   DoctorNotifications: undefined;
   DoctorWallet: undefined;
   DoctorSlots: undefined;
+  AppGuide: { initialIndex?: number } | undefined;
 };
 
 export type ProviderStackParamList = {
@@ -66,6 +69,7 @@ export type ProviderStackParamList = {
   ProviderHours: undefined;
   ProviderProfile: undefined;
   ProviderWallet: undefined;
+  AppGuide: { initialIndex?: number } | undefined;
 };
 
 export type AdminStackParamList = {

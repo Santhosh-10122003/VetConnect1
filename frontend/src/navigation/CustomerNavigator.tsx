@@ -1,4 +1,6 @@
-import React from 'react';
+import { BecomeBusinessScreen } from '../screens/customer/BecomeBusinessScreen';
+import React, { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +29,10 @@ import { CarePaymentScreen } from '../screens/customer/CarePaymentScreen';
 import { CareBookingsScreen } from '../screens/customer/CareBookingsScreen';
 import { CareBookingDetailsScreen } from '../screens/customer/CareBookingDetailsScreen';
 import { CareReviewScreen } from '../screens/customer/CareReviewScreen';
+import { AppGuideScreen } from '../screens/customer/AppGuideScreen';
+import { ScreenStoryWalkthrough } from '../components/common/ScreenStoryWalkthrough';
+import { useAuth } from '../context/AuthContext';
+import { clearNewUserRegistered, isNewUserRegistered, markGuideSeen } from '../utils/guideStorage';
 
 const Tab = createBottomTabNavigator<CustomerTabParamList>();
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
@@ -42,22 +48,54 @@ const ICONS: Record<keyof CustomerTabParamList, [keyof typeof Ionicons.glyphMap,
 
 const CustomerTabs: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { user, isNewRegistration, clearNewRegistrationFlag } = useAuth();
+  const [storyVisible, setStoryVisible] = useState(false);
+
+  // Trigger Story Walkthrough ONLY once when a new user has completed registration
+  useEffect(() => {
+    const checkNewUser = async () => {
+      if (!user?.userId) return;
+      try {
+        const wasJustRegistered = await isNewUserRegistered();
+        if (isNewRegistration || wasJustRegistered) {
+          // Immediately consume registration flags so normal logins never trigger it
+          await clearNewUserRegistered();
+          clearNewRegistrationFlag();
+          await markGuideSeen(user.userId);
+          setStoryVisible(true);
+        }
+      } catch (e) {
+        console.warn('Failed to check story guide status', e);
+      }
+    };
+    checkNewUser();
+  }, [user?.userId, isNewRegistration]);
+
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        ...tabBarOptions(insets.bottom),
-        tabBarIcon: ({ focused, color, size }) => (
-          <Ionicons name={ICONS[route.name][focused ? 0 : 1]} size={size} color={color} />
-        ),
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="FindDoctors" component={FindDoctorsScreen} options={{ title: 'Doctors' }} />
-      <Tab.Screen name="Appointments" component={MyAppointmentsScreen} options={{ title: 'Visits' }} />
-      <Tab.Screen name="PetCare" component={CareHomeScreen} options={{ title: 'Pet Care' }} />
-      <Tab.Screen name="Pets"component={PetListScreen} />
-      <Tab.Screen name="Profile" component={CustomerProfileScreen} />
-    </Tab.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          ...tabBarOptions(insets.bottom),
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons name={ICONS[route.name][focused ? 0 : 1]} size={size} color={color} />
+          ),
+        })}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="FindDoctors" component={FindDoctorsScreen} options={{ title: 'Doctors' }} />
+        <Tab.Screen name="Appointments" component={MyAppointmentsScreen} options={{ title: 'Visits' }} />
+        <Tab.Screen name="PetCare" component={CareHomeScreen} options={{ title: 'Pet Care' }} />
+        <Tab.Screen name="Pets" component={PetListScreen} />
+        <Tab.Screen name="Profile" component={CustomerProfileScreen} />
+      </Tab.Navigator>
+
+      {/* Interactive Story Walkthrough - Appears ONLY for newly registered users */}
+      <ScreenStoryWalkthrough
+        visible={storyVisible}
+        userId={user?.userId}
+        onClose={() => setStoryVisible(false)}
+      />
+    </View>
   );
 };
 
@@ -78,7 +116,9 @@ export const CustomerNavigator: React.FC = () => (
     <Stack.Screen name="CareBook" component={CareBookScreen} />
     <Stack.Screen name="CarePayment" component={CarePaymentScreen} options={{ gestureEnabled: false }} />
     <Stack.Screen name="CareBookings" component={CareBookingsScreen} />
+    <Stack.Screen name="BecomeBusiness" component={BecomeBusinessScreen} />
     <Stack.Screen name="CareBookingDetails" component={CareBookingDetailsScreen} />
     <Stack.Screen name="CareReview" component={CareReviewScreen} />
+    <Stack.Screen name="AppGuide" component={AppGuideScreen} />
   </Stack.Navigator>
 );

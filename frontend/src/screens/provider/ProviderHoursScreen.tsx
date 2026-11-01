@@ -69,7 +69,7 @@ export const ProviderHoursScreen: React.FC<Props> = ({ navigation }) => {
       await careApi.updateHours(rows.map((r, i) => ({ dayOfWeek: i + 1, isOpen: r.isOpen, openTime: r.open, closeTime: r.close })));
       await careApi.updateProfile({
         businessName: profile.businessName, description: profile.description, phone: profile.phone,
-        registrationNumber: profile.registrationNumber, address: profile.address, city: profile.city, state: profile.state,
+        registrationNumber: profile.registrationNumber, vetPartnerName: profile.vetPartnerName, vetPartnerPhone: profile.vetPartnerPhone, address: profile.address, city: profile.city, state: profile.state,
         country: profile.country, postalCode: profile.postalCode,
         latitude: profile.latitude ?? undefined, longitude: profile.longitude ?? undefined,
         categories: profile.categories, advancePercent: advance, concurrentCapacity: c,

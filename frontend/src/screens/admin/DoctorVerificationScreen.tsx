@@ -1,3 +1,4 @@
+import { ApplicantDocuments } from '../../components/common/DocumentsCard';
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,7 +29,11 @@ interface Applicant {
   reason?: string;
   resubmitNote?: string;
   resubmittedAt?: string;
+  /** When the admin last reviewed it: documents uploaded after this are new. */
+  reviewedAt?: string;
   fields: [string, string][];
+  /** How the admin can check the credentials. */
+  checks: string[];
 }
 
 const fromDoctor = (d: DoctorProfile): Applicant => ({
@@ -38,8 +43,11 @@ const fromDoctor = (d: DoctorProfile): Applicant => ({
   reason: d.verificationReason,
   resubmitNote: d.resubmitNote,
   resubmittedAt: d.resubmittedAt,
+  reviewedAt: d.reviewedAt,
   fields: [
-    ['License', d.licenseNumber],
+    ['Degree', d.degree || '-'],
+    ['Registration number', d.licenseNumber],
+    ['State Veterinary Council', d.councilName || '-'],
     ['Clinic', `${d.clinicName ?? '-'}${d.clinicAddress ? ', ' + d.clinicAddress : ''}`],
     ['Location', [d.clinicCity, d.clinicPostalCode].filter(Boolean).join(' ') + (d.latitude != null ? ' (GPS saved)' : '')],
     ['Experience', `${d.yearsOfExperience} years`],
@@ -48,6 +56,11 @@ const fromDoctor = (d: DoctorProfile): Applicant => ({
       ? (d.payoutMethod === 'UPI' ? `UPI: ${d.upiId}` : `Bank: ${d.accountHolderName}, ${d.bankAccountMasked}, ${d.ifscCode}`)
       : 'Not added yet'],
     ['Contact', [d.phone, visibleEmail(d.email)].filter(Boolean).join(' · ')],
+  ],
+  checks: [
+    'Ask for the full registered name, degree, registration number and council (shown above).',
+    'Search the register on the website of the State Veterinary Council (for example TNSVC for Tamil Nadu) and confirm the registration is active.',
+    'Legitimate clinics display the registration certificate or council number in the clinic and on their prescription pad.',
   ],
 });
 
@@ -58,15 +71,22 @@ const fromProvider = (p: Provider): Applicant => ({
   reason: p.verificationReason,
   resubmitNote: p.resubmitNote,
   resubmittedAt: p.resubmittedAt,
+  reviewedAt: p.reviewedAt,
   fields: [
     ['About', p.description || '-'],
-    ['Registration', p.registrationNumber || '-'],
+    ['Trade licence number', p.registrationNumber || '-'],
+    ['Veterinarian they work with', [p.vetPartnerName, p.vetPartnerPhone].filter(Boolean).join(' · ') || '-'],
     ['Address', [p.address, p.city, p.state, p.country].filter(Boolean).join(', ')],
     ['Location', p.latitude != null ? 'Pinned on the map' : 'Not pinned'],
     ['Payment details', p.payoutComplete
       ? (p.payoutMethod === 'UPI' ? `UPI: ${p.upiId}` : `Bank: ${p.accountHolderName}, ${p.bankAccountMasked}, ${p.ifscCode}${p.bankName ? ', ' + p.bankName : ''}`)
       : 'MISSING: cannot be approved'],
     ['Contact', [p.phone, visibleEmail(p.email)].filter(Boolean).join(' · ')],
+  ],
+  checks: [
+    'Ask for the trade licence number from the municipal corporation (shown above).',
+    'Check the city or district municipal website, or its health or veterinary department, that the business holds a valid trade or commercial licence.',
+    'A legitimate facility shares the name and contact of its on-call or partner veterinarian: call them to confirm the tie-up.',
   ],
 });
 
@@ -188,6 +208,15 @@ export const DoctorVerificationScreen: React.FC<Props> = ({ navigation, route })
                   </View>
                 ))}
 
+                <ApplicantDocuments ownerType={providerMode ? 'PROVIDER' : 'DOCTOR'} ownerId={d.id} newSince={resubmittedMode ? d.reviewedAt : undefined} />
+
+                <View style={styles.checks} testID="verify-steps">
+                  <Text style={styles.checksTitle}>How to verify</Text>
+                  {d.checks.map((c, i) => (
+                    <Text key={i} style={styles.checkLine}>{i + 1}. {c}</Text>
+                  ))}
+                </View>
+
                 {open ? (
                   <View style={styles.reasonBox}>
                     <AppInput
@@ -226,6 +255,9 @@ export const DoctorVerificationScreen: React.FC<Props> = ({ navigation, route })
 };
 
 const styles = StyleSheet.create({
+  checks: { marginTop: 12, padding: 12, borderRadius: 14, backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.mintDark },
+  checksTitle: { fontSize: 12, fontWeight: '800', color: colors.primary, marginBottom: 4 },
+  checkLine: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 3 },
   name: { fontSize: 17, fontWeight: '800', color: colors.text },
   meta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   history: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12, marginTop: 12 },

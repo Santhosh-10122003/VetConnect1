@@ -58,6 +58,12 @@ public class RegisterRequest {
 
     // Doctor specific fields (optional during registration if customer)
     private String licenseNumber;
+    /** Veterinarian: degree and the State Veterinary Council they are registered with. */
+    private String degree;
+    private String councilName;
+    /** Pet-care business: the vet it works with (on call or partner). */
+    private String vetPartnerName;
+    private String vetPartnerPhone;
     private String clinicName;
     private String clinicAddress;
     private String clinicCity;

@@ -41,6 +41,13 @@ public class ProviderProfile {
     @Column(name = "registration_number", length = 100)
     private String registrationNumber;
 
+    /** The veterinarian the business works with (on call or partner). */
+    @Column(name = "vet_partner_name", length = 150)
+    private String vetPartnerName;
+
+    @Column(name = "vet_partner_phone", length = 20)
+    private String vetPartnerPhone;
+
     @Column(nullable = false)
     private String address;
 

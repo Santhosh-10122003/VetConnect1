@@ -5,7 +5,7 @@ import com.vetconnect.domain.entities.CarePayment;
 import java.math.BigDecimal;
 
 /**
- * The seam between VetConnect and a payment provider. Everything the app needs from a gateway is here, so adding
+ * The seam between Jenni and a payment provider. Everything the app needs from a gateway is here, so adding
  * another provider means writing one implementation and setting {@code vetconnect.payments.gateway}.
  */
 public interface PaymentGateway {

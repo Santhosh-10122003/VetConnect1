@@ -105,6 +105,37 @@ public class DoctorController {
         return ResponseEntity.ok(ApiResponse.ok("Slot is free again", null));
     }
 
+    @GetMapping("/me/leave")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "My leave: days I am away that are still running or coming up")
+    public ResponseEntity<ApiResponse<java.util.List<com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveDto>>> myLeave(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(doctorService.myLeave(userPrincipal.getId())));
+    }
+
+    @PostMapping("/me/leave")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Mark whole days as away (refused while customers have appointments on them)")
+    public ResponseEntity<ApiResponse<com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveDto>> addLeave(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveRequest request
+    ) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.ok("Leave added", doctorService.addLeave(userPrincipal.getId(), request)));
+    }
+
+    @DeleteMapping("/me/leave/{leaveId}")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @Operation(summary = "Cancel a leave: the days open for booking again")
+    public ResponseEntity<ApiResponse<Void>> removeLeave(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long leaveId
+    ) {
+        doctorService.removeLeave(userPrincipal.getId(), leaveId);
+        return ResponseEntity.ok(ApiResponse.ok("Leave removed", null));
+    }
+
     @GetMapping("/profile/me")
     @PreAuthorize("hasRole('DOCTOR')")
     @Operation(summary = "Get current authenticated doctor's profile")

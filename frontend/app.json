@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "VetConnect",
-    "slug": "vetconnect",
+    "name": "Jenni",
+    "slug": "jenni",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vetconnect.app",
+      "bundleIdentifier": "com.jenni.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "VetConnect uses your location to show veterinarians near you."
+        "NSLocationWhenInUseUsageDescription": "Jenni uses your location to show veterinarians near you."
       }
     },
     "android": {
@@ -18,7 +18,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#A9D9F5"
       },
-      "package": "com.vetconnect.app",
+      "package": "com.jenni.app",
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "INTERNET",
@@ -48,7 +48,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "VetConnect uses your location to show veterinarians near you."
+          "locationWhenInUsePermission": "Jenni uses your location to show veterinarians near you."
         }
       ],
       "@react-native-community/datetimepicker"

@@ -63,7 +63,7 @@ export const ProviderStatusCard: React.FC<Props> = ({ profile, onChanged }) => {
       {profile.verificationStatus === 'REJECTED' && (
         <View style={shared.card}>
           <Text style={shared.label}>Fixed the issues?</Text>
-          <Text style={styles.text}>Edit your details under Business profile, then send it for approval again.</Text>
+          <Text style={styles.text}>Edit your details under Business profile, add new documents if the admin asked for them, then send it for approval again. The admin will see everything you changed.</Text>
           <AppInput
             label="Note to the admin (optional)"
             placeholder="e.g. I added my licence number"

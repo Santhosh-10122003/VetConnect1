@@ -21,6 +21,9 @@ public class UpdateDoctorProfileRequest {
     @NotBlank(message = "Full name is required")
     private String fullName;
     private String phone;
+    // Credentials: optional on an update (left as they are when not sent)
+    private String degree;
+    private String councilName;
     @NotBlank(message = "Clinic name is required")
     private String clinicName;
     @NotBlank(message = "Clinic address is required")

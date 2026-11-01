@@ -4,6 +4,8 @@ import { shared } from '../../theme/shared';
 import { colors } from '../../theme/colors';
 import { AppInput } from '../common/AppInput';
 import { AppButton } from '../common/AppButton';
+import { PhoneField } from '../common/PhoneField';
+import { phoneError } from '../../utils/validators';
 import { LocationPicker, LocationValue, emptyLocation, LocationErrors } from '../common/LocationPicker';
 import { TouchableOpacity } from 'react-native';
 import { CATEGORIES, CareCategory, ProviderPayload } from '../../api/careApi';
@@ -14,6 +16,8 @@ export interface ProviderFormValues {
   description: string;
   phone: string;
   registrationNumber: string;
+  vetPartnerName: string;
+  vetPartnerPhone: string;
   address: string;
   categories: CareCategory[];
   location: LocationValue;
@@ -21,7 +25,7 @@ export interface ProviderFormValues {
 }
 
 export const emptyProviderForm: ProviderFormValues = {
-  businessName: '', description: '', phone: '', registrationNumber: '', address: '', categories: [], location: emptyLocation, payout: emptyPayout,
+  businessName: '', description: '', phone: '', registrationNumber: '', vetPartnerName: '', vetPartnerPhone: '+91 ', address: '', categories: [], location: emptyLocation, payout: emptyPayout,
 };
 
 /** The turn from the form's values into what the API wants. */
@@ -30,6 +34,8 @@ export const toPayload = (f: ProviderFormValues): ProviderPayload => ({
   description: f.description.trim() || undefined,
   phone: f.phone.trim() || undefined,
   registrationNumber: f.registrationNumber.trim() || undefined,
+  vetPartnerName: f.vetPartnerName.trim() || undefined,
+  vetPartnerPhone: f.vetPartnerPhone.replace(/[\s().-]/g, '') || undefined,
   address: f.address.trim(),
   city: f.location.city.trim(),
   state: f.location.state || undefined,
@@ -62,6 +68,9 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
   if (!f.businessName.trim()) errors.businessName = 'Required';
   if (f.categories.length === 0) errors.categories = 'Choose at least one';
   if (!f.address.trim()) errors.address = 'Required';
+  if (!f.registrationNumber.trim()) errors.registrationNumber = 'Required';
+  if (!f.vetPartnerName.trim()) errors.vetPartnerName = 'Required';
+  if (phoneError(f.vetPartnerPhone)) errors.vetPartnerPhone = phoneError(f.vetPartnerPhone) as string;
   const loc: LocationErrors = {};
   if (!f.location.country) loc.country = 'Select a country';
   else if (!f.location.state) loc.state = 'Select a state';
@@ -93,7 +102,9 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
       {tried && errors.categories ? <Text style={{ color: colors.danger, fontSize: 12, marginTop: -10, marginBottom: 12 }}>{errors.categories}</Text> : null}
       <AppInput label="About your business" value={f.description} onChangeText={(v) => set('description', v)} multiline style={{ height: 90, textAlignVertical: 'top', paddingTop: 12 }} />
       <AppInput label="Phone" value={f.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
-      <AppInput label="Registration / licence number" value={f.registrationNumber} onChangeText={(v) => set('registrationNumber', v)} icon="shield-checkmark-outline" />
+      <AppInput label="Trade licence number *" placeholder="From your municipal corporation" value={f.registrationNumber} onChangeText={(v) => set('registrationNumber', v)} error={tried ? errors.registrationNumber : undefined} icon="shield-checkmark-outline" />
+      <AppInput label="Veterinarian you work with *" placeholder="On-call or partner vet" value={f.vetPartnerName} onChangeText={(v) => set('vetPartnerName', v)} error={tried ? errors.vetPartnerName : undefined} icon="medkit-outline" autoCapitalize="words" />
+      <PhoneField label="Veterinarian's mobile number *" value={f.vetPartnerPhone} onChange={(v) => set('vetPartnerPhone', v)} forceError={tried} />
       <AppInput label="Street address *" placeholder="Street, area" value={f.address} onChangeText={(v) => set('address', v)} error={tried ? errors.address : undefined} icon="map-outline" />
       <LocationPicker
         pinRequired

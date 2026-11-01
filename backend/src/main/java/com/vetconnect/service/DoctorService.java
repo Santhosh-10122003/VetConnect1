@@ -52,6 +52,7 @@ public class DoctorService {
     private final NotificationService notificationService;
     private final AppProperties appProperties;
     private final com.vetconnect.repository.DoctorBlockedSlotRepository blockedSlotRepository;
+    private final com.vetconnect.repository.DoctorLeaveRepository leaveRepository;
 
     // ------------------------------------------------------------------ discovery (location aware)
 
@@ -193,12 +194,17 @@ public class DoctorService {
     public DoctorProfileDto updateDoctorProfile(Long userId, UpdateDoctorProfileRequest request) {
         DoctorProfile doctor = doctorProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor profile not found for user ID: " + userId));
+        if (doctor.getVerificationStatus() == VerificationStatus.PENDING || doctor.getVerificationStatus() == VerificationStatus.RESUBMITTED) {
+            throw new BadRequestException("Your application is under review. You can edit it only if the admin rejects it.");
+        }
 
         if ((request.getLatitude() == null) != (request.getLongitude() == null)) {
             throw new BadRequestException("Latitude and longitude must be provided together.");
         }
 
         doctor.setFullName(request.getFullName());
+        if (hasText(request.getDegree())) doctor.setDegree(request.getDegree().trim());
+        if (hasText(request.getCouncilName())) doctor.setCouncilName(request.getCouncilName().trim());
         if (request.getPhone() != null) doctor.getUser().setPhone(request.getPhone());
         doctor.setClinicName(request.getClinicName());
         doctor.setClinicAddress(request.getClinicAddress());
@@ -320,6 +326,8 @@ public class DoctorService {
     }
 
     private List<Cell> grid(DoctorProfile doctor, LocalDate date) {
+        // away that day: there are no slots at all
+        if (onLeave(doctor.getId(), date)) return Collections.emptyList();
         int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
         Optional<DoctorAvailability> availOpt = availabilityRepository.findByDoctorIdAndDayOfWeek(doctor.getId(), dayOfWeek);
         if (availOpt.isEmpty() || !Boolean.TRUE.equals(availOpt.get().getIsActive())) {
@@ -369,7 +377,62 @@ public class DoctorService {
     /** True when the doctor has marked that slot as booked themselves (customers cannot take it). */
     @Transactional(readOnly = true)
     public boolean isSlotBlocked(Long doctorId, LocalDate date, LocalTime start) {
-        return blockedSlotRepository.existsByDoctorIdAndDateAndStartTime(doctorId, date, start);
+        return onLeave(doctorId, date) || blockedSlotRepository.existsByDoctorIdAndDateAndStartTime(doctorId, date, start);
+    }
+
+    private boolean onLeave(Long doctorId, LocalDate date) {
+        return leaveRepository.existsByDoctorIdAndFromDateLessThanEqualAndToDateGreaterThanEqual(doctorId, date, date);
+    }
+
+    // ------------------------------------------------------------------ leave (whole days away)
+
+    private static final int MAX_LEAVE_DAYS = 60;
+
+    @Transactional(readOnly = true)
+    public List<com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveDto> myLeave(Long userId) {
+        DoctorProfile doctor = ownDoctor(userId);
+        return leaveRepository.findByDoctorIdAndToDateGreaterThanEqualOrderByFromDateAsc(doctor.getId(), LocalDate.now()).stream().map(this::toLeaveDto).toList();
+    }
+
+    /**
+     * Marks whole days as away: customers cannot book them. It is refused while customers still hold appointments on
+     * those days, so nobody is left with a booking the doctor will not keep: cancel or reschedule those first.
+     */
+    @Transactional
+    public com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveDto addLeave(Long userId, com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveRequest request) {
+        DoctorProfile doctor = ownDoctor(userId);
+        LocalDate from = request.getFromDate();
+        LocalDate to = request.getToDate() != null ? request.getToDate() : from;
+        if (from.isBefore(LocalDate.now())) throw new BadRequestException("Leave cannot start in the past.");
+        if (to.isBefore(from)) throw new BadRequestException("The last day cannot be before the first day.");
+        if (to.isAfter(LocalDate.now().plusDays(MAX_DAYS_AHEAD))) throw new BadRequestException("You can only plan leave in the next " + MAX_DAYS_AHEAD + " days.");
+        if (java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1 > MAX_LEAVE_DAYS) throw new BadRequestException("Leave can be at most " + MAX_LEAVE_DAYS + " days at a time.");
+        if (leaveRepository.findByDoctorIdAndToDateGreaterThanEqualOrderByFromDateAsc(doctor.getId(), from).stream().anyMatch(l -> !l.getFromDate().isAfter(to))) {
+            throw new BadRequestException("You already have leave on some of those days.");
+        }
+        long held = appointmentRepository.countByDoctorIdAndAppointmentDateBetweenAndStatusNotIn(doctor.getId(), from, to, AppointmentStatus.SLOT_RELEASED);
+        if (held > 0) {
+            log.warn("Leave refused: doctorId={} has {} appointment(s) between {} and {}", doctor.getId(), held, from, to);
+            throw new com.vetconnect.common.exceptions.BookingConflictException("You have " + held + " booked appointment" + (held == 1 ? "" : "s")
+                    + " in those days. Cancel or reschedule " + (held == 1 ? "it" : "them") + " first, then add your leave.");
+        }
+        String reason = request.getReason() == null || request.getReason().isBlank() ? null : request.getReason().trim();
+        var saved = leaveRepository.save(com.vetconnect.domain.entities.DoctorLeave.builder().doctor(doctor).fromDate(from).toDate(to).reason(reason).build());
+        log.info("Leave added: doctorId={} {} to {}", doctor.getId(), from, to);
+        return toLeaveDto(saved);
+    }
+
+    @Transactional
+    public void removeLeave(Long userId, Long leaveId) {
+        DoctorProfile doctor = ownDoctor(userId);
+        var leave = leaveRepository.findByIdAndDoctorId(leaveId, doctor.getId()).orElseThrow(() -> new ResourceNotFoundException("That leave was not found."));
+        leaveRepository.delete(leave);
+        log.info("Leave removed: doctorId={} {} to {}", doctor.getId(), leave.getFromDate(), leave.getToDate());
+    }
+
+    private com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveDto toLeaveDto(com.vetconnect.domain.entities.DoctorLeave l) {
+        return com.vetconnect.dto.doctor.DoctorScheduleDtos.LeaveDto.builder().id(l.getId()).fromDate(l.getFromDate()).toDate(l.getToDate())
+                .reason(l.getReason()).days((int) (java.time.temporal.ChronoUnit.DAYS.between(l.getFromDate(), l.getToDate()) + 1)).build();
     }
 
     /**
@@ -499,6 +562,8 @@ public class DoctorService {
                 .phone(d.getUser() != null ? d.getUser().getPhone() : null)
                 .fullName(d.getFullName())
                 .licenseNumber(d.getLicenseNumber())
+                .degree(d.getDegree())
+                .councilName(d.getCouncilName())
                 .clinicName(d.getClinicName())
                 .clinicAddress(d.getClinicAddress())
                 .clinicCity(d.getClinicCity())

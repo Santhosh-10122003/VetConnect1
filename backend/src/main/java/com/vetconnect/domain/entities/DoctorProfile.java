@@ -36,6 +36,14 @@ public class DoctorProfile {
     @Column(name = "license_number", nullable = false, unique = true, length = 100)
     private String licenseNumber;
 
+    /** e.g. B.V.Sc. & A.H. */
+    @Column(length = 100)
+    private String degree;
+
+    /** The State Veterinary Council the registration number belongs to. */
+    @Column(name = "council_name", length = 150)
+    private String councilName;
+
     @Column(name = "clinic_name", nullable = false, length = 150)
     private String clinicName;
 

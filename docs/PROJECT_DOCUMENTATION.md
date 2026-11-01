@@ -22,9 +22,9 @@ A mobile and web app where pet owners find verified veterinarians, book appointm
 ## 2. Features
 
 ### Accounts and security
-- Register and log in with a **mobile number** (international form, unique per account) plus password; an email is optional. Registration is confirmed with a **6-digit OTP** sent to the mobile number (10 minutes, stored hashed, 5 tries, resend every 30 s). Unverified accounts cannot log in and **do not appear in the admin queue**. Older accounts can still sign in with their email.
-- Confirm-password field, number validation with country code.
-- JWT access and refresh tokens, BCrypt password hashing, **forgot / reset password** by mobile number with a one-time code (hashed, 30 minutes, locks after 5 wrong tries, signs the user out everywhere).
+- Register with **email OTP verification** (6-digit code, 10 minutes, stored hashed, 5 tries, resend every 30 s). Unverified accounts cannot log in and **do not appear in the admin queue**.
+- Email validation like consumer apps (real domain, typo hints), confirm-password field.
+- JWT access and refresh tokens, BCrypt password hashing, **forgot / reset password** with a one-time code (hashed, 30 minutes, locks after 5 wrong tries, signs the user out everywhere).
 - Role-based access on every endpoint.
 
 ### Location
@@ -35,7 +35,6 @@ A mobile and web app where pet owners find verified veterinarians, book appointm
 ### Vet appointments
 - Book a slot; **50% of the consultation fee is paid as an advance** (the rest at the clinic). The slot is **held for 15 minutes** while paying, then released.
 - The doctor sees a request only after the advance is paid, and accepts or rejects it.
-- **My day (slots)**: a doctor sees every slot of any date (booked by customers, free, break) and can block free slots themselves and undo only those; customer-booked slots are locked.
 - **Reschedule is a request**: the appointment keeps its time until the doctor approves; the doctor can decline with a reason; the owner can withdraw.
 - **Refund rules:** doctor rejects or cancels = full refund; customer cancels 24 h or more before = full refund; later = advance kept. The app states the outcome before the customer confirms.
 - Consultation notes, prescriptions, medical history per pet, reviews that update the doctor's rating, in-app notifications.
@@ -222,7 +221,7 @@ Managed by Flyway migrations (`backend/src/main/resources/db/migration`); Hibern
 | Money | `care_payments` (appointment **or** booking), `wallet_transactions` |
 | Other | `notifications` |
 
-Migration history (V13 and V14 make mobile numbers unique and fix older numbers): V1 schema, V2 demo data, V3 reset tokens, V4 to V5 data fixes, V6 location/OTP/review reasons, V7 country/state, V8 pet care + payments, V9 clinic advance payments, V10 reschedule requests, V11 provider payout details, V12 doctor payout details + wallet (with backfill), V13 mobile-number login (normalised, unique), V14 fix for ten-digit Indian numbers, V15 doctor-blocked slots.
+Migration history: V1 schema, V2 demo data, V3 reset tokens, V4 to V5 data fixes, V6 location/OTP/review reasons, V7 country/state, V8 pet care + payments, V9 clinic advance payments, V10 reschedule requests, V11 provider payout details, V12 doctor payout details + wallet (with backfill).
 
 ---
 
@@ -236,7 +235,6 @@ Base path `/api`. Interactive docs: `http://localhost:8080/swagger-ui.html`.
 | Geo | `/geo` | countries, states, districts, postal-code lookup, reverse lookup |
 | Customers / pets | `/customers`, `/pets`, `/pets/{id}/medical-records` | profile, pets CRUD, medical history |
 | Doctors | `/doctors` | search (location-aware), details, `profile/me`, availability, resubmit |
-| Doctor day view | `/doctors/me/schedule`, `/doctors/me/blocked-slots` | slots with status, block a free slot, undo my own block |
 | Appointments | `/appointments` | book, my, confirm, reject, cancel, complete, **reschedule** (+ approve/reject/withdraw), **payment** (simulate / confirm / failed / retry), cancellation-preview |
 | Reviews | `/doctors/{id}/reviews` | list, create |
 | Pet care (customer) | `/care` | `config`, providers search, slots, boarding availability, bookings, payment, cancel, review |
@@ -330,7 +328,7 @@ $env:CARE_CURRENCY="INR"; $env:CARE_CURRENCY_SYMBOL="₹"; .\mvnw.cmd spring-boo
 | Pet-care business | groomer@vetconnect.com | Groomer@1234 |
 | Boarding and training | stay@vetconnect.com | Stay@1234 |
 
-OTP and reset codes appear in `backend/logs/vetconnect.log` as `[SIMULATED SMS] ...` lines. Demo accounts log in with their mobile numbers: customer +1 555-0201, doctor +1 555-0111, admin +1 555-0100, groomer +1 555-0301, boarding +1 555-0302 (the emails in the table above also still work).
+OTP and reset codes appear in `backend/logs/vetconnect.log` as `[SIMULATED EMAIL] ...` lines.
 
 ---
 
@@ -346,7 +344,7 @@ OTP and reset codes appear in `backend/logs/vetconnect.log` as `[SIMULATED SMS] 
 
 | Area | Today | Suggested next step |
 |---|---|---|
-| SMS | OTP and reset codes are only written to the log (`[SIMULATED SMS]`) | Plug an SMS provider (Twilio, MSG91, ...) into `EmailOtpService` and `AuthService.forgotPassword` |
+| Email / SMS | OTP and reset codes are only logged | Plug a mail or SMS sender into `EmailOtpService` and `AuthService.forgotPassword` |
 | Payouts | Wallet is a ledger; no transfer to bank accounts | Razorpay Route / RazorpayX payouts, with a withdrawal request screen |
 | Razorpay webhook | Not implemented: a payment made while the app is closed is not auto-confirmed | Add a webhook endpoint that verifies and settles payments |
 | Sensitive data | Bank account numbers are stored as plain text (masked in responses) | Encrypt at rest |

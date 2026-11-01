@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
+import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { appointmentApi, Appointment } from '../../api/appointmentApi';
 import { doctorApi, AvailableSlot } from '../../api/doctorApi';
 import { medicalApi, MedicalRecord } from '../../api/medicalApi';
@@ -122,7 +123,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
   return (
     <View style={shared.screen}>
       <AppHeader title="Appointment" subtitle={appt.bookingReference} showBack onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={shared.content}>
+      <KeyboardScroll contentContainerStyle={shared.content}>
         <View style={shared.card}>
           <View style={shared.rowBetween}>
             <StatusBadge status={appt.status} />
@@ -235,7 +236,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
             }
           />
         )}
-      </ScrollView>
+      </KeyboardScroll>
     </View>
   );
 };

@@ -100,6 +100,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             >
               <Text style={styles.demoChipText}>Admin</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.demoChip}
+              onPress={() => fillQuickAccount('+1 555-0301', 'Groomer@1234')}
+              testID="demo-petcare"
+            >
+              <Text style={styles.demoChipText}>Pet Care</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -198,6 +205,7 @@ const styles = StyleSheet.create({
   demoButtonsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
   demoChip: {

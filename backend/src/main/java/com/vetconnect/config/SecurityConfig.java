@@ -51,6 +51,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctors/*/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/specializations/**").permitAll()
+                        // a document opens through a short-lived signed link, which carries its own proof
+                        .requestMatchers(HttpMethod.GET, "/api/documents/*/file").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/geo/**", "/api/care/config").permitAll()
                         // Role-based Endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

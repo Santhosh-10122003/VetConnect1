@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
+import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { appointmentApi, Appointment } from '../../api/appointmentApi';
 import { petApi, Pet } from '../../api/petApi';
 import { AppHeader } from '../../components/common/AppHeader';
@@ -74,7 +75,7 @@ export const DoctorAppointmentDetailsScreen: React.FC<Props> = ({ navigation, ro
   return (
     <View style={shared.screen}>
       <AppHeader title="Appointment" subtitle={appt.bookingReference} showBack onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={shared.content}>
+      <KeyboardScroll contentContainerStyle={shared.content}>
         <RescheduleRequestCard appt={appt} busy={busy} onApprove={approveReschedule} onDecline={declineReschedule} />
 
         <View style={shared.card}>
@@ -141,7 +142,7 @@ export const DoctorAppointmentDetailsScreen: React.FC<Props> = ({ navigation, ro
             </>
           )}
         </View>
-      </ScrollView>
+      </KeyboardScroll>
     </View>
   );
 };

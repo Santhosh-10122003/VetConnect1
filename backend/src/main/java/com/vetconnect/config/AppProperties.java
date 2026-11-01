@@ -21,6 +21,7 @@ public class AppProperties {
     private Care care = new Care();
     private Payments payments = new Payments();
     private Clinic clinic = new Clinic();
+    private Uploads uploads = new Uploads();
 
     @Getter
     @Setter
@@ -57,7 +58,7 @@ public class AppProperties {
     public static class Geo {
         private String nominatimUrl = "https://nominatim.openstreetmap.org";
         /** Nominatim's usage policy requires an identifying User-Agent. */
-        private String userAgent = "VetConnect/1.0 (pet care app)";
+        private String userAgent = "Jenni/1.0 (pet care app)";
         private int timeoutMs = 6000;
         private int requestsPerMinutePerClient = 30;
     }
@@ -100,6 +101,17 @@ public class AppProperties {
     public static class Clinic {
         /** Share of the consultation fee paid up front (the rest is paid at the clinic). */
         private int advancePercent = 50;
+    }
+
+    @Getter
+    @Setter
+    public static class Uploads {
+        /** Where verification documents are kept (outside the web root, never served directly). */
+        private String dir = "uploads";
+        private long maxBytes = 5L * 1024 * 1024;
+        private int maxPerOwner = 8;
+        /** How long a view link stays valid. */
+        private int linkMinutes = 5;
     }
 
     @Getter

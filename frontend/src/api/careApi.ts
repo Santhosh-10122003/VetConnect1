@@ -54,6 +54,8 @@ export interface Provider {
   phone?: string;
   email?: string;
   registrationNumber?: string;
+  vetPartnerName?: string;
+  vetPartnerPhone?: string;
   address: string;
   city: string;
   state?: string;
@@ -93,6 +95,8 @@ export interface ProviderPayload {
   description?: string;
   phone?: string;
   registrationNumber?: string;
+  vetPartnerName?: string;
+  vetPartnerPhone?: string;
   address: string;
   city: string;
   state?: string;

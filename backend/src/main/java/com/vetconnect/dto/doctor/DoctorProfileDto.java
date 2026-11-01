@@ -21,6 +21,8 @@ public class DoctorProfileDto {
     private String phone;
     private String fullName;
     private String licenseNumber;
+    private String degree;
+    private String councilName;
     private String clinicName;
     private String clinicAddress;
     private String clinicCity;

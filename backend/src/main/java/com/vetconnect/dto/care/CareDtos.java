@@ -63,6 +63,8 @@ public final class CareDtos {
         private String phone;
         private String email;
         private String registrationNumber;
+        private String vetPartnerName;
+        private String vetPartnerPhone;
         private String address;
         private String city;
         private String state;
@@ -109,6 +111,8 @@ public final class CareDtos {
         private String description;
         private String phone;
         private String registrationNumber;
+        private String vetPartnerName;
+        private String vetPartnerPhone;
         @NotBlank(message = "Address is required")
         private String address;
         @NotBlank(message = "City is required")
