@@ -132,7 +132,7 @@ class AuthServiceOtpTest {
             return d;
         });
 
-        authService.register(customerRequest().role(Role.ROLE_DOCTOR).city(null).clinicCity("West Bay")
+        authService.register(customerRequest().role(Role.ROLE_DOCTOR).degree("B.V.Sc. & A.H.").councilName("Tamil Nadu State Veterinary Council").licenseNumber("TN-1234").city(null).clinicCity("West Bay")
                 .country("India").state("Tamil Nadu").latitude(11.0).longitude(76.9)
                 .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("drtest@okaxis").build());
 
@@ -152,7 +152,7 @@ class AuthServiceOtpTest {
         when(userRepository.existsByEmail(any())).thenReturn(false);
 
         BadRequestException ex = assertThrows(BadRequestException.class, () -> authService.register(
-                customerRequest().role(Role.ROLE_DOCTOR).city(null).clinicCity("West Bay").build()));
+                customerRequest().role(Role.ROLE_DOCTOR).degree("B.V.Sc. & A.H.").councilName("Tamil Nadu State Veterinary Council").licenseNumber("TN-1234").city(null).clinicCity("West Bay").build()));
 
         assertTrue(ex.getMessage().toLowerCase().contains("pin"));
         verify(userRepository, never()).save(any());
@@ -259,11 +259,21 @@ class AuthServiceOtpTest {
     }
 
     @Test
+    void register_doctorMustGiveDegreeRegistrationNumberAndCouncil() {
+        stubSaveUser();
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        RegisterRequest.RegisterRequestBuilder base = customerRequest().role(Role.ROLE_DOCTOR).city(null).clinicCity("West Bay").latitude(11.0).longitude(76.9);
+        assertTrue(assertThrows(BadRequestException.class, () -> authService.register(base.licenseNumber("TN-1").councilName("TNSVC").build())).getMessage().contains("degree"));
+        assertTrue(assertThrows(BadRequestException.class, () -> authService.register(base.degree("BVSc").licenseNumber(null).build())).getMessage().contains("registration number"));
+        assertTrue(assertThrows(BadRequestException.class, () -> authService.register(base.licenseNumber("TN-1").councilName(null).build())).getMessage().contains("Council"));
+    }
+
+    @Test
     void register_doctorMustGivePaymentDetails() {
         stubSaveUser();
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(doctorProfileRepository.existsByLicenseNumberIgnoreCase(any())).thenReturn(false);
-        RegisterRequest.RegisterRequestBuilder doctorRequest = customerRequest().role(Role.ROLE_DOCTOR).city(null).clinicCity("West Bay")
+        RegisterRequest.RegisterRequestBuilder doctorRequest = customerRequest().role(Role.ROLE_DOCTOR).degree("B.V.Sc. & A.H.").councilName("Tamil Nadu State Veterinary Council").licenseNumber("TN-1234").city(null).clinicCity("West Bay")
                 .country("India").state("Tamil Nadu").latitude(11.0).longitude(76.9);
 
         BadRequestException none = assertThrows(BadRequestException.class, () -> authService.register(doctorRequest.build()));

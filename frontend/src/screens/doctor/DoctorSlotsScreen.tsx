@@ -5,7 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
-import { doctorApi, ScheduleSlot } from '../../api/doctorApi';
+import { doctorApi, DoctorLeave, ScheduleSlot } from '../../api/doctorApi';
+import { LeaveCard, leaveRange } from '../../components/doctor/LeaveCard';
 import { AppHeader } from '../../components/common/AppHeader';
 import { DateField, toIso, fromIso } from '../../components/common/DateField';
 import { AppInput } from '../../components/common/AppInput';
@@ -40,6 +41,7 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
   const [selected, setSelected] = useState<string[]>([]); // free slots picked to block (start times)
   const [focus, setFocus] = useState<string | null>(null); // a booked or blocked slot being looked at
   const [busy, setBusy] = useState(false);
+  const [leave, setLeave] = useState<DoctorLeave[]>([]);
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('+91 ');
   const [tried, setTried] = useState(false);
@@ -54,8 +56,11 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
     return out;
   }, []);
 
+  const loadLeave = useCallback(() => { doctorApi.getMyLeave().then(setLeave).catch(() => setLeave([])); }, []);
+
   const load = useCallback(async (iso: string) => {
     try {
+      loadLeave();
       setSlots(await doctorApi.getMySchedule(iso));
     } catch (e) {
       notify('Error', getErrorMessage(e));
@@ -63,7 +68,7 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [loadLeave]);
 
   useFocusEffect(useCallback(() => { load(date); }, [load, date]));
 
@@ -177,6 +182,7 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const total = Math.max(1, usable);
+  const awayToday = leave.find((l) => l.fromDate <= date && date <= l.toDate);
   return (
     <KeyboardAvoid style={shared.screen}>
       <AppHeader title="My day" subtitle="Booked slots and time you block" showBack onBack={() => navigation.goBack()} />
@@ -218,10 +224,14 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
+        <View style={{ paddingHorizontal: 16 }}>
+          <LeaveCard leave={leave} onChanged={() => { setSlots(null); load(date); }} />
+        </View>
+
         {slots === null ? (
           <LoadingView />
         ) : slots.length === 0 ? (
-          <EmptyState icon="calendar-outline" title="Day off" message="You are not working this day. Change your weekly hours in the Calendar tab." />
+          <EmptyState icon={awayToday ? 'airplane-outline' : 'calendar-outline'} title={awayToday ? 'You are away' : 'Day off'} message={awayToday ? `This day is part of your leave (${leaveRange(awayToday)}). Cancel the leave above to open it for booking.` : 'You are not working this day. Change your weekly hours in the Calendar tab.'} />
         ) : (
           <View style={{ paddingHorizontal: 16 }}>
             {counts.AVAILABLE > 0 && (

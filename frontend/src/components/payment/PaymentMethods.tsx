@@ -27,7 +27,7 @@ export const PaymentMethods: React.FC = () => {
               </View>
             ))}
           </View>
-          <Text style={styles.note}>You choose how to pay on Razorpay's secure page. Your card or bank details never reach VetConnect.</Text>
+          <Text style={styles.note}>You choose how to pay on Razorpay's secure page. Your card or bank details never reach Jenni.</Text>
         </>
       ) : (
         <Text style={styles.note}>No real money is charged. You will see test Pay and Decline buttons on the next screen.</Text>

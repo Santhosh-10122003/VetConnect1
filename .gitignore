@@ -31,3 +31,7 @@ Thumbs.db
 
 # Local tooling
 tools/
+
+# Uploaded verification documents
+backend/uploads/
+uploads/

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { KeyboardAvoid } from '../../components/common/KeyboardScroll';
 import {
   View,
   Text,
@@ -88,7 +89,7 @@ export const FindDoctorsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoid style={styles.container}>
       {/* Search Header */}
       <View style={styles.searchHeader}>
         <View style={styles.searchInputContainer}>
@@ -235,7 +236,7 @@ export const FindDoctorsScreen: React.FC<Props> = ({ navigation, route }) => {
           }
         />
       )}
-    </View>
+    </KeyboardAvoid>
   );
 };
 

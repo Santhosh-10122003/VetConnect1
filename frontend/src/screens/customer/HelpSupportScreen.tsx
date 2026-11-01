@@ -10,33 +10,37 @@ import { CustomerStackParamList } from '../../navigation/types';
 type Props = NativeStackScreenProps<CustomerStackParamList, 'HelpSupport'>;
 
 // Placeholder contact details: replace with your organisation's real numbers before release.
-const SUPPORT_EMAIL = 'support@vetconnect.example';
+const SUPPORT_EMAIL = 'support@jenni.example';
 const SUPPORT_PHONE = '+910000000000';
 const EMERGENCY_LINES = [
-  { name: 'VetConnect 24x7 Emergency Line', number: '+910000000001' },
+  { name: 'Jenni 24x7 Emergency Line', number: '+910000000001' },
   { name: 'Poison & Toxicity Helpline', number: '+910000000002' },
 ];
 
 const FAQS = [
   {
     q: 'How do I book an appointment?',
-    a: 'Open Find Doctors, choose a veterinarian, pick a date and an available time slot, select your pet and confirm. The doctor then accepts or declines the request.',
+    a: 'Open Find Doctors, choose a veterinarian, pick a date and an available time slot, select your pet and confirm with a 50% advance. The doctor then accepts or declines the request.',
+  },
+  {
+    q: 'How do the different screens work?',
+    a: 'Tap the "Explore Screen Guide" banner at the top of this screen or from Profile to see a comprehensive walkthrough of each screen, with easy tips and live previews.',
   },
   {
     q: 'Can I reschedule or cancel?',
-    a: 'Yes. Open the appointment from My Appointments and choose Reschedule or Cancel while it is Pending or Confirmed.',
+    a: 'Yes. Open the appointment from Visits (Appointments tab) and choose Reschedule or Cancel while it is Pending or Confirmed. Cancelling 24 hours prior gives you a 100% refund.',
   },
   {
-    q: 'How do I pay?',
-    a: 'Payment is made at the clinic after your consultation. Online payments are not enabled yet.',
+    q: 'How do payments and advances work?',
+    a: '50% of the consultation fee is paid online as an advance via Razorpay to hold your slot for 15 minutes. The remaining 50% is paid directly at the clinic.',
   },
   {
     q: 'Where can I see my pet’s prescriptions?',
-    a: 'Open the pet under Pets and check the Medical History tab. Prescriptions appear after your vet completes the visit.',
+    a: 'Open the pet under My Pets and check the Medical History tab. Prescriptions and doctor notes appear as soon as your vet completes the consultation.',
   },
   {
     q: 'What if my pet has an emergency?',
-    a: 'Do not wait for a booking. Call an emergency line below or go to the nearest 24-hour veterinary hospital.',
+    a: 'Do not wait for a regular booking. Call the 24x7 emergency helpline above or navigate to the nearest 24-hour veterinary emergency hospital immediately.',
   },
 ];
 
@@ -47,6 +51,24 @@ export const HelpSupportScreen: React.FC<Props> = ({ navigation }) => {
     <View style={shared.screen}>
       <AppHeader title="Help & Support" showBack onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={shared.content}>
+        {/* Screen Guide Card */}
+        <TouchableOpacity
+          style={styles.guideCard}
+          onPress={() => navigation.navigate('AppGuide')}
+          activeOpacity={0.9}
+        >
+          <View style={styles.guideCardIcon}>
+            <Ionicons name="compass" size={24} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.guideCardTitle}>Jenni Screen Guide & Tips</Text>
+            <Text style={styles.guideCardSub}>
+              New to the app? Learn what each screen does and how to book easily.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.primaryLight} />
+        </TouchableOpacity>
+
         <Text style={shared.sectionTitle}>Emergency hotlines</Text>
         {EMERGENCY_LINES.map((l) => (
           <TouchableOpacity key={l.number} style={styles.emergency} onPress={() => Linking.openURL(`tel:${l.number}`)}>
@@ -86,6 +108,36 @@ export const HelpSupportScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  guideCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.mint,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.mintBorder,
+    gap: 12,
+  },
+  guideCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  guideCardSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 16,
+    marginTop: 2,
+  },
   emergency: {
     flexDirection: 'row',
     alignItems: 'center',

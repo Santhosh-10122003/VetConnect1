@@ -39,12 +39,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Long userId = tokenProvider.getUserIdFromJwt(jwt);
 
                 UserDetails userDetails = customUserDetailsService.loadUserById(userId);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                // a deactivated or deleted account is signed out everywhere at once, even with a token that has not expired
+                if (userDetails.isEnabled()) {
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                request.setAttribute(REQUEST_USER_ATTR, userDetails.getUsername());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    request.setAttribute(REQUEST_USER_ATTR, userDetails.getUsername());
+                }
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context: {}", ex.getMessage());

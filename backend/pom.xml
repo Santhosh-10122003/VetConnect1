@@ -9,10 +9,10 @@
         <relativePath/>
     </parent>
     <groupId>com.vetconnect</groupId>
-    <artifactId>vetconnect-backend</artifactId>
+    <artifactId>jenni-backend</artifactId>
     <version>1.0.0</version>
-    <name>vetconnect-backend</name>
-    <description>VetConnect Veterinary Appointment Booking Backend</description>
+    <name>jenni-backend</name>
+    <description>Jenni Veterinary Appointment Booking Backend</description>
 
     <properties>
         <java.version>21</java.version>

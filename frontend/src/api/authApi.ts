@@ -10,6 +10,10 @@ export interface RegisterPayload {
   role: 'ROLE_CUSTOMER' | 'ROLE_DOCTOR' | 'ROLE_PROVIDER';
   fullName: string;
   licenseNumber?: string;
+  degree?: string;
+  councilName?: string;
+  vetPartnerName?: string;
+  vetPartnerPhone?: string;
   clinicName?: string;
   clinicAddress?: string;
   yearsOfExperience?: number;

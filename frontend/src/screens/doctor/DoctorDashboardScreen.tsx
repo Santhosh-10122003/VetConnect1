@@ -16,6 +16,8 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { DoctorStackParamList, DoctorTabParamList } from '../../navigation/types';
 import { drName, getErrorMessage, money, notify, todayIso } from '../../utils/helpers';
+import { useAuth } from '../../context/AuthContext';
+import { ScreenGuideModal } from '../../components/common/ScreenGuideModal';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<DoctorTabParamList, 'DoctorDashboard'>,
@@ -37,10 +39,12 @@ const Stat: React.FC<{ icon: keyof typeof Ionicons.glyphMap; value: string | num
 );
 
 export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
+  const { user } = useAuth();
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -73,7 +77,7 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
       <AppHeader
         title={drName(doctor.fullName)}
         subtitle="Today's dashboard"
-        rightAction={{ icon: 'notifications-outline', onPress: () => navigation.navigate('DoctorNotifications') }}
+        rightAction={{ icon: 'compass-outline', onPress: () => setGuideVisible(true) }}
       />
       <ScrollView
         contentContainerStyle={shared.content}
@@ -136,6 +140,20 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
           ))
         )}
       </ScrollView>
+
+      {/* Screen Guide Interactive Modal if manually requested */}
+      <ScreenGuideModal
+        visible={guideVisible}
+        role="ROLE_DOCTOR"
+        userId={user?.userId}
+        onClose={() => setGuideVisible(false)}
+        onNavigateToScreen={(target) => {
+          setGuideVisible(false);
+          if (target.tab) {
+            navigation.navigate('DoctorTabs', { screen: target.tab as keyof DoctorTabParamList } as never);
+          }
+        }}
+      />
     </View>
   );
 };

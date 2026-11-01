@@ -39,7 +39,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        log.info("Checking and seeding VetConnect base data...");
+        log.info("Checking and seeding Jenni base data...");
 
         // 1. Specializations
         Map<String, Specialization> specs = new HashMap<>();
@@ -79,7 +79,7 @@ public class DataInitializer implements CommandLineRunner {
             doc1 = DoctorProfile.builder()
                     .user(docUser1)
                     .fullName("Dr. Sarah Jenkins, DVM")
-                    .licenseNumber("VET-US-98214")
+                    .licenseNumber("VET-US-98214").degree("DVM").councilName("State Veterinary Medical Board")
                     .clinicName("Paws & Claws Veterinary Hospital")
                     .clinicAddress("742 Evergreen Terrace, Springfield")
                     .clinicCity("Springfield").latitude(39.7817).longitude(-89.6501)
@@ -114,7 +114,7 @@ public class DataInitializer implements CommandLineRunner {
             doc2 = DoctorProfile.builder()
                     .user(docUser2)
                     .fullName("Dr. Raj Patel, BVSc & AH")
-                    .licenseNumber("VET-US-84512")
+                    .licenseNumber("VET-US-84512").degree("DVM").councilName("State Veterinary Medical Board")
                     .clinicName("Metro Animal Surgical Center")
                     .clinicAddress("1204 Pine Grove Ave, West Bay")
                     .clinicCity("West Bay").latitude(39.9000).longitude(-89.4500)
@@ -148,7 +148,7 @@ public class DataInitializer implements CommandLineRunner {
             DoctorProfile doc3 = DoctorProfile.builder()
                     .user(docUser3)
                     .fullName("Dr. Emily Wong, DVM")
-                    .licenseNumber("VET-US-77401")
+                    .licenseNumber("VET-US-77401").degree("DVM").councilName("State Veterinary Medical Board")
                     .clinicName("Avian & Exotic Pet Care Center")
                     .clinicAddress("330 Sunset Blvd, Northview")
                     .clinicCity("Northview").latitude(40.3000).longitude(-89.2000)
@@ -289,7 +289,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Welcome notification
                 Notification notif = Notification.builder()
                         .user(custUser1)
-                        .title("Welcome to VetConnect!")
+                        .title("Welcome to Jenni!")
                         .message("Your account is ready. You can now book appointments, track vaccinations, and manage healthcare for your pets.")
                         .notificationType(NotificationType.GENERAL)
                         .isRead(false)
@@ -300,7 +300,7 @@ public class DataInitializer implements CommandLineRunner {
 
         seedPetCare();
 
-        log.info("VetConnect database initialization complete.");
+        log.info("Jenni database initialization complete.");
     }
 
     // ------------------------------------------------------------------ demo pet-care businesses

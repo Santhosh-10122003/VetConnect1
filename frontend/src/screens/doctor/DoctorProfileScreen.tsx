@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { DeleteAccountCard } from '../../components/common/DeleteAccountCard';
 import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +15,7 @@ import { OsmMap } from '../../components/common/OsmMap';
 import { openDirections } from '../../utils/maps';
 import { AppButton } from '../../components/common/AppButton';
 import { PayoutFields, PayoutValues, emptyPayout, payoutErrors, payoutFromProvider, payoutPayload } from '../../components/care/PayoutFields';
+import { DocumentsCard } from '../../components/common/DocumentsCard';
 import { LoadingView } from '../../components/common/LoadingView';
 import { confirmAction, getErrorMessage, money, notify, getCurrencySymbol, visibleEmail } from '../../utils/helpers';
 
@@ -141,7 +143,7 @@ export const DoctorProfileScreen: React.FC = () => {
     <View style={shared.screen}>
       <AppHeader
         title="Profile & Verification"
-        rightAction={{ icon: editing ? 'close' : 'create-outline', onPress: () => setEditing((x) => !x) }}
+        rightAction={doctor.verificationStatus === 'PENDING' || doctor.verificationStatus === 'RESUBMITTED' ? undefined : { icon: editing ? 'close' : 'create-outline', onPress: () => setEditing((x) => !x) }}
       />
       <KeyboardScroll contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
@@ -183,10 +185,12 @@ export const DoctorProfileScreen: React.FC = () => {
           </View>
         )}
 
+        <DocumentsCard types={['DEGREE', 'REGISTRATION_CERTIFICATE', 'ID_PROOF', 'OTHER']} editable={doctor.verificationStatus === 'REJECTED'} hint="Your degree and State Veterinary Council registration certificate. The admin checks them against the council register." />
+
         {doctor.verificationStatus === 'REJECTED' && !editing && (
           <View style={shared.card}>
             <Text style={shared.label}>Fixed the issues?</Text>
-            <Text style={styles.verifyText}>Tap the pencil above to edit your details, save them, then send your profile for approval again.</Text>
+            <Text style={styles.verifyText}>Tap the pencil above to edit your details, add new documents below if the admin asked for them, then send your profile for approval again. The admin will see everything you changed.</Text>
             <AppInput
               label="Note to the admin (optional)"
               placeholder="e.g. I re-uploaded a clear license number"
@@ -228,7 +232,9 @@ export const DoctorProfileScreen: React.FC = () => {
         ) : (
           <View style={shared.card}>
             {[
-              ['License number', doctor.licenseNumber],
+              ['Degree', doctor.degree],
+              ['Registration number', doctor.licenseNumber],
+              ['State Veterinary Council', doctor.councilName],
               ['Clinic', doctor.clinicName],
               ['Address', doctor.clinicAddress],
               ['Location', [doctor.clinicCity, doctor.clinicState, doctor.clinicCountry, doctor.clinicPostalCode].filter(Boolean).join(', ') + (doctor.latitude != null ? ' (pinned on map)' : ' (not pinned yet)')],
@@ -250,6 +256,7 @@ export const DoctorProfileScreen: React.FC = () => {
         )}
 
         <AppButton title="Sign Out" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger }} onPress={signOut} />
+        <DeleteAccountCard />
       </KeyboardScroll>
     </View>
   );

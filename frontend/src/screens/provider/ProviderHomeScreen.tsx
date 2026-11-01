@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { DeleteAccountCard } from '../../components/common/DeleteAccountCard';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,6 +16,7 @@ import { WalletCard } from '../../components/payment/WalletCard';
 import { ProviderStatusCard } from '../../components/care/ProviderStatusCard';
 import { ProviderStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { ScreenGuideModal } from '../../components/common/ScreenGuideModal';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderHome'>;
 
@@ -26,6 +28,7 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
   const [counts, setCounts] = useState({ requests: 0, confirmed: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -61,7 +64,7 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="paw" size={34} color={colors.primary} />
             <Text style={styles.setupTitle}>Offer pet care from your clinic</Text>
             <Text style={styles.setupText}>
-              Add grooming, boarding or training to VetConnect. Pet owners nearby can book you and pay an advance, and you
+              Add grooming, boarding or training to Jenni. Pet owners nearby can book you and pay an advance, and you
               manage your menu, hours and requests here. An admin reviews your business first.
             </Text>
             <AppButton title="Set up my pet-care business" onPress={() => navigation.navigate('ProviderSetup')} />
@@ -84,7 +87,10 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
       <AppHeader
         title={profile.businessName}
         subtitle={profile.categories.map(categoryLabel).join(' · ')}
-        rightAction={isBusinessAccount ? { icon: 'log-out-outline', onPress: signOut } : undefined}
+        rightAction={{
+          icon: 'compass-outline',
+          onPress: () => setGuideVisible(true),
+        }}
       />
       <KeyboardScroll
         contentContainerStyle={shared.content}
@@ -124,7 +130,16 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
         {isBusinessAccount && (
           <AppButton title="Sign Out" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger, marginTop: 6 }} onPress={signOut} />
         )}
+        {isBusinessAccount && <DeleteAccountCard />}
       </KeyboardScroll>
+
+      {/* Screen Guide Interactive Modal if manually requested */}
+      <ScreenGuideModal
+        visible={guideVisible}
+        role="ROLE_PROVIDER"
+        userId={user?.userId}
+        onClose={() => setGuideVisible(false)}
+      />
     </View>
   );
 };

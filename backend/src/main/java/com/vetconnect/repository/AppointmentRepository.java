@@ -35,6 +35,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByDoctorIdAndAppointmentDateAndStatusNotIn(
             Long doctorId, LocalDate date, Collection<AppointmentStatus> excludedStatuses);
 
+    /** Customer appointments in a run of days that still hold their slot. */
+    long countByDoctorIdAndAppointmentDateBetweenAndStatusNotIn(
+            Long doctorId, LocalDate from, LocalDate to, Collection<AppointmentStatus> excludedStatuses);
+
+    long countByCustomerIdAndStatusInAndAppointmentDateGreaterThanEqual(
+            Long customerId, Collection<AppointmentStatus> statuses, LocalDate from);
+
+    long countByDoctorIdAndStatusInAndAppointmentDateGreaterThanEqual(
+            Long doctorId, Collection<AppointmentStatus> statuses, LocalDate from);
+
     boolean existsByDoctorIdAndAppointmentDateAndStartTimeAndStatusNotIn(
             Long doctorId, LocalDate date, LocalTime startTime, Collection<AppointmentStatus> excludedStatuses);
 

@@ -56,6 +56,26 @@ public final class DoctorScheduleDtos {
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class LeaveDto {
+        private Long id;
+        private LocalDate fromDate;
+        private LocalDate toDate;
+        private String reason;
+        /** Days counted from the first to the last, both included. */
+        private int days;
+    }
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class LeaveRequest {
+        @NotNull(message = "From date is required")
+        private LocalDate fromDate;
+        /** Leave empty for a single day. */
+        private LocalDate toDate;
+        @Size(max = 255, message = "Reason is too long")
+        private String reason;
+    }
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class BlockSlotRequest {
         @NotNull(message = "Date is required")
         private LocalDate date;

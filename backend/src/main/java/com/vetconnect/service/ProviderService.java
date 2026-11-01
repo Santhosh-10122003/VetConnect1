@@ -87,6 +87,9 @@ public class ProviderService {
     @Transactional
     public ProviderDto updateMine(Long userId, ProviderRequest request) {
         ProviderProfile p = mine(userId);
+        if (p.getVerificationStatus() == VerificationStatus.PENDING || p.getVerificationStatus() == VerificationStatus.RESUBMITTED) {
+            throw new BadRequestException("Your application is under review. You can edit it only if the admin rejects it.");
+        }
         boolean placeChanged = !same(request.getCity(), p.getCity())
                 || (request.getState() != null && !same(request.getState(), p.getState()))
                 || (request.getCountry() != null && !same(request.getCountry(), p.getCountry()));
@@ -354,12 +357,20 @@ public class ProviderService {
             throw new BadRequestException("Boarding needs a capacity of at least 1 pet.");
         }
 
+        if (creating) {
+            if (blankToNull(r.getRegistrationNumber()) == null) throw new BadRequestException("Your trade licence number is required.");
+            if (blankToNull(r.getVetPartnerName()) == null || blankToNull(r.getVetPartnerPhone()) == null) {
+                throw new BadRequestException("Give the name and mobile number of the veterinarian you work with.");
+            }
+        }
         applyPayout(p, r);
 
         p.setBusinessName(r.getBusinessName().trim());
         p.setDescription(blankToNull(r.getDescription()));
         p.setPhone(blankToNull(r.getPhone()));
         p.setRegistrationNumber(blankToNull(r.getRegistrationNumber()));
+        if (blankToNull(r.getVetPartnerName()) != null) p.setVetPartnerName(r.getVetPartnerName().trim());
+        if (blankToNull(r.getVetPartnerPhone()) != null) p.setVetPartnerPhone(com.vetconnect.common.PhoneNumbers.normalize(r.getVetPartnerPhone()));
         p.setAddress(r.getAddress().trim());
         p.setCity(r.getCity().trim());
         if (r.getState() != null) p.setState(blankToNull(r.getState()));
@@ -466,6 +477,7 @@ public class ProviderService {
     public ProviderDto toOwnerDto(ProviderProfile p) {
         return baseDto(p)
                 .registrationNumber(p.getRegistrationNumber())
+                .vetPartnerName(p.getVetPartnerName()).vetPartnerPhone(p.getVetPartnerPhone())
                 .services(serviceRepository.findByProviderIdOrderByCategoryAscIsAddonAscNameAsc(p.getId()).stream().map(this::toDto).collect(Collectors.toList()))
                 .hours(hoursDto(p))
                 .verificationReason(p.getVerificationReason())

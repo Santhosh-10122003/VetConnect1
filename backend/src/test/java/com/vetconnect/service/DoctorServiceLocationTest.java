@@ -56,7 +56,7 @@ class DoctorServiceLocationTest {
     void setUp() {
         service = new DoctorService(doctorProfileRepository, availabilityRepository, specializationRepository,
                 appointmentRepository, customerProfileRepository, userRepository, notificationService, new AppProperties(),
-                mock(com.vetconnect.repository.DoctorBlockedSlotRepository.class));
+                mock(com.vetconnect.repository.DoctorBlockedSlotRepository.class), mock(com.vetconnect.repository.DoctorLeaveRepository.class));
         sarah = doctor(1L, "Dr. Sarah", "Springfield", 39.7817, -89.6501, "4.50");
         raj = doctor(2L, "Dr. Raj", "West Bay", 39.9000, -89.4500, "4.90");
         emily = doctor(3L, "Dr. Emily", "Northview", 40.3000, -89.2000, "5.00");

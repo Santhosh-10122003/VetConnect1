@@ -1,3 +1,4 @@
+import { DocumentsCard } from '../../components/common/DocumentsCard';
 import React, { useCallback, useState } from 'react';
 import { View, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +22,8 @@ const toForm = (p: Provider): ProviderFormValues => ({
   description: p.description ?? '',
   phone: p.phone ?? '',
   registrationNumber: p.registrationNumber ?? '',
+  vetPartnerName: p.vetPartnerName ?? '',
+  vetPartnerPhone: p.vetPartnerPhone ?? '+91 ',
   address: p.address,
   categories: p.categories,
   location: {
@@ -48,7 +51,7 @@ export const ProviderProfileScreen: React.FC<Props> = ({ navigation }) => {
         title="Business profile"
         showBack
         onBack={() => navigation.goBack()}
-        rightAction={{ icon: editing ? 'close' : 'create-outline', onPress: () => { setEditing((v) => !v); setError(null); } }}
+        rightAction={profile.verificationStatus === 'PENDING' || profile.verificationStatus === 'RESUBMITTED' ? undefined : { icon: editing ? 'close' : 'create-outline', onPress: () => { setEditing((v) => !v); setError(null); } }}
       />
       <KeyboardScroll contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
         <ProviderStatusCard profile={profile} onChanged={setProfile} />
@@ -89,7 +92,8 @@ export const ProviderProfileScreen: React.FC<Props> = ({ navigation }) => {
                 ['Offers', profile.categories.map(categoryLabel).join(', ')],
                 ['About', profile.description],
                 ['Phone', profile.phone],
-                ['Registration number', profile.registrationNumber],
+                ['Trade licence number', profile.registrationNumber],
+                ['Veterinarian you work with', [profile.vetPartnerName, profile.vetPartnerPhone].filter(Boolean).join(' · ')],
                 ['Advance to book', `${profile.advancePercent}% of the price`],
                 ['Payment details', profile.payoutComplete
                   ? (profile.payoutMethod === 'UPI' ? `UPI: ${profile.upiId}` : `Bank: ${profile.accountHolderName}, ${profile.bankAccountMasked}, ${profile.ifscCode}`)
@@ -101,6 +105,7 @@ export const ProviderProfileScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               ))}
             </View>
+            <DocumentsCard types={['TRADE_LICENCE', 'ID_PROOF', 'OTHER']} editable={profile.verificationStatus === 'REJECTED'} hint="Your trade licence from the municipal corporation. The admin checks it before approving your business." />
             <View style={shared.card}>
               <Text style={shared.sectionTitle}>Location</Text>
               <ClinicLocationCard

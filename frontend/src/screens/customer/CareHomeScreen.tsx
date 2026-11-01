@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { KeyboardAvoid } from '../../components/common/KeyboardScroll';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -51,7 +52,7 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoid style={styles.container}>
       <AppHeader
         title="Pet Care"
         subtitle="Grooming, boarding and training near you"
@@ -133,7 +134,7 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           }
         />
       )}
-    </View>
+    </KeyboardAvoid>
   );
 };
 

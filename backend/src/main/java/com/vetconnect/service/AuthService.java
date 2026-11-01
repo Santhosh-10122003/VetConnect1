@@ -135,9 +135,14 @@ public class AuthService {
                 throw new BadRequestException("Choose at least one service type (grooming, boarding or training).");
             }
             if (!hasText(request.getAddress())) throw new BadRequestException("Address is required so pet owners can find you.");
+            if (!hasText(request.getLicenseNumber())) throw new BadRequestException("Your trade licence number is required.");
+            if (!hasText(request.getVetPartnerName()) || !hasText(request.getVetPartnerPhone())) {
+                throw new BadRequestException("Give the name and mobile number of the veterinarian you work with.");
+            }
             profileId = providerService.createProfile(user.getId(), com.vetconnect.dto.care.CareDtos.ProviderRequest.builder()
                     .businessName(request.getBusinessName()).description(request.getDescription())
                     .phone(request.getPhone()).registrationNumber(blankToNull(request.getLicenseNumber()))
+                    .vetPartnerName(request.getVetPartnerName()).vetPartnerPhone(request.getVetPartnerPhone())
                     .address(request.getAddress()).city(city.trim()).state(blankToNull(request.getState())).country(blankToNull(request.getCountry()))
                     .postalCode(blankToNull(request.getPostalCode())).latitude(request.getLatitude()).longitude(request.getLongitude())
                     .categories(request.getCategories())
@@ -145,10 +150,11 @@ public class AuthService {
                     .bankAccountNumber(request.getBankAccountNumber()).ifscCode(request.getIfscCode()).bankName(request.getBankName())
                     .build()).getId();
         } else if (role == Role.ROLE_DOCTOR) {
-            // The license is optional in the app: a blank value must not be stored (it is UNIQUE).
-            String licenseNumber = hasText(request.getLicenseNumber())
-                    ? request.getLicenseNumber().trim()
-                    : "LIC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            // The admin checks these against the State Veterinary Council register, so all three are needed.
+            if (!hasText(request.getDegree())) throw new BadRequestException("Your degree is required, e.g. B.V.Sc. & A.H.");
+            if (!hasText(request.getLicenseNumber())) throw new BadRequestException("Your veterinary registration number is required.");
+            if (!hasText(request.getCouncilName())) throw new BadRequestException("The State Veterinary Council you are registered with is required.");
+            String licenseNumber = request.getLicenseNumber().trim();
             if (doctorProfileRepository.existsByLicenseNumberIgnoreCase(licenseNumber)) {
                 log.warn("Registration rejected: license number already registered ({})", licenseNumber);
                 throw new BadRequestException("This license number is already registered.");
@@ -166,7 +172,9 @@ public class AuthService {
                     .bankAccountNumber(payout.account()).ifscCode(payout.ifsc()).bankName(payout.bankName())
                     .fullName(request.getFullName())
                     .licenseNumber(licenseNumber)
-                    .clinicName(hasText(request.getClinicName()) ? request.getClinicName().trim() : "VetConnect Partner Clinic")
+                    .degree(request.getDegree().trim())
+                    .councilName(request.getCouncilName().trim())
+                    .clinicName(hasText(request.getClinicName()) ? request.getClinicName().trim() : "Jenni Partner Clinic")
                     .clinicAddress(hasText(request.getClinicAddress()) ? request.getClinicAddress().trim() : city.trim())
                     .clinicCity(city.trim())
                     .clinicPostalCode(blankToNull(hasText(request.getClinicPostalCode()) ? request.getClinicPostalCode() : request.getPostalCode()))
@@ -419,7 +427,7 @@ public class AuthService {
                 verificationStatus = provider.get().getVerificationStatus().name();
             }
         } else if (user.getRole() == Role.ROLE_ADMIN) {
-            fullName = "VetConnect Administrator";
+            fullName = "Jenni Administrator";
         }
 
         return AuthResponse.builder()

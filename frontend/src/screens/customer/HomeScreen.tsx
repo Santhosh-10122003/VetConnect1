@@ -13,6 +13,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { careWhat, careWhen } from '../../components/care/BookingCard';
 import { CustomerTabParamList, CustomerStackParamList } from '../../navigation/types';
 import { drName, hhmm } from '../../utils/helpers';
+import { ScreenStoryWalkthrough } from '../../components/common/ScreenStoryWalkthrough';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<CustomerTabParamList, 'Home'>,
@@ -27,6 +28,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [unread, setUnread] = useState(false);
   const [nextVisit, setNextVisit] = useState<Appointment | null>(null);
   const [nextCare, setNextCare] = useState<CareBooking | null>(null);
+  const [storyVisible, setStoryVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -63,6 +65,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.ask}>what are you{'\n'}looking for?</Text>
         </View>
         <View style={styles.topButtons}>
+          {/* Instagram-style Story Guide Avatar */}
+          <TouchableOpacity
+            style={styles.storyBubble}
+            onPress={() => setStoryVisible(true)}
+            activeOpacity={0.85}
+            testID="home-story-bubble"
+          >
+            <View style={styles.storyRing}>
+              <Ionicons name="sparkles" size={14} color="#FFFFFF" />
+            </View>
+            <Text style={styles.storyBubbleText}>Guide</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.round} onPress={() => tabs('FindDoctors')} activeOpacity={0.85} testID="home-search">
             <Ionicons name="search" size={22} color={colors.text} />
           </TouchableOpacity>
@@ -128,6 +143,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.emptyText}>Nothing booked yet. Pick something above to get started.</Text>
         </View>
       )}
+
+      {/* Interactive Story Walkthrough Modal when opened manually from Home */}
+      <ScreenStoryWalkthrough
+        visible={storyVisible}
+        userId={user?.userId}
+        onClose={() => setStoryVisible(false)}
+        onNavigateToTab={(tab) => {
+          setStoryVisible(false);
+          tabs(tab as keyof CustomerTabParamList);
+        }}
+      />
     </ScrollView>
   );
 };
@@ -139,9 +165,33 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
   welcome: { fontSize: 24, fontWeight: '800', color: colors.primary },
   ask: { fontSize: 30, fontWeight: '500', color: colors.primary, lineHeight: 36, marginTop: 2 },
-  topButtons: { flexDirection: 'row', gap: 10 },
-  round: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  dot: { position: 'absolute', top: 9, right: 10, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: '#FFFFFF' },
+  topButtons: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  storyBubble: {
+    alignItems: 'center',
+    gap: 3,
+  },
+  storyRing: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#0EA5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#38BDF8',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  storyBubbleText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0EA5E9',
+  },
+  round: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  dot: { position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: '#FFFFFF' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, marginBottom: 8 },
   tile: { width: '25%', alignItems: 'center', paddingHorizontal: 4 },
   tileIcon: {

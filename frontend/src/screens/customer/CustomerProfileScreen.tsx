@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { DeleteAccountCard } from '../../components/common/DeleteAccountCard';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
@@ -142,11 +143,14 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         <View style={shared.card}>
+          <Row icon="play-circle-outline" label="Screen Stories & Guide" onPress={() => navigation.navigate('AppGuide')} />
           <Row icon="notifications-outline" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
+          <Row icon="storefront-outline" label="Run a pet-care business?" onPress={() => navigation.navigate('BecomeBusiness')} />
           <Row icon="help-circle-outline" label="Help & Support" onPress={() => navigation.navigate('HelpSupport')} />
         </View>
 
         <AppButton title="Sign Out" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger }} onPress={signOut} />
+        <DeleteAccountCard />
       </KeyboardScroll>
     </View>
   );

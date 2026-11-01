@@ -23,6 +23,14 @@ export type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'RESUBMIT
 
 export type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED' | 'BREAK' | 'PAST';
 
+export interface DoctorLeave {
+  id: number;
+  fromDate: string;
+  toDate: string;
+  reason?: string | null;
+  days: number;
+}
+
 export interface ScheduleSlot {
   date: string;
   startTime: string;
@@ -61,6 +69,8 @@ export interface DoctorProfile {
   phone?: string;
   fullName: string;
   licenseNumber: string;
+  degree?: string | null;
+  councilName?: string | null;
   clinicName: string;
   clinicAddress: string;
   clinicCity: string;
@@ -129,6 +139,20 @@ export const doctorApi = {
   async blockSlot(date: string, startTime: string, who?: { customerName?: string; customerPhone?: string }, reason?: string) {
     const res = await apiClient.post<{ success: boolean; data: ScheduleSlot }>('/doctors/me/blocked-slots', { date, startTime, reason, ...who });
     return res.data.data;
+  },
+
+  async getMyLeave() {
+    const res = await apiClient.get<{ success: boolean; data: DoctorLeave[] }>('/doctors/me/leave');
+    return res.data.data;
+  },
+
+  async addLeave(fromDate: string, toDate?: string, reason?: string) {
+    const res = await apiClient.post<{ success: boolean; data: DoctorLeave }>('/doctors/me/leave', { fromDate, toDate, reason });
+    return res.data.data;
+  },
+
+  async removeLeave(id: number) {
+    await apiClient.delete(`/doctors/me/leave/${id}`);
   },
 
   async unblockSlot(blockId: number) {

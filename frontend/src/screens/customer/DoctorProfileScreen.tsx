@@ -79,7 +79,8 @@ export const DoctorProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             )}
           </View>
           <Text style={styles.clinicName}>{doctor.clinicName}</Text>
-          <Text style={styles.licenseText}>License: {doctor.licenseNumber}</Text>
+          {!!doctor.degree && <Text style={styles.licenseText}>{doctor.degree}</Text>}
+          <Text style={styles.licenseText}>Reg. no. {doctor.licenseNumber}{doctor.councilName ? ` · ${doctor.councilName}` : ''}</Text>
 
           {/* Quick Metrics */}
           <View style={styles.metricsRow}>

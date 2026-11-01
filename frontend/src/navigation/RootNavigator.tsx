@@ -14,7 +14,7 @@ export const RootNavigator: React.FC = () => {
   // unmount the auth stack (that would reset the form after a failed login).
   const booted = useRef(false);
   if (!isLoading) booted.current = true;
-  if (!booted.current) return <LoadingView message="Starting VetConnect..." />;
+  if (!booted.current) return <LoadingView message="Starting Jenni..." />;
 
   if (!user) return <AuthNavigator />;
 

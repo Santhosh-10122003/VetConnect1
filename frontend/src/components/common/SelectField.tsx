@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { KeyboardAvoid } from './KeyboardScroll';
 import {
   View,
   Text,
@@ -93,6 +94,7 @@ export const SelectField: React.FC<Props> = ({
 
       <Modal visible={open} animationType="slide" onRequestClose={close}>
         <SafeAreaView style={styles.modal}>
+          <KeyboardAvoid>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{label || placeholder}</Text>
             <TouchableOpacity onPress={close} hitSlop={10} accessibilityLabel="Close">
@@ -130,6 +132,7 @@ export const SelectField: React.FC<Props> = ({
               </TouchableOpacity>
             )}
           />
+          </KeyboardAvoid>
         </SafeAreaView>
       </Modal>
     </View>

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: vetconnect_postgres
+    container_name: jenni_postgres
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME:-vetconnect}
@@ -23,7 +23,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: vetconnect_backend
+    container_name: jenni_backend
     restart: always
     depends_on:
       postgres:

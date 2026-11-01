@@ -23,6 +23,10 @@ public interface CareBookingRepository extends JpaRepository<CareBooking, Long> 
 
     boolean existsByReference(String reference);
 
+    long countByCustomerIdAndStatusIn(Long customerId, Collection<CareBookingStatus> statuses);
+
+    long countByProviderIdAndStatusIn(Long providerId, Collection<CareBookingStatus> statuses);
+
     /** Row lock, so two requests (pay twice, accept and cancel) cannot change one booking at the same time. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM CareBooking b WHERE b.id = :id")

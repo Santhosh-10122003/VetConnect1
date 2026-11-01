@@ -6,9 +6,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class VetConnectApplication {
+public class JenniApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(VetConnectApplication.class, args);
+        SpringApplication.run(JenniApplication.class, args);
     }
 }

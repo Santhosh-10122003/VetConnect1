@@ -79,7 +79,7 @@ class ProviderServiceTest {
     }
 
     private ProviderRequest.ProviderRequestBuilder request() {
-        return ProviderRequest.builder().businessName(" Happy Paws ").address("1 Main St").city("Springfield")
+        return ProviderRequest.builder().registrationNumber("TL-2024-77").vetPartnerName("Dr. Asha").vetPartnerPhone("+919876543210").businessName(" Happy Paws ").address("1 Main St").city("Springfield")
                 .latitude(39.78).longitude(-89.65).categories(EnumSet.of(CareCategory.GROOMING))
                 .payoutMethod(com.vetconnect.domain.enums.PayoutMethod.UPI).upiId("happypaws@okaxis");
     }
@@ -326,6 +326,13 @@ class ProviderServiceTest {
         UserPrincipal otherDoctor = UserPrincipal.builder().id(30L).email("d@x.com").role(Role.ROLE_DOCTOR).build();
 
         assertThrows(ResourceNotFoundException.class, () -> service.detail(4L, otherDoctor));
+    }
+
+    @Test
+    void aBusinessMustGiveItsTradeLicenceAndTheVetItWorksWith() {
+        assertTrue(assertThrows(BadRequestException.class, () -> service.createProfile(20L, request().registrationNumber(null).build())).getMessage().contains("trade licence"));
+        assertTrue(assertThrows(BadRequestException.class, () -> service.createProfile(20L, request().vetPartnerName(null).build())).getMessage().contains("veterinarian"));
+        assertTrue(assertThrows(BadRequestException.class, () -> service.createProfile(20L, request().vetPartnerPhone("12").build())).getMessage().contains("mobile"));
     }
 
     // ================================================================== payment details (mandatory)

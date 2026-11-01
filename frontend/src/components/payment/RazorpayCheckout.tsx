@@ -31,7 +31,7 @@ const checkoutOptions = (p: CarePayment, description: string, prefill: Props['pr
   order_id: p.gatewayOrderId,
   amount: Math.round(p.amount * 100),
   currency: p.currency,
-  name: 'VetConnect',
+  name: 'Jenni',
   description,
   prefill: prefill ?? {},
   theme: { color: colors.primary },
