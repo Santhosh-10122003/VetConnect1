@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
@@ -40,11 +40,12 @@ spring:
 
 vetconnect:
   jwt:
-    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-    expiration-ms: 86400000 # 24 hours
-    refresh-expiration-ms: 604800000 # 7 days
+    # In production JWT_SECRET is required (the app refuses to start on the built-in development value).
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 hours
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000} # 7 days
   cors:
-    allowed-origins: "*"
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
     allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
     allowed-headers: "*"
   # Payments: "simulated" (test buttons, no money) or "razorpay". For Razorpay set the three RAZORPAY_* values; use
@@ -54,6 +55,18 @@ vetconnect:
     razorpay:
       key-id: ${RAZORPAY_KEY_ID:}
       key-secret: ${RAZORPAY_KEY_SECRET:}
+  # Uploaded photos and documents. Point UPLOADS_DIR at a persistent disk in production.
+  uploads:
+    dir: ${UPLOADS_DIR:uploads}
+  # Store links shown on the page a scanned pet QR opens when the app is not installed.
+  app:
+    android-url: ${APP_ANDROID_URL:}
+    ios-url: ${APP_IOS_URL:}
+  # What an empty database gets. In production set SEED_DEMO_DATA=false and give the first admin.
+  seed:
+    demo-data: ${SEED_DEMO_DATA:true}
+    admin-phone: ${SEED_ADMIN_PHONE:}
+    admin-password: ${SEED_ADMIN_PASSWORD:}
   care:
     currency: ${CARE_CURRENCY:USD}
     currency-symbol: ${CARE_CURRENCY_SYMBOL:$}
@@ -69,7 +82,7 @@ springdoc:
 
 logging:
   file:
-    name: logs/jenni.log
+    name: ${LOG_FILE:logs/jenni.log}
   logback:
     rollingpolicy:
       max-file-size: 10MB

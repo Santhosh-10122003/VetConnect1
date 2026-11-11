@@ -67,6 +67,12 @@
         }
       ],
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9fd3635b-d999-44ed-a393-ace46a8b7759"
+      }
+    },
+    "owner": "san_10"
   }
 }

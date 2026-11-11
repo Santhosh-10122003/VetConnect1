@@ -34,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final ProviderProfileRepository providerRepository;
     private final CareServiceRepository careServiceRepository;
+    private final AppProperties appProperties;
 
     @Override
     @Transactional
@@ -49,6 +50,12 @@ public class DataInitializer implements CommandLineRunner {
         seedSpecialization(specs, "Exotic & Avian Care", "Specialized medicine and healthcare for birds, reptiles, rabbits, and small mammals.", "feather");
         seedSpecialization(specs, "Cardiology & Internal Medicine", "Heart disease management, diagnostic ultrasound, and chronic illness care.", "heart-pulse");
         seedSpecialization(specs, "Ophthalmology", "Comprehensive eye examinations, corneal treatments, and vision care.", "eye");
+
+        if (!appProperties.getSeed().isDemoData()) {
+            seedFirstAdmin();
+            log.info("Demo data is off: only the specialities (and the first admin, if configured) were created.");
+            return;
+        }
 
         // 2. Admin User
         if (!userRepository.existsByEmail("admin@vetconnect.com")) {
@@ -404,5 +411,31 @@ public class DataInitializer implements CommandLineRunner {
                 availabilityRepository.save(avail);
             }
         }
+    }
+
+    /** Production: one real admin from SEED_ADMIN_PHONE / SEED_ADMIN_PASSWORD, so someone can approve doctors and businesses. */
+    private void seedFirstAdmin() {
+        AppProperties.Seed seed = appProperties.getSeed();
+        if (seed.getAdminPhone() == null || seed.getAdminPhone().isBlank() || seed.getAdminPassword() == null || seed.getAdminPassword().isBlank()) {
+            log.warn("No admin exists yet: set SEED_ADMIN_PHONE and SEED_ADMIN_PASSWORD to create the first one.");
+            return;
+        }
+        String phone;
+        try {
+            phone = com.vetconnect.common.PhoneNumbers.normalize(seed.getAdminPhone());
+        } catch (RuntimeException e) {
+            // a typo in SEED_ADMIN_PHONE must not keep the whole server from starting
+            log.error("SEED_ADMIN_PHONE is not a valid number (it needs the country code, like +91 98765 43210): no admin was created.");
+            return;
+        }
+        if (userRepository.existsByPhone(phone)) return;
+        userRepository.save(User.builder()
+                .email(com.vetconnect.common.PhoneNumbers.placeholderEmail(phone))
+                .password(passwordEncoder.encode(seed.getAdminPassword()))
+                .phone(phone)
+                .role(Role.ROLE_ADMIN)
+                .isActive(true)
+                .build());
+        log.info("Created the first admin account for {}", phone);
     }
 }

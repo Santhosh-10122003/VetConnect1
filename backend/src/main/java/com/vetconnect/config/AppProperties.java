@@ -22,6 +22,7 @@ public class AppProperties {
     private Clinic clinic = new Clinic();
     private Uploads uploads = new Uploads();
     private App app = new App();
+    private Seed seed = new Seed();
 
     @Getter
     @Setter
@@ -36,6 +37,18 @@ public class AppProperties {
     public static class Reset {
         private long tokenExpirationMs = 1800000; // 30 minutes
         private int maxFailedAttempts = 5;
+    }
+
+    /** What the server puts in an empty database on start. Turn demoData off in production. */
+    @Getter
+    @Setter
+    public static class Seed {
+        /** The sample vets, customer, pet-care businesses and their bookings (with well-known passwords). */
+        private boolean demoData = true;
+        /** With demoData off: the first admin to create (only if no account has this mobile number yet). */
+        private String adminPhone;
+        private String adminPassword;
+        private String adminName = "Jenni Admin";
     }
 
     @Getter
