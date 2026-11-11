@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { ProviderStackParamList } from '../../navigation/types';
 import { getErrorMessage, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderServices'>;
 
@@ -71,10 +72,10 @@ export const ProviderServicesScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   name: { fontSize: 15, fontWeight: '700', color: colors.text, flex: 1 },
   desc: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-  meta: { fontSize: 12, color: colors.primary, fontWeight: '600', marginTop: 8 },
-  tag: { fontSize: 10, fontWeight: '800', color: colors.primary, backgroundColor: colors.mint, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, overflow: 'hidden' },
-  tagOff: { color: colors.danger, backgroundColor: '#FEF2F2' },
-});
+  meta: { fontSize: 12, color: colors.ink, fontWeight: '600', marginTop: 8 },
+  tag: { fontSize: 10, fontWeight: '800', color: colors.ink, backgroundColor: colors.mint, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, overflow: 'hidden' },
+  tagOff: { color: colors.danger, backgroundColor: colors.dangerBg },
+}));

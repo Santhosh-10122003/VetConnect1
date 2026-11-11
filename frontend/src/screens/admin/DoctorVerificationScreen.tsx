@@ -1,6 +1,6 @@
 import { ApplicantDocuments } from '../../components/common/DocumentsCard';
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -16,6 +16,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { AdminStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, money, notify, visibleEmail } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'DoctorVerification'>;
 
@@ -219,7 +220,7 @@ export const DoctorVerificationScreen: React.FC<Props> = ({ navigation, route })
 
                 {open ? (
                   <View style={styles.reasonBox}>
-                    <AppInput
+                    <AppInput kind="note"
                       label={deciding!.status === 'APPROVED' ? 'Note for the doctor (required)' : 'Reason for rejection (required)'}
                       placeholder={deciding!.status === 'APPROVED' ? 'e.g. License verified with the state board' : 'e.g. License photo is unreadable'}
                       value={reason}
@@ -254,17 +255,17 @@ export const DoctorVerificationScreen: React.FC<Props> = ({ navigation, route })
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   checks: { marginTop: 12, padding: 12, borderRadius: 14, backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.mintDark },
-  checksTitle: { fontSize: 12, fontWeight: '800', color: colors.primary, marginBottom: 4 },
+  checksTitle: { fontSize: 12, fontWeight: '800', color: colors.ink, marginBottom: 4 },
   checkLine: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 3 },
   name: { fontSize: 17, fontWeight: '800', color: colors.text },
   meta: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  history: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12, marginTop: 12 },
+  history: { backgroundColor: colors.dangerBg, borderRadius: 12, padding: 12, marginTop: 12 },
   historyTitle: { fontSize: 12, fontWeight: '800', color: colors.danger },
   historyText: { fontSize: 13, color: colors.text, marginTop: 2, lineHeight: 18 },
   when: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
   reasonBox: { marginTop: 16 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   btn: { flex: 1, height: 46 },
-});
+}));

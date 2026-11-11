@@ -1,7 +1,6 @@
 package com.vetconnect.controller;
 
 import com.vetconnect.common.ApiResponse;
-import com.vetconnect.domain.entities.Specialization;
 import com.vetconnect.dto.doctor.DoctorProfileDto;
 import com.vetconnect.repository.SpecializationRepository;
 import io.swagger.v3.oas.annotations.Operation;

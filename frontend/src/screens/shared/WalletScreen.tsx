@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -9,6 +9,7 @@ import { AppHeader } from '../../components/common/AppHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { getErrorMessage, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 /** A doctor's (or pet-care business's) wallet: what the advances have earned, and the credits and refunds behind it. */
 export const WalletScreen: React.FC<{ navigation: { goBack: () => void } }> = ({ navigation }) => {
@@ -55,7 +56,7 @@ export const WalletScreen: React.FC<{ navigation: { goBack: () => void } }> = ({
     const credit = item.type === 'CREDIT';
     return (
       <View style={styles.row} testID={`wallet-row-${item.reference ?? item.id}`}>
-        <View style={[styles.rowIcon, { backgroundColor: credit ? '#ECFDF5' : '#FEF2F2' }]}>
+        <View style={[styles.rowIcon, { backgroundColor: credit ? colors.successBg : colors.dangerBg }]}>
           <Ionicons name={credit ? 'arrow-down' : 'arrow-up'} size={18} color={credit ? colors.success : colors.danger} />
         </View>
         <View style={{ flex: 1 }}>
@@ -83,17 +84,17 @@ export const WalletScreen: React.FC<{ navigation: { goBack: () => void } }> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   hero: { backgroundColor: colors.primary, borderRadius: 22, padding: 20, marginBottom: 14 },
-  heroLabel: { color: colors.mintDark, fontSize: 13, fontWeight: '700' },
+  heroLabel: { color: colors.skyOnDark, fontSize: 13, fontWeight: '700' },
   heroValue: { color: '#FFFFFF', fontSize: 36, fontWeight: '800', marginTop: 4 },
   split: { flexDirection: 'row', marginTop: 16, gap: 12 },
   splitLabel: { color: '#9CA3AF', fontSize: 12 },
   splitValue: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', marginTop: 2 },
   note: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginBottom: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
   rowIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
   rowSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   rowAmount: { fontSize: 15, fontWeight: '800' },
-});
+}));

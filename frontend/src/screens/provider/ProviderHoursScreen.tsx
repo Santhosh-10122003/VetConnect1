@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, Switch, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, TextInput } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -12,6 +12,8 @@ import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
 import { ProviderStackParamList } from '../../navigation/types';
 import { getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
+import { cleanInput } from '../../utils/inputRules';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderHours'>;
 
@@ -97,9 +99,9 @@ export const ProviderHoursScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             {rows[i].isOpen ? (
               <View style={styles.times}>
-                <TextInput style={styles.time} value={rows[i].open} onChangeText={(v) => setRow(i, { open: v })} placeholder="09:00" maxLength={5} testID={`open-time-${d}`} />
+                <TextInput style={styles.time} value={rows[i].open} onChangeText={(v) => setRow(i, { open: cleanInput('time', v) })} placeholder="09:00" maxLength={5} testID={`open-time-${d}`} />
                 <Text style={styles.to}>to</Text>
-                <TextInput style={styles.time} value={rows[i].close} onChangeText={(v) => setRow(i, { close: v })} placeholder="18:00" maxLength={5} testID={`close-time-${d}`} />
+                <TextInput style={styles.time} value={rows[i].close} onChangeText={(v) => setRow(i, { close: cleanInput('time', v) })} placeholder="18:00" maxLength={5} testID={`close-time-${d}`} />
               </View>
             ) : (
               <Text style={styles.closed}>Closed</Text>
@@ -109,9 +111,9 @@ export const ProviderHoursScreen: React.FC<Props> = ({ navigation }) => {
         ))}
 
         <Text style={[shared.sectionTitle, { marginTop: 8 }]}>Capacity</Text>
-        <AppInput label="Pets you can handle at the same time (grooming, training)" value={concurrent} onChangeText={setConcurrent} keyboardType="number-pad" error={errors.concurrent} icon="people-outline" testID="capacity-concurrent" />
+        <AppInput kind="integer" label="Pets you can handle at the same time (grooming, training)" value={concurrent} onChangeText={setConcurrent} keyboardType="number-pad" error={errors.concurrent} icon="people-outline" testID="capacity-concurrent" />
         {offersBoarding && (
-          <AppInput label="Boarding places (pets overnight)" value={boardingCap} onChangeText={setBoardingCap} keyboardType="number-pad" error={errors.boarding} icon="bed-outline" testID="capacity-boarding" />
+          <AppInput kind="integer" label="Boarding places (pets overnight)" value={boardingCap} onChangeText={setBoardingCap} keyboardType="number-pad" error={errors.boarding} icon="bed-outline" testID="capacity-boarding" />
         )}
 
         <Text style={shared.label}>Booking slot length</Text>
@@ -139,12 +141,12 @@ export const ProviderHoursScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   day: { fontSize: 15, fontWeight: '700', color: colors.text },
   times: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
-  time: { width: 90, height: 42, borderRadius: 10, borderWidth: 1, borderColor: colors.border, textAlign: 'center', fontSize: 15, backgroundColor: '#FFFFFF', color: colors.text },
+  time: { width: 90, height: 42, borderRadius: 10, borderWidth: 1, borderColor: colors.border, textAlign: 'center', fontSize: 15, backgroundColor: colors.card, color: colors.text },
   to: { color: colors.textSecondary },
   closed: { color: colors.textMuted, marginTop: 6, fontSize: 13 },
   error: { color: colors.danger, fontSize: 12, marginTop: 6 },
   hint: { fontSize: 12, color: colors.textSecondary, marginBottom: 16, lineHeight: 17 },
-});
+}));

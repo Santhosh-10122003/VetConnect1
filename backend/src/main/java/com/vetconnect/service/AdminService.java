@@ -9,7 +9,6 @@ import com.vetconnect.common.exceptions.ResourceNotFoundException;
 import com.vetconnect.domain.entities.DoctorProfile;
 import com.vetconnect.domain.enums.AppointmentStatus;
 import com.vetconnect.domain.enums.NotificationType;
-import com.vetconnect.domain.enums.Role;
 import com.vetconnect.domain.enums.VerificationStatus;
 import com.vetconnect.dto.admin.AdminDashboardStatsDto;
 import com.vetconnect.dto.admin.DoctorVerificationRequest;

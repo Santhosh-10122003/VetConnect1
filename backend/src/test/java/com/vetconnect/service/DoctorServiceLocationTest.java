@@ -158,17 +158,29 @@ class DoctorServiceLocationTest {
     }
 
     @Test
-    void customerCannotOpenADoctorOutsideTheirArea() {
-        when(doctorProfileRepository.findById(3L)).thenReturn(Optional.of(emily));
+    void customerCanOpenAnyApprovedDoctor_soAVetFoundInAnotherPlaceCanBeBooked() {
         when(customerProfileRepository.findByUserId(100L)).thenReturn(Optional.of(customer));
-
-        // Emily is ~69 km away: reachable only up to the 100 km cap, so she IS accessible...
-        assertDoesNotThrow(() -> service.getDoctorById(3L, customerPrincipal));
-
-        // ...but a doctor in another country is not.
         DoctorProfile faraway = doctor(9L, "Dr. Far", "Elsewhere", 10.0, 10.0, "5.00");
         when(doctorProfileRepository.findById(9L)).thenReturn(Optional.of(faraway));
-        assertThrows(ResourceNotFoundException.class, () -> service.getDoctorById(9L, customerPrincipal));
+        assertDoesNotThrow(() -> service.getDoctorById(9L, customerPrincipal));
+    }
+
+    @Test
+    void aCustomerCanSearchSomewhereElseWithoutTheirProfileChanging() {
+        allDoctorsInDb();
+        when(customerProfileRepository.findByUserId(100L)).thenReturn(Optional.of(customer));
+        // looking around West Bay (Raj’s clinic) instead of the saved address in Springfield
+        com.vetconnect.common.LocationMatch.Place westBay = new com.vetconnect.common.LocationMatch.Place("West Bay", null, null, 39.9000, -89.4500);
+
+        PageResponse<DoctorProfileDto> there = service.searchDoctors(customerPrincipal, null, null, null, null, 10.0, westBay, PageRequest.of(0, 10));
+
+        assertEquals(1, there.getContent().size(), "only the vet near the chosen place within 10 km");
+        assertEquals("Dr. Raj", there.getContent().get(0).getFullName());
+        assertEquals(0.0, there.getContent().get(0).getDistanceKm(), 0.2, "distance is from the chosen place");
+        assertEquals("Springfield", customer.getCity(), "the saved address is untouched");
+        // and without a chosen place it is the saved address again
+        PageResponse<DoctorProfileDto> home = service.searchDoctors(customerPrincipal, null, null, null, null, 10.0, PageRequest.of(0, 10));
+        assertEquals("Dr. Sarah", home.getContent().get(0).getFullName());
     }
 
     @Test
@@ -189,18 +201,36 @@ class DoctorServiceLocationTest {
     }
 
     @Test
-    void changingTheClinicCityDropsTheOldGpsPosition() {
+    void changingTheClinicCityNeedsTheNewSpotPinnedOnTheMap() {
         com.vetconnect.dto.doctor.UpdateDoctorProfileRequest request = com.vetconnect.dto.doctor.UpdateDoctorProfileRequest.builder()
                 .fullName("Dr. Sarah").clinicName("Clinic").clinicAddress("New addr").clinicCity("Shelbyville")
                 .yearsOfExperience(3).consultationFee(BigDecimal.TEN).build();
         when(doctorProfileRepository.findByUserId(1001L)).thenReturn(Optional.of(sarah));
         when(doctorProfileRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        service.updateDoctorProfile(1001L, request);
+        BadRequestException e = assertThrows(BadRequestException.class, () -> service.updateDoctorProfile(1001L, request));
+        assertTrue(e.getMessage().contains("pin the new spot"));
 
+        // with the new spot pinned it is saved
+        request.setLatitude(39.5);
+        request.setLongitude(-89.5);
+        service.updateDoctorProfile(1001L, request);
         assertEquals("Shelbyville", sarah.getClinicCity());
-        assertNull(sarah.getLatitude());
-        assertNull(sarah.getLongitude());
+        assertEquals(39.5, sarah.getLatitude());
+        assertEquals(-89.5, sarah.getLongitude());
+    }
+
+    @Test
+    void aClinicProfileCannotBeSavedWithoutAPin() {
+        sarah.setLatitude(null);
+        sarah.setLongitude(null);
+        com.vetconnect.dto.doctor.UpdateDoctorProfileRequest request = com.vetconnect.dto.doctor.UpdateDoctorProfileRequest.builder()
+                .fullName("Dr. Sarah").clinicName("Clinic").clinicAddress("Addr").clinicCity(sarah.getClinicCity())
+                .yearsOfExperience(3).consultationFee(BigDecimal.TEN).build();
+        when(doctorProfileRepository.findByUserId(1001L)).thenReturn(Optional.of(sarah));
+
+        BadRequestException e = assertThrows(BadRequestException.class, () -> service.updateDoctorProfile(1001L, request));
+        assertTrue(e.getMessage().contains("exact location"));
     }
 
     @Test
@@ -262,7 +292,7 @@ class DoctorServiceLocationTest {
     }
 
     @Test
-    void changingOnlyTheStateAlsoDropsTheGpsFix() {
+    void changingOnlyTheStateAlsoNeedsANewPin() {
         sarah.setClinicState("Illinois");
         com.vetconnect.dto.doctor.UpdateDoctorProfileRequest request = com.vetconnect.dto.doctor.UpdateDoctorProfileRequest.builder()
                 .fullName("Dr. Sarah").clinicName("Clinic").clinicAddress("Addr").clinicCity("Springfield").clinicState("Missouri")
@@ -270,9 +300,12 @@ class DoctorServiceLocationTest {
         when(doctorProfileRepository.findByUserId(1001L)).thenReturn(Optional.of(sarah));
         when(doctorProfileRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
+        assertThrows(BadRequestException.class, () -> service.updateDoctorProfile(1001L, request));
+        request.setLatitude(37.2);
+        request.setLongitude(-93.3);
         service.updateDoctorProfile(1001L, request);
 
         assertEquals("Missouri", sarah.getClinicState());
-        assertNull(sarah.getLatitude());
+        assertEquals(37.2, sarah.getLatitude());
     }
 }

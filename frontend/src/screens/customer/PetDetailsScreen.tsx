@@ -1,5 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { PetQr } from '../../components/pet/PetQr';
+import { CopyIcon } from '../../components/common/CopyIcon';
+import { formatPetId } from '../../api/petApi';
+import { pickPetPhoto } from '../../utils/petPhoto';
+import { PetAvatar } from '../../components/pet/PetAvatar';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +18,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { CustomerStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify, petAge, drName } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'PetDetails'>;
 type Tab = 'OVERVIEW' | 'HISTORY' | 'VACCINES';
@@ -29,6 +35,7 @@ export const PetDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [pet, setPet] = useState<Pet | null>(null);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [tab, setTab] = useState<Tab>('OVERVIEW');
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +68,20 @@ export const PetDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const changePhoto = async () => {
+    try {
+      const f = await pickPetPhoto();
+      if (!f) return;
+      setUploading(true);
+      setPet(await petApi.uploadPhoto(pet.id, f));
+    } catch (e) {
+      notify('Could not change the photo', getErrorMessage(e));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const gender = pet.gender === 'MALE' ? 'Boy' : pet.gender === 'FEMALE' ? 'Girl' : 'Not set';
   const TABS: [Tab, string][] = [['OVERVIEW', 'Overview'], ['HISTORY', 'Medical History'], ['VACCINES', 'Vaccinations']];
 
   return (
@@ -81,17 +102,39 @@ export const PetDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       <ScrollView contentContainerStyle={shared.content}>
+        <View style={styles.hero} testID="pet-hero">
+          <PetAvatar pet={pet} size={104} onEdit={uploading ? undefined : changePhoto} />
+          <Text style={styles.heroName}>{pet.name}</Text>
+          <Text style={styles.heroSub}>{pet.breed || (pet.species.charAt(0) + pet.species.slice(1).toLowerCase())}</Text>
+          <View style={styles.stats}>
+            <View style={styles.stat}><Text style={styles.statValue}>{pet.dateOfBirth ? petAge(pet.dateOfBirth) : '-'}</Text><Text style={styles.statLabel}>Age</Text></View>
+            <View style={styles.stat}><Text style={styles.statValue}>{pet.weight != null ? `${pet.weight} kg` : '-'}</Text><Text style={styles.statLabel}>Weight</Text></View>
+            <View style={styles.stat}><Text style={styles.statValue}>{gender}</Text><Text style={styles.statLabel}>Sex</Text></View>
+          </View>
+          {uploading && <Text style={styles.uploading}>Saving photo...</Text>}
+        </View>
+
         {tab === 'OVERVIEW' && (
           <>
             <View style={shared.card}>
-              <Field label="Age" value={petAge(pet.dateOfBirth)} />
               <Field label="Date of birth" value={pet.dateOfBirth} />
-              <Field label="Gender" value={pet.gender} />
-              <Field label="Weight" value={pet.weight != null ? `${pet.weight} kg` : undefined} />
-              <Field label="Allergies" value={pet.allergies} />
-              <Field label="Existing conditions" value={pet.existingConditions} />
-              <Field label="Microchip" value={pet.microchipNumber} />
+              <Field label="Allergies" value={pet.allergies || "None known"} />
+              <Field label="Existing conditions" value={pet.existingConditions || "None"} />
             </View>
+
+            {!!pet.microchipNumber && (
+              <View style={[shared.card, { alignItems: 'center', paddingVertical: 20 }]} testID="pet-qr-card">
+                <Text style={shared.sectionTitle}>{pet.name}'s QR code</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 17, paddingHorizontal: 12 }}>
+                  If {pet.name} is ever lost, whoever finds them can scan this with their phone. It opens Jenni and shows how to reach you. Put it on their collar tag.
+                </Text>
+                <PetQr number={pet.microchipNumber} name={pet.name} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                  <Text style={{ fontSize: 12, color: colors.textMuted }} testID="pet-id-number">ID {formatPetId(pet.microchipNumber)}</Text>
+                  <CopyIcon value={pet.microchipNumber} label="Copy" testID="copy-pet-id" />
+                </View>
+              </View>
+            )}
             <AppButton title="Remove Pet" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger }} onPress={remove} />
           </>
         )}
@@ -108,7 +151,7 @@ export const PetDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
                 <Text style={styles.diagnosis}>{r.diagnosis}</Text>
                 {r.symptoms ? <Field label="Symptoms" value={r.symptoms} /> : null}
-                {r.treatmentPlan ? <Field label="Treatment plan" value={r.treatmentPlan} /> : null}
+                {r.treatmentPlan ? <Field label="Treatment" value={r.treatmentPlan} /> : null}
                 {r.weightAtVisit != null ? <Field label="Weight at visit" value={`${r.weightAtVisit} kg`} /> : null}
                 {r.prescriptions.map((p) => (
                   <View key={p.id} style={styles.rx}>
@@ -144,10 +187,18 @@ export const PetDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  date: { fontSize: 14, fontWeight: '700', color: colors.primary },
+const styles = themedStyles(() => ({
+  hero: { alignItems: 'center', backgroundColor: colors.card, borderRadius: 26, borderWidth: 1, borderColor: colors.border, padding: 20, marginBottom: 14 },
+  heroName: { fontSize: 24, fontWeight: '800', color: colors.text, marginTop: 12 },
+  heroSub: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
+  stats: { flexDirection: 'row', gap: 10, marginTop: 16, alignSelf: 'stretch' },
+  stat: { flex: 1, backgroundColor: colors.mint, borderRadius: 16, paddingVertical: 10, alignItems: 'center' },
+  statValue: { fontSize: 15, fontWeight: '800', color: colors.ink },
+  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2, fontWeight: '700' },
+  uploading: { fontSize: 12, color: colors.textSecondary, marginTop: 10 },
+  date: { fontSize: 14, fontWeight: '700', color: colors.ink },
   doc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   diagnosis: { fontSize: 15, fontWeight: '700', color: colors.text, marginVertical: 8 },
   rx: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingVertical: 3 },
   rxText: { flex: 1, fontSize: 13, color: colors.text },
-});
+}));

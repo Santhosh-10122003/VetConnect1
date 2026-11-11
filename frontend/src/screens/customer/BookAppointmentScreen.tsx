@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   Alert,
   TouchableOpacity,
@@ -24,6 +23,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { CustomerStackParamList } from '../../navigation/types';
 import { drName, getClinicAdvancePercent, money } from '../../utils/helpers';
 import { ClinicLocationCard } from '../../components/common/ClinicLocationCard';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'BookAppointment'>;
 
@@ -98,7 +98,7 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
       return;
     }
     if (!selectedSlot) {
-      Alert.alert('Time Slot Required', 'Please choose an available appointment time slot.');
+      Alert.alert('Pick a time', 'Please choose a time for the visit.');
       return;
     }
     if (!reason.trim()) {
@@ -125,7 +125,7 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
     } catch (err: any) {
       const message =
         err.response?.data?.message ||
-        'Could not complete booking. Please try another slot.';
+        'Could not complete booking. Please try another time.';
       Alert.alert('Booking Error', message);
       // Refresh slots in case of conflict
       fetchSlots(selectedDate);
@@ -145,7 +145,7 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
   return (
     <View style={styles.container}>
       <AppHeader
-        title="Book Appointment"
+        title="Book this visit"
         subtitle={drName(doctor.fullName)}
         showBack
         onBack={() => navigation.goBack()}
@@ -232,8 +232,8 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
             <Text style={styles.stepTitle}>Reason for Visit</Text>
           </View>
 
-          <AppInput
-            label="Chief Concern / Symptoms *"
+          <AppInput kind="note"
+            label="What is the problem? *"
             placeholder="e.g. Skin scratching, annual vaccination booster, checkup..."
             value={reason}
             onChangeText={setReason}
@@ -242,8 +242,8 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
             style={{ height: 60 }}
           />
 
-          <AppInput
-            label="Additional Notes for Doctor (Optional)"
+          <AppInput kind="note"
+            label="Anything else the vet should know? (optional)"
             placeholder="Any behavioral notes or medication allergies to note..."
             value={notes}
             onChangeText={setNotes}
@@ -255,8 +255,8 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
 
         {advanceDue > 0 && (
           <View style={styles.advanceBox} testID="advance-box">
-            <View style={styles.advanceRow}><Text style={styles.advanceLabel}>Consultation fee</Text><Text style={styles.advanceValue}>{money(doctor.consultationFee)}</Text></View>
-            <View style={styles.advanceRow}><Text style={styles.advanceLabel}>Pay now ({advancePercent}% advance)</Text><Text style={[styles.advanceValue, { color: colors.primary }]} testID="advance-due">{money(advanceDue)}</Text></View>
+            <View style={styles.advanceRow}><Text style={styles.advanceLabel}>Vet fee</Text><Text style={styles.advanceValue}>{money(doctor.consultationFee)}</Text></View>
+            <View style={styles.advanceRow}><Text style={styles.advanceLabel}>Pay now ({advancePercent}% advance)</Text><Text style={[styles.advanceValue, { color: colors.ink }]} testID="advance-due">{money(advanceDue)}</Text></View>
             <View style={styles.advanceRow}><Text style={styles.advanceLabel}>Pay at the clinic</Text><Text style={styles.advanceValue}>{money(doctor.consultationFee - advanceDue)}</Text></View>
           </View>
         )}
@@ -275,14 +275,14 @@ export const BookAppointmentScreen: React.FC<Props> = ({ navigation, route }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   advanceBox: { backgroundColor: colors.mint, borderRadius: 14, padding: 14, marginBottom: 14, gap: 6, borderWidth: 1, borderColor: colors.mintBorder },
   advanceRow: { flexDirection: 'row', justifyContent: 'space-between' },
   advanceLabel: { fontSize: 13, color: colors.textSecondary },
   advanceValue: { fontSize: 14, fontWeight: '800', color: colors.text },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.page,
   },
   scrollContent: {
     padding: 16,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   doctorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stepSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -369,4 +369,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
   },
-});
+}));

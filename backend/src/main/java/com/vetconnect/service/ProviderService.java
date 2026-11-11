@@ -98,6 +98,9 @@ public class ProviderService {
             // the old pin no longer describes the new place: the provider has to pin it again
             throw new BadRequestException("You changed the location: please pin the new spot on the map.");
         }
+        if (p.getLatitude() == null || p.getLongitude() == null) {
+            throw new BadRequestException("Please pin your business's exact location on the map so pet owners can navigate to you.");
+        }
         p = providerRepository.save(p);
         log.info("Pet-care profile updated: providerId={} status={}", p.getId(), p.getVerificationStatus());
         return toOwnerDto(p);

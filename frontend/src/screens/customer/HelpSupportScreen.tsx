@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { AppHeader } from '../../components/common/AppHeader';
 import { CustomerStackParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'HelpSupport'>;
 
@@ -19,24 +20,24 @@ const EMERGENCY_LINES = [
 
 const FAQS = [
   {
-    q: 'How do I book an appointment?',
-    a: 'Open Find Doctors, choose a veterinarian, pick a date and an available time slot, select your pet and confirm with a 50% advance. The doctor then accepts or declines the request.',
+    q: 'How do I book a visit?',
+    a: 'Open Doctors, choose a vet, pick a day and a free time, choose your pet and pay the advance (half of the vet fee) to keep your time. The vet then accepts or declines.',
   },
   {
     q: 'How do the different screens work?',
-    a: 'Tap the "Explore Screen Guide" banner at the top of this screen or from Profile to see a comprehensive walkthrough of each screen, with easy tips and live previews.',
+    a: 'Tap Take the app tour on your Profile screen for a step-by-step walk through the app, as many times as you like.',
   },
   {
-    q: 'Can I reschedule or cancel?',
-    a: 'Yes. Open the appointment from Visits (Appointments tab) and choose Reschedule or Cancel while it is Pending or Confirmed. Cancelling 24 hours prior gives you a 100% refund.',
+    q: 'Can I change the time or cancel?',
+    a: 'Yes. Open the visit from the Visits tab and choose Change time or Cancel visit. If you cancel at least 24 hours before, you get all of your advance back.',
   },
   {
-    q: 'How do payments and advances work?',
-    a: '50% of the consultation fee is paid online as an advance via Razorpay to hold your slot for 15 minutes. The remaining 50% is paid directly at the clinic.',
+    q: 'How do I pay?',
+    a: 'You pay half of the vet fee online now (the advance). We keep your time for 15 minutes while you pay. You pay the other half at the clinic.',
   },
   {
     q: 'Where can I see my pet’s prescriptions?',
-    a: 'Open the pet under My Pets and check the Medical History tab. Prescriptions and doctor notes appear as soon as your vet completes the consultation.',
+    a: 'Open your pet under Pets and look at the Medical History tab. Medicines and the vet\u2019s notes appear there after the visit.',
   },
   {
     q: 'What if my pet has an emergency?',
@@ -51,24 +52,6 @@ export const HelpSupportScreen: React.FC<Props> = ({ navigation }) => {
     <View style={shared.screen}>
       <AppHeader title="Help & Support" showBack onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={shared.content}>
-        {/* Screen Guide Card */}
-        <TouchableOpacity
-          style={styles.guideCard}
-          onPress={() => navigation.navigate('AppGuide')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.guideCardIcon}>
-            <Ionicons name="compass" size={24} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.guideCardTitle}>Jenni Screen Guide & Tips</Text>
-            <Text style={styles.guideCardSub}>
-              New to the app? Learn what each screen does and how to book easily.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.primaryLight} />
-        </TouchableOpacity>
-
         <Text style={shared.sectionTitle}>Emergency hotlines</Text>
         {EMERGENCY_LINES.map((l) => (
           <TouchableOpacity key={l.number} style={styles.emergency} onPress={() => Linking.openURL(`tel:${l.number}`)}>
@@ -107,37 +90,7 @@ export const HelpSupportScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  guideCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.mint,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.mintBorder,
-    gap: 12,
-  },
-  guideCardIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guideCardTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  guideCardSub: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
-    marginTop: 2,
-  },
+const styles = themedStyles(() => ({
   emergency: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -148,9 +101,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   emName: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  emNum: { color: '#FEE2E2', fontSize: 13, marginTop: 2 },
+  emNum: { color: colors.dangerBg, fontSize: 13, marginTop: 2 },
   q: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.text, paddingRight: 8 },
   a: { marginTop: 10, fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
   contact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
   contactText: { fontSize: 14, color: colors.text, fontWeight: '500' },
-});
+}));

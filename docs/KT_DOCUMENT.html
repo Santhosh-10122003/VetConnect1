@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jenni: Knowledge Transfer Document</title>
+<style>
+  :root { --ink:#14171c; --muted:#5b6472; --line:#e3e6ec; --accent:#5961e0; --soft:#f4f5fe; --code:#f6f7f9; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); max-width: 980px; margin: 0 auto; padding: 40px 28px 80px; }
+  h1 { font-size: 34px; margin: 0 0 12px; letter-spacing: -.5px; }
+  h2 { font-size: 24px; margin: 46px 0 12px; padding-top: 18px; border-top: 2px solid var(--line); color: var(--accent); }
+  h3 { font-size: 18px; margin: 28px 0 8px; }
+  h4 { font-size: 15px; margin: 18px 0 6px; }
+  p, li { max-width: 78ch; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+  code { font: 13px/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--code); padding: 1px 5px; border-radius: 5px; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; page-break-inside: avoid; }
+  pre code { background: none; padding: 0; font-size: 12.5px; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0 22px; font-size: 13.5px; page-break-inside: auto; }
+  th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 700; }
+  tr { page-break-inside: avoid; }
+  blockquote { border-left: 4px solid var(--accent); margin: 14px 0; padding: 4px 14px; color: var(--muted); background: var(--soft); }
+  @media print {
+    body { max-width: none; padding: 0; font-size: 11.5px; }
+    h2 { page-break-before: auto; }
+    a { color: inherit; }
+    pre { font-size: 10.5px; }
+  }
+</style></head><body>
+<h1 id="jenni-knowledge-transfer-kt-document">Jenni: Knowledge Transfer (KT) Document</h1><p><strong>Jenni</strong> is a mobile app (and web build) for pet owners in India. Pet owners find and book <strong>veterinarians</strong> (clinic visits) and <strong>pet-care businesses</strong> (grooming, boarding, training), pay an advance, and keep their pets&#39; records. Vets and pet-care businesses run their work from the same app, and an <strong>admin</strong> approves them before they go live.</p>
+<p>This document explains the whole code base, the way it is put together, and every important flow from the first tap to the database row. It is written for a developer who is taking the project over.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Backend</td>
+<td>Java 21, Spring Boot 3.3.4, PostgreSQL, Flyway (migrations V1 to V22)</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>Expo SDK 58, React Native 0.88, TypeScript, React Navigation</td>
+</tr>
+<tr>
+<td>Repository</td>
+<td><code>backend/</code>, <code>frontend/</code>, <code>docs/</code>, <code>docker-compose.yml</code></td>
+</tr>
+<tr>
+<td>Older docs</td>
+<td><code>README.md</code> (setup), <code>docs/PROJECT_DOCUMENTATION.md</code> (earlier overview, written when the app was still called VetConnect)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2><ol>
+<li><a href="#1-the-product-in-one-page">The product in one page</a></li>
+<li><a href="#2-running-it-locally">Running it locally</a></li>
+<li><a href="#3-backend">Backend</a></li>
+<li><a href="#4-frontend">Frontend</a></li>
+<li><a href="#5-end-to-end-flows">End-to-end flows</a></li>
+<li><a href="#6-rules-and-numbers-worth-remembering">Rules and numbers worth remembering</a></li>
+<li><a href="#7-testing">Testing</a></li>
+<li><a href="#8-known-gaps-and-next-steps">Known gaps and next steps</a></li>
+<li><a href="#9-troubleshooting">Troubleshooting</a></li>
+<li><a href="#10-appendix-all-api-endpoints">Appendix: all API endpoints</a></li>
+</ol>
+<hr>
+<h2 id="1-the-product-in-one-page">1. The product in one page</h2><h3 id="11-who-uses-it-roles">1.1 Who uses it (roles)</h3><table>
+<thead>
+<tr>
+<th>Role (<code>Role</code> enum)</th>
+<th>Who</th>
+<th>What they do</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ROLE_CUSTOMER</code></td>
+<td>Pet owner</td>
+<td>Adds pets, finds vets, books and pays for visits and pet-care services, sees visits, cancels, rates, scans pet QR codes</td>
+</tr>
+<tr>
+<td><code>ROLE_DOCTOR</code></td>
+<td>Veterinarian</td>
+<td>Registers with credentials and documents, waits for admin approval, manages weekly hours, blocked slots and leave days, sees bookings, completes visits with notes and prescriptions, has a wallet</td>
+</tr>
+<tr>
+<td><code>ROLE_PROVIDER</code></td>
+<td>Pet-care business</td>
+<td>Registers with a trade licence and a partner vet, waits for approval, manages services and prices, hours and capacity, sees bookings, has a wallet</td>
+</tr>
+<tr>
+<td><code>ROLE_ADMIN</code></td>
+<td>Platform staff</td>
+<td>Reviews doctors and pet-care businesses (with their uploaded documents), approves or rejects with a reason, sees platform numbers</td>
+</tr>
+</tbody></table>
+<p>Vets and pet-care businesses are <strong>separate accounts with separate screens</strong>. A vet account has no Pet Care tab.</p>
+<h3 id="12-what-the-app-does">1.2 What the app does</h3><ul>
+<li><strong>Accounts:</strong> the <strong>mobile number</strong> is the login (email is optional). Sign-up is confirmed with a one-time code (OTP). Passwords can be reset. Accounts can be deleted from the app.</li>
+<li><strong>Vet booking:</strong> pick a vet, pick a free slot, pay the advance, and the slot is <strong>confirmed at once</strong> (no doctor approval).</li>
+<li><strong>Pet-care booking:</strong> the same idea for grooming, boarding and training. Paying the advance confirms it and the business is notified.</li>
+<li><strong>Money:</strong> advances go through a payment gateway (simulated for development, Razorpay for real). Every payment and refund also writes a row in a <strong>wallet ledger</strong> for the doctor or business.</li>
+<li><strong>Pets:</strong> profile with photo, automatic unique <strong>pet ID number</strong>, a <strong>QR code</strong> per pet, a public page that shows the owner&#39;s contact when the QR is scanned, and a scanner inside the app.</li>
+<li><strong>Location:</strong> country/state/district pickers, postal-code lookup, GPS, map pins, distance-based vet search. Clinics and pet-care businesses must pin their exact location.</li>
+<li><strong>Trust:</strong> doctors and businesses upload documents, an admin checks them, and approved accounts show a small <strong>Verified</strong> badge.</li>
+<li><strong>Everything else:</strong> in-app notifications, reviews and ratings, a guided tour, light and dark themes, input validation that blocks emoji and bad characters.</li>
+</ul>
+<hr>
+<h2 id="2-running-it-locally">2. Running it locally</h2><h3 id="21-prerequisites">2.1 Prerequisites</h3><p>Java 21, Node.js, PostgreSQL 16 (or Docker), and Expo Go on a phone (or a browser for the web build).</p>
+<h3 id="22-database">2.2 Database</h3><p>Either create a local database once:</p>
+<pre><code class="language-sql">CREATE DATABASE vetconnect;
+</code></pre>
+<p>or start the one in Docker: <code>docker compose up -d</code> (service <code>postgres</code>, database <code>vetconnect</code>, host port <code>5433</code> by default).</p>
+<h3 id="23-backend">2.3 Backend</h3><pre><code>cd backend
+./mvnw spring-boot:run          # Windows PowerShell: .\mvnw.cmd spring-boot:run
+</code></pre>
+<p>Flyway creates and fills the schema on start (V1 to V22). Swagger UI is at <code>http://localhost:8080/swagger-ui.html</code>.</p>
+<p>Useful environment variables (all have defaults in <code>application.yml</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Meaning</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_NAME</code>, <code>DB_USER</code>, <code>DB_PASSWORD</code></td>
+<td>PostgreSQL connection</td>
+<td><code>localhost</code>, <code>5432</code>, <code>vetconnect</code>, <code>postgres</code>, <code>postgres</code></td>
+</tr>
+<tr>
+<td><code>PAYMENT_GATEWAY</code></td>
+<td><code>simulated</code> or <code>razorpay</code></td>
+<td><code>simulated</code></td>
+</tr>
+<tr>
+<td><code>RAZORPAY_KEY_ID</code>, <code>RAZORPAY_KEY_SECRET</code></td>
+<td>Razorpay keys (use <code>rzp_test_</code> keys to try)</td>
+<td>empty</td>
+</tr>
+<tr>
+<td><code>CARE_CURRENCY</code>, <code>CARE_CURRENCY_SYMBOL</code></td>
+<td>Currency shown and charged</td>
+<td><code>USD</code>, <code>$</code> (use <code>INR</code> and <code>₹</code> for India)</td>
+</tr>
+<tr>
+<td><code>CLINIC_ADVANCE_PERCENT</code></td>
+<td>Share of a vet&#39;s fee paid as advance</td>
+<td><code>50</code></td>
+</tr>
+</tbody></table>
+<h3 id="24-frontend">2.4 Frontend</h3><pre><code>cd frontend
+npm install
+npx expo start            # add --clear after installing packages or if screens look stale
+</code></pre>
+<p>Press <code>w</code> for the browser, or scan the QR code with Expo Go (phone and PC on the same Wi-Fi). Set <code>EXPO_PUBLIC_API_URL</code> if the backend is not on the PC&#39;s default address. <code>npm run typecheck</code> runs <code>tsc --noEmit</code>.</p>
+<h3 id="25-demo-accounts-seeded-by-datainitializer">2.5 Demo accounts (seeded by <code>DataInitializer</code>)</h3><p>Sign-in is by mobile number. The login screen has quick-fill chips for these:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Mobile</th>
+<th>Password</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Customer (John Doe)</td>
+<td><code>+1 555-0201</code></td>
+<td><code>Customer@1234</code></td>
+</tr>
+<tr>
+<td>Doctor (Dr. Sarah Jenkins)</td>
+<td><code>+1 555-0111</code></td>
+<td><code>Doctor@1234</code></td>
+</tr>
+<tr>
+<td>Admin</td>
+<td><code>+1 555-0100</code></td>
+<td><code>Admin@1234</code></td>
+</tr>
+<tr>
+<td>Pet-care business (Happy Paws Grooming)</td>
+<td><code>+1 555-0301</code></td>
+<td><code>Groomer@1234</code></td>
+</tr>
+</tbody></table>
+<p>These are development credentials. Remove the seed data and rotate the JWT secret before any real deployment.</p>
+<h3 id="251-where-the-one-time-code-goes">2.5.1 Where the one-time code goes</h3><p>No SMS provider is connected. When someone signs up or asks for a reset, the code is <strong>written to the backend log</strong> as <code>[SIMULATED SMS] Verification code for ...</code> in <code>backend/logs/jenni.log</code>. Read the code from there while testing.</p>
+<hr>
+<h2 id="3-backend">3. Backend</h2><h3 id="31-layers">3.1 Layers</h3><pre><code>HTTP request
+   |
+   v
+Filters:  RequestLoggingFilter  -&gt;  JwtAuthFilter (reads the Bearer token, loads the user)
+   |
+   v
+controller/   (thin: URL, role check with @PreAuthorize, @Valid body, calls one service)
+   |
+   v
+service/      (all business rules, @Transactional)
+   |
+   +--&gt; repository/ (Spring Data JPA)  --&gt;  PostgreSQL (schema owned by Flyway)
+   +--&gt; payment/PaymentGateway (simulated or Razorpay)
+   +--&gt; geo/GeocoderClient (Nominatim)
+   +--&gt; NotificationService (writes in-app notifications)
+   |
+   v
+dto/ objects go back to the client wrapped in ApiResponse
+</code></pre>
+<p>Rules the code follows:</p>
+<ul>
+<li><strong>Controllers hold no business logic.</strong> Rules live in services, which makes them unit-testable with mocks.</li>
+<li><strong>The database schema is owned by Flyway.</strong> Hibernate runs with <code>ddl-auto: validate</code>, so an entity that does not match the schema stops the app from starting. <strong>Never edit a migration that has already run</strong>: add a new <code>V&lt;n&gt;__name.sql</code> instead (Flyway checks file checksums).</li>
+<li><strong>Every response uses the same envelope</strong> (<code>common/ApiResponse</code>): <code>{ success, message, data, timestamp }</code>. Lists use <code>PageResponse</code> (<code>content</code>, <code>totalElements</code>, <code>page</code>, <code>size</code>).</li>
+<li><strong>Errors are turned into JSON in one place</strong>: <code>common/GlobalExceptionHandler</code> maps <code>BadRequestException</code> (400), <code>UnauthorizedException</code> (403), <code>ResourceNotFoundException</code> (404), <code>BookingConflictException</code> (409), <code>TooManyRequestsException</code> (429), <code>ExternalServiceException</code> and validation failures to the same envelope.</li>
+</ul>
+<h3 id="32-package-map-backendsrcmainjavacomvetconnect">3.2 Package map (<code>backend/src/main/java/com/vetconnect</code>)</h3><table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>config/</code></td>
+<td><code>SecurityConfig</code> (routes and roles), <code>JwtAuthFilter</code>, <code>AppProperties</code> (all <code>vetconnect.*</code> settings), <code>CorsConfig</code>, <code>ClockConfig</code> (a <code>Clock</code> bean so time can be faked in tests), <code>JacksonConfig</code> (rejects emoji in any JSON text), <code>RequestLoggingFilter</code>, <code>OpenApiConfig</code>, <code>DataInitializer</code> (demo data)</td>
+</tr>
+<tr>
+<td><code>common/</code></td>
+<td><code>ApiResponse</code>, <code>PageResponse</code>, <code>GlobalExceptionHandler</code>, <code>TextRules</code> (emoji and hidden-character check), <code>PhoneNumbers</code> (E.164 normalising), <code>PayoutRules</code> (UPI/bank validation), <code>GeoUtils</code> (distance maths), <code>LocationMatch</code> (the area-matching rule), <code>exceptions/</code>, <code>security/</code> (<code>JwtTokenProvider</code>, <code>UserPrincipal</code>, <code>CustomUserDetailsService</code>)</td>
+</tr>
+<tr>
+<td><code>controller/</code></td>
+<td>19 controllers, listed in the <a href="#10-appendix-all-api-endpoints">appendix</a></td>
+</tr>
+<tr>
+<td><code>service/</code></td>
+<td>The business logic (see 3.5)</td>
+</tr>
+<tr>
+<td><code>repository/</code></td>
+<td>One interface per entity (Spring Data JPA)</td>
+</tr>
+<tr>
+<td><code>domain/entities/</code></td>
+<td>JPA entities (see 3.4)</td>
+</tr>
+<tr>
+<td><code>domain/enums/</code></td>
+<td>Status and type enums (see 3.4)</td>
+</tr>
+<tr>
+<td><code>dto/</code></td>
+<td>Request and response objects, grouped by area (<code>auth</code>, <code>appointment</code>, <code>care</code>, <code>doctor</code>, <code>customer</code>, <code>pet</code>, <code>medical</code>, <code>review</code>, <code>notification</code>, <code>wallet</code>, <code>admin</code>)</td>
+</tr>
+<tr>
+<td><code>payment/</code></td>
+<td><code>PaymentGateway</code> interface, <code>SimulatedPaymentGateway</code>, <code>RazorpayPaymentGateway</code></td>
+</tr>
+<tr>
+<td><code>geo/</code></td>
+<td><code>GeoService</code> (countries, states, districts from bundled data), <code>NominatimClient</code> (OpenStreetMap geocoding), <code>GeocoderClient</code></td>
+</tr>
+</tbody></table>
+<h3 id="33-security">3.3 Security</h3><ul>
+<li><strong>Authentication:</strong> stateless JWT. Login returns an access token (24 hours) and a refresh token (7 days, stored in the <code>refresh_tokens</code> table so it can be revoked). <code>JwtAuthFilter</code> reads <code>Authorization: Bearer ...</code> and loads the user. <strong>A disabled or deleted account is rejected even with an unexpired token.</strong></li>
+<li><strong>Authorisation:</strong> <code>SecurityConfig</code> plus <code>@PreAuthorize(&quot;hasRole(...)&quot;)</code> on controller methods. <code>/api/admin/**</code> needs <code>ADMIN</code>, <code>/api/customers/**</code> needs <code>CUSTOMER</code> or <code>ADMIN</code>, and so on.</li>
+<li><strong>Public endpoints (no token):</strong> the <code>/api/auth/*</code> calls, <code>GET /api/geo/**</code>, <code>GET /api/care/config</code>, <code>GET /api/specializations/**</code>, doctor reviews, <code>GET /api/pet-photos/{name}</code>, <code>GET /api/pet-finder/{number}</code> (the QR scan lookup), <code>GET /api/p/{number}</code> (the &quot;download Jenni&quot; page) and <code>GET /api/documents/{id}/file</code> (protected by a signed link instead).</li>
+<li><strong>Passwords:</strong> hashed with BCrypt. Reset codes expire in 30 minutes and lock after 5 wrong tries.</li>
+<li><strong>Input safety:</strong> <code>JacksonConfig</code> rejects any JSON string containing emoji, pictographic symbols or hidden/control characters. DTO fields carry <code>@Pattern</code>, <code>@Size</code>, <code>@NotBlank</code>. Uploaded files are identified by their <strong>first bytes</strong> (not their name or declared type).</li>
+<li><strong>Rate limits:</strong> OTP resend cooldown (30 s), OTP and reset attempts (5), pet-owner lookups (10 an hour per user), QR scans (20 an hour per IP), geocoder calls (30 a minute per client).</li>
+</ul>
+<h3 id="34-data-model">3.4 Data model</h3><p>Tables are created by the migrations. Main entities:</p>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>User</code></td>
+<td>Login record: mobile (<code>phone</code>, E.164), email (a placeholder is generated when none is given), password hash, <code>role</code>, <code>isActive</code>, <code>emailVerified</code> (set true when the mobile is verified)</td>
+</tr>
+<tr>
+<td><code>CustomerProfile</code></td>
+<td>Pet owner details and home location (city, state, country, latitude/longitude)</td>
+</tr>
+<tr>
+<td><code>DoctorProfile</code></td>
+<td>Vet details: degree, council, licence number, clinic name/address/location with pin, fee, years, payout details, <code>verificationStatus</code>, admin reason</td>
+</tr>
+<tr>
+<td><code>ProviderProfile</code></td>
+<td>Pet-care business: business name, categories, trade licence, partner vet, location with pin, hours, capacity, <code>advancePercent</code> (default 30), payout details, <code>verificationStatus</code></td>
+</tr>
+<tr>
+<td><code>VerificationDocument</code></td>
+<td>One uploaded certificate: owner (<code>DOCTOR</code> or <code>PROVIDER</code> plus id), type, random stored name, content type, size</td>
+</tr>
+<tr>
+<td><code>Pet</code></td>
+<td>A pet, its owner, photo URL, and an automatic, immutable <strong>ID number</strong> (<code>999</code> plus 12 digits)</td>
+</tr>
+<tr>
+<td><code>Appointment</code></td>
+<td>A vet visit: customer, doctor, pet, date and time, status, amounts (total, advance, balance), booking reference (<code>VC-...</code>), reschedule columns (kept for old data)</td>
+</tr>
+<tr>
+<td><code>CareBooking</code> / <code>CareBookingItem</code></td>
+<td>A pet-care booking and its priced lines (the main service plus add-ons)</td>
+</tr>
+<tr>
+<td><code>CareService</code></td>
+<td>A service a business offers: category, price per pet size, duration or per-night</td>
+</tr>
+<tr>
+<td><code>ProviderHours</code></td>
+<td>A business&#39;s weekly opening hours</td>
+</tr>
+<tr>
+<td><code>DoctorAvailability</code></td>
+<td>A vet&#39;s weekly working hours and slot length</td>
+</tr>
+<tr>
+<td><code>DoctorBlockedSlot</code></td>
+<td>A slot the vet blocked (or a customer-booked walk-in)</td>
+</tr>
+<tr>
+<td><code>DoctorLeave</code></td>
+<td>A whole day the vet is away</td>
+</tr>
+<tr>
+<td><code>CarePayment</code></td>
+<td>One payment attempt for an appointment or a care booking (gateway order id, status, refunded amount)</td>
+</tr>
+<tr>
+<td><code>WalletTransaction</code></td>
+<td>The ledger: a <code>CREDIT</code> for each paid advance, a <code>DEBIT</code> for each refund</td>
+</tr>
+<tr>
+<td><code>MedicalRecord</code>, <code>Prescription</code></td>
+<td>What the vet wrote after a visit</td>
+</tr>
+<tr>
+<td><code>Review</code>, <code>CareReview</code></td>
+<td>Ratings for vets and for pet-care businesses</td>
+</tr>
+<tr>
+<td><code>Notification</code></td>
+<td>In-app notification for one user</td>
+</tr>
+<tr>
+<td><code>EmailVerificationOtp</code>, <code>PasswordResetToken</code>, <code>RefreshToken</code></td>
+<td>Sign-up codes, reset codes, refresh tokens</td>
+</tr>
+<tr>
+<td><code>Specialization</code></td>
+<td>Vet specialities (many-to-many with doctors)</td>
+</tr>
+</tbody></table>
+<p>Enums (<code>domain/enums</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Enum</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Role</code></td>
+<td><code>ROLE_CUSTOMER</code>, <code>ROLE_DOCTOR</code>, <code>ROLE_PROVIDER</code>, <code>ROLE_ADMIN</code></td>
+</tr>
+<tr>
+<td><code>VerificationStatus</code></td>
+<td><code>PENDING</code>, <code>APPROVED</code>, <code>REJECTED</code>, <code>RESUBMITTED</code></td>
+</tr>
+<tr>
+<td><code>AppointmentStatus</code></td>
+<td><code>AWAITING_PAYMENT</code>, <code>PENDING</code> (old data only), <code>CONFIRMED</code>, <code>REJECTED</code>, <code>CANCELLED</code>, <code>COMPLETED</code>, <code>NO_SHOW</code>, <code>EXPIRED</code></td>
+</tr>
+<tr>
+<td><code>CareBookingStatus</code></td>
+<td><code>AWAITING_PAYMENT</code>, <code>REQUESTED</code> (old data only), <code>CONFIRMED</code>, <code>COMPLETED</code>, <code>CANCELLED</code>, <code>REJECTED</code>, <code>EXPIRED</code></td>
+</tr>
+<tr>
+<td><code>PaymentStatus</code></td>
+<td><code>CREATED</code>, <code>PAID</code>, <code>FAILED</code>, <code>EXPIRED</code>, <code>REFUNDED</code>, <code>PARTIALLY_REFUNDED</code></td>
+</tr>
+<tr>
+<td><code>CareCategory</code></td>
+<td><code>GROOMING</code>, <code>BOARDING</code>, <code>TRAINING</code></td>
+</tr>
+<tr>
+<td><code>PetSpecies</code>, <code>Gender</code>, <code>PetSize</code></td>
+<td>Species (<code>DOG</code>, <code>CAT</code>, <code>BIRD</code>, <code>RABBIT</code>, <code>OTHER</code>), gender, size (<code>SMALL</code>, <code>MEDIUM</code>, <code>LARGE</code>, <code>GIANT</code>, worked out from the pet&#39;s weight)</td>
+</tr>
+<tr>
+<td><code>PricingUnit</code></td>
+<td><code>PER_SESSION</code>, <code>PER_NIGHT</code></td>
+</tr>
+<tr>
+<td><code>PayoutMethod</code></td>
+<td><code>UPI</code>, <code>BANK</code></td>
+</tr>
+<tr>
+<td><code>WalletTxnType</code></td>
+<td><code>CREDIT</code>, <code>DEBIT</code></td>
+</tr>
+<tr>
+<td><code>NotificationType</code></td>
+<td>Booking and payment events, verification events, reviews, <code>GENERAL</code></td>
+</tr>
+</tbody></table>
+<h3 id="35-services-where-the-rules-live">3.5 Services (where the rules live)</h3><table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>AuthService</code></td>
+<td>Register (creates an unverified user and profile), verify OTP, login, refresh, logout, forgot and reset password</td>
+</tr>
+<tr>
+<td><code>EmailOtpService</code></td>
+<td>Issue and check the 6-digit sign-up code (10 minutes, 5 attempts, 30 s cooldown). Writes the &quot;SMS&quot; to the log</td>
+</tr>
+<tr>
+<td><code>CustomerService</code></td>
+<td>Customer profile read and update</td>
+</tr>
+<tr>
+<td><code>DoctorService</code></td>
+<td>Search vets (by place or radius), profile create/update (a pin is required), weekly availability, free slots for a date, blocked slots, leave days, resubmit after rejection</td>
+</tr>
+<tr>
+<td><code>ProviderService</code></td>
+<td>Pet-care profile, services, hours, search near a customer, resubmit</td>
+</tr>
+<tr>
+<td><code>AppointmentService</code></td>
+<td>Book, pay (settle), confirm payment, cancel, reject, complete, reschedule, cancellation preview, hold expiry job</td>
+</tr>
+<tr>
+<td><code>CareBookingService</code></td>
+<td>The same lifecycle for pet-care bookings, plus review</td>
+</tr>
+<tr>
+<td><code>CareAvailabilityService</code></td>
+<td>Free slots for grooming/training and free nights for boarding, using the business&#39;s capacity</td>
+</tr>
+<tr>
+<td><code>CarePaymentService</code></td>
+<td>Create and settle <code>CarePayment</code> rows, call the gateway, refund, write the wallet ledger</td>
+</tr>
+<tr>
+<td><code>WalletService</code></td>
+<td>Credit an advance, debit a refund, return a wallet with history</td>
+</tr>
+<tr>
+<td><code>AdminService</code></td>
+<td>Pending and resubmitted lists, approve/reject with a reason (notifies the applicant), dashboard numbers</td>
+</tr>
+<tr>
+<td><code>DocumentService</code></td>
+<td>Upload, list, delete verification documents; signed 5-minute links; open a file</td>
+</tr>
+<tr>
+<td><code>PetService</code></td>
+<td>Pet CRUD, ID number generation, photo upload/removal</td>
+</tr>
+<tr>
+<td><code>PetPhotoStore</code></td>
+<td>Stores pet photos (JPG/PNG, random names)</td>
+</tr>
+<tr>
+<td><code>PetLookupService</code></td>
+<td>&quot;Find a pet&#39;s owner&quot; by number or QR scan, with rate limits and a notification to the owner</td>
+</tr>
+<tr>
+<td><code>MedicalRecordService</code>, <code>ReviewService</code>, <code>NotificationService</code></td>
+<td>Records and prescriptions, vet reviews, notifications</td>
+</tr>
+<tr>
+<td><code>AccountService</code></td>
+<td>Delete account. Needs the password; refused for admins, while there are open bookings (the person must cancel or finish them first), and while a doctor&#39;s or business&#39;s wallet still holds unpaid money. Otherwise personal details are scrubbed, files and notifications removed, and records that other people depend on stay but point to &quot;Deleted ...&quot;</td>
+</tr>
+</tbody></table>
+<h3 id="36-scheduled-jobs">3.6 Scheduled jobs</h3><p>Both run every 60 seconds (<code>@Scheduled(fixedDelay = 60_000)</code>):</p>
+<ul>
+<li><code>AppointmentService.expireStaleHolds()</code> and <code>CareBookingService.expireStaleHolds()</code>: a booking in <code>AWAITING_PAYMENT</code> whose 15-minute hold has passed becomes <code>EXPIRED</code>, its payment is expired and the slot is free again.</li>
+</ul>
+<h3 id="37-configuration-applicationyml-and-appproperties">3.7 Configuration (<code>application.yml</code> and <code>AppProperties</code>)</h3><p>Settings live under the <code>vetconnect.*</code> prefix: <code>jwt</code> (secret, 24 h / 7 d), <code>otp</code>, <code>reset</code>, <code>location</code> (default radius 25 km, max 100), <code>geo</code> (Nominatim URL, timeout, rate), <code>care</code> (hold 15 min, cancellation window 24 h, max boarding nights 30, max advance booking 180 days, currency), <code>payments</code> (gateway, Razorpay), <code>clinic</code> (advance percent), <code>uploads</code> (folder, 5 MB, 8 files per person, link 5 min), <code>app</code> (store links for the QR landing page), <code>cors</code>.</p>
+<h3 id="38-migrations-flyway">3.8 Migrations (Flyway)</h3><table>
+<thead>
+<tr>
+<th>Version</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>V1, V2</td>
+<td>Initial schema and sample data</td>
+</tr>
+<tr>
+<td>V3 to V7</td>
+<td>Password reset tokens, data fixes, location, OTP and review reasons, country/state</td>
+</tr>
+<tr>
+<td>V8</td>
+<td>Pet-care providers, bookings and payments</td>
+</tr>
+<tr>
+<td>V9</td>
+<td>Clinic advance payments</td>
+</tr>
+<tr>
+<td>V10</td>
+<td>Appointment reschedule requests (the old approve/decline flow)</td>
+</tr>
+<tr>
+<td>V11, V12</td>
+<td>Payout details for businesses and doctors, the wallet ledger</td>
+</tr>
+<tr>
+<td>V13, V14</td>
+<td>Mobile-number login and a fix for 10-digit numbers</td>
+</tr>
+<tr>
+<td>V15, V16</td>
+<td>Doctor blocked slots and customer details on them</td>
+</tr>
+<tr>
+<td>V17</td>
+<td>Verification credentials (degree, council, licence, partner vet)</td>
+</tr>
+<tr>
+<td>V18</td>
+<td>Verification documents</td>
+</tr>
+<tr>
+<td>V19</td>
+<td>Doctor leave days</td>
+</tr>
+<tr>
+<td>V20</td>
+<td>Pet ID numbers</td>
+</tr>
+<tr>
+<td>V21</td>
+<td>Paid bookings confirm themselves: waiting vet requests and pet-care requests become <code>CONFIRMED</code></td>
+</tr>
+<tr>
+<td>V22</td>
+<td>Clears time-change requests that were still waiting</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="4-frontend">4. Frontend</h2><h3 id="41-overview">4.1 Overview</h3><pre><code>frontend/
+  App.tsx            Providers: SafeArea &gt; ThemeProvider &gt; Paper &gt; Auth &gt; Navigation &gt; Tour
+  index.ts           Entry point
+  app.json           Expo config (name Jenni, scheme jenni, automatic light/dark)
+  src/
+    api/             One file per backend area + client.ts (axios)
+    context/         AuthContext
+    navigation/      One navigator per role + types + deep-link handler
+    screens/         auth, customer, doctor, provider, admin, shared
+    components/      common, appointment, care, doctor, payment, pet
+    theme/           colors, themed styles, ThemeProvider, shared styles
+    tour/            Guided tour
+    utils/           helpers, validators, inputRules, petLink, maps, ...
+    data/            Static lists (Indian banks, State Veterinary Councils)
+</code></pre>
+<h3 id="42-providers-and-app-start-apptsx">4.2 Providers and app start (<code>App.tsx</code>)</h3><ol>
+<li>Fetches <code>GET /api/care/config</code> (currency symbol, advance percent, payment gateway), waiting up to 3 seconds so the first screen already shows the right currency.</li>
+<li><code>ThemeProvider</code> decides light or dark (saved choice, otherwise the phone&#39;s setting) and sets the colours <strong>before anything renders</strong>.</li>
+<li><code>Themed</code> wraps the app in <code>PaperProvider</code>, <code>AuthProvider</code>, <code>NavigationContainer</code> and <code>TourProvider</code>. Changing the theme re-creates this part (keyed by the scheme) and restores the current screen with the saved navigation state.</li>
+<li><code>RootNavigator</code> decides what to show: the scanned-pet page (public), a loading view while the session is restored, the <strong>auth stack</strong> when signed out, or the <strong>role navigator</strong> when signed in.</li>
+</ol>
+<h3 id="43-authentication-on-the-client">4.3 Authentication on the client</h3><ul>
+<li><code>context/AuthContext.tsx</code> holds the signed-in user and has <code>login</code>, <code>register</code>, <code>verifyOtp</code>, <code>logout</code>, and <code>updateUserData</code>. Tokens are saved with <code>expo-secure-store</code> (browser <code>localStorage</code> on the web) through the <code>storage</code> helper in <code>api/client.ts</code>.</li>
+<li><code>api/client.ts</code> is an axios instance (15-second timeout). A <strong>request interceptor</strong> adds the Bearer token. A <strong>response interceptor</strong> catches <code>401</code>, calls <code>/auth/refresh</code> once with the refresh token, retries the request, and if refresh fails signs the user out.</li>
+<li><strong>Registration documents</strong> picked before the account exists are queued (<code>utils/pendingDocuments.ts</code>) and uploaded right after the mobile number is verified (inside <code>verifyOtp</code>).</li>
+</ul>
+<h3 id="44-navigation">4.4 Navigation</h3><table>
+<thead>
+<tr>
+<th>Navigator</th>
+<th>Tabs (bottom bar)</th>
+<th>Notable stack screens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Auth</strong></td>
+<td>none</td>
+<td>Splash, Onboarding, Login, Register (step-by-step), Verify OTP, Forgot and Reset password</td>
+</tr>
+<tr>
+<td><strong>Customer</strong></td>
+<td>Home, Doctors, Visits, Pet Care, Pets, Profile</td>
+<td>Doctor profile, Book appointment, Booking summary, Appointment payment, Appointment details, Add/Edit pet, Pet details, Add review, Notifications, Help, Care provider, Care book, Care payment, Care bookings, Care booking details, Care review, Find a pet&#39;s owner</td>
+</tr>
+<tr>
+<td><strong>Doctor</strong></td>
+<td>Today, Appointments, Calendar, Profile</td>
+<td>Appointment details, Consultation notes, Notifications, Wallet, Day slots</td>
+</tr>
+<tr>
+<td><strong>Provider (pet care)</strong></td>
+<td>none (one home screen)</td>
+<td>Setup, Bookings, Services, Service edit, Hours &amp; capacity, Business profile, Wallet, Account</td>
+</tr>
+<tr>
+<td><strong>Admin</strong></td>
+<td>none</td>
+<td>Dashboard, Doctor/provider verification</td>
+</tr>
+</tbody></table>
+<p>Other navigation pieces: <code>navigationRef.ts</code> (navigate from outside React), <code>DeepLinkHandler.tsx</code> (opens <code>jenni://</code> and pet QR links), and <code>types.ts</code> (route parameter types).</p>
+<h3 id="45-screens-by-role">4.5 Screens by role</h3><p><strong>Auth:</strong> <code>SplashScreen</code> (animated paw intro), <code>OnboardingScreen</code>, <code>LoginScreen</code> (mobile + password, demo chips), <code>RegisterScreen</code> (the wizard: role cards, then account, location, role details, credentials, payment), <code>VerifyOtpScreen</code>, <code>ForgotPasswordScreen</code>, <code>ResetPasswordScreen</code>.</p>
+<p><strong>Customer:</strong> <code>HomeScreen</code>, <code>FindDoctorsScreen</code> (search, filters, change the searched place without changing the profile), <code>DoctorProfileScreen</code>, <code>BookAppointmentScreen</code> (pet, date, slot, reason), <code>AppointmentPaymentScreen</code>, <code>BookingSummaryScreen</code>, <code>AppointmentDetailsScreen</code> (move to another time, cancel), <code>MyAppointmentsScreen</code> (the <strong>Visits</strong> tab: Clinic visits and Pet care sections), <code>PetListScreen</code>, <code>AddEditPetScreen</code>, <code>PetDetailsScreen</code> (QR, ID number, records), <code>CareHomeScreen</code>, <code>CareProviderScreen</code>, <code>CareBookScreen</code>, <code>CarePaymentScreen</code>, <code>CareBookingsScreen</code>, <code>CareBookingDetailsScreen</code>, <code>CareReviewScreen</code>, <code>AddReviewScreen</code>, <code>NotificationsScreen</code>, <code>HelpSupportScreen</code>, <code>CustomerProfileScreen</code>.</p>
+<p><strong>Doctor:</strong> <code>DoctorDashboardScreen</code> (wallet, today&#39;s slots card, stats), <code>DoctorAppointmentsScreen</code> (Upcoming, Completed, Cancelled), <code>DoctorAppointmentDetailsScreen</code>, <code>ConsultationNotesScreen</code> (diagnosis, notes, prescriptions), <code>AvailabilityManagementScreen</code> (weekly hours, breaks, leave days), <code>DoctorSlotsScreen</code> (block a slot, add a walk-in), <code>DoctorProfileScreen</code> (credentials, documents, verification state, edit and resubmit).</p>
+<p><strong>Pet-care business:</strong> <code>ProviderHomeScreen</code> (wallet, upcoming and completed counts, tiles), <code>ProviderBookingsScreen</code>, <code>ProviderServicesScreen</code>, <code>ProviderServiceEditScreen</code>, <code>ProviderHoursScreen</code>, <code>ProviderProfileScreen</code>, <code>ProviderSetupScreen</code>, <code>ProviderAccountScreen</code> (Sign out and Delete account live here).</p>
+<p><strong>Admin:</strong> <code>AdminDashboardScreen</code>, <code>DoctorVerificationScreen</code> (the applicant cards with documents, &quot;how to verify&quot; steps, approve/reject with reason).</p>
+<p><strong>Shared:</strong> <code>WalletScreen</code>, <code>FindPetOwnerScreen</code> (scan or type a pet number), <code>PetFoundScreen</code> (what a scan shows, no sign-in needed).</p>
+<h3 id="46-api-layer-srcapi">4.6 API layer (<code>src/api</code>)</h3><p><code>authApi</code>, <code>customerApi</code>, <code>doctorApi</code>, <code>appointmentApi</code>, <code>careApi</code> (providers, bookings, payments, provider-side calls), <code>petApi</code>, <code>medicalApi</code>, <code>reviewApi</code>, <code>notificationApi</code>, <code>walletApi</code>, <code>documentApi</code>, <code>adminApi</code>, <code>accountApi</code>, <code>geoApi</code>. Each file exports typed functions (and the TypeScript types of that area) that call <code>apiClient</code>. Screens never call axios directly.</p>
+<h3 id="47-components-worth-knowing">4.7 Components worth knowing</h3><ul>
+<li><strong><code>common/</code>:</strong> <code>AppInput</code> (every text box: filters typing and checks on blur using the <code>kind</code> prop), <code>PhoneField</code>, <code>EmailField</code>, <code>SelectField</code> (searchable dropdown), <code>LocationPicker</code> (country/state/district, postal code, one &quot;Set location on map&quot; button, the map popup with &quot;Use my current location&quot;, pin preview and confirmation tick), <code>OsmMap</code> (Leaflet in a WebView, an iframe on the web), <code>DateField</code>, <code>DocumentsPicker</code>/<code>DocumentsCard</code>, <code>StatusBadge</code>, <code>VerifiedBadge</code>, <code>ThemeToggle</code>, <code>DeleteAccountCard</code>, <code>KeyboardScroll</code>.</li>
+<li><strong><code>appointment/</code>:</strong> <code>VisitCard</code> (one visit or pet-care booking), <code>TimeSlotPicker</code> (hides slots already past for today), <code>RescheduleRequestCard</code>, <code>AppointmentCard</code>.</li>
+<li><strong><code>care/</code>:</strong> <code>ProviderForm</code> (sign-up and profile form for a business), <code>PayoutFields</code> (UPI or bank, with the bank dropdown), <code>ProviderStatusCard</code>, <code>BookingCard</code>, <code>ProviderCard</code>.</li>
+<li><strong><code>payment/</code>:</strong> <code>PayPanel</code>, <code>PaymentMethods</code>, <code>RazorpayCheckout</code>, <code>WalletCard</code>.</li>
+<li><strong><code>pet/</code>:</strong> <code>PetQr</code>, <code>PetScanner</code>, <code>PetAvatar</code>, <code>PetTile</code>, <code>PetCard</code>.</li>
+</ul>
+<h3 id="48-theme-system-light-and-dark">4.8 Theme system (light and dark)</h3><ul>
+<li><code>theme/colors.ts</code> has two palettes and a single exported object <code>colors</code> that is <strong>overwritten in place</strong> when the scheme changes (<code>applyScheme</code>). Tokens include <code>primary</code>, <code>background</code>, <code>page</code>, <code>canvas</code>, <code>card</code>, <code>subtle</code>, <code>text</code>, <code>textSecondary</code>, <code>border</code>, <code>ink</code> (headings: dark in light mode, white in dark mode), <code>iconBorder</code>, and tinted pairs for success, warning, danger and info.</li>
+<li>Styles are written with <code>themedStyles(() =&gt; ({ ... }))</code> (in <code>theme/themed.ts</code>) instead of <code>StyleSheet.create</code>. It is a lazy proxy that rebuilds the style object when the theme version changes. Lookup tables that read colours use <code>themedTable</code>.</li>
+<li>Dark mode shows a near-black to plum gradient behind every screen (<code>Backdrop</code> in <code>App.tsx</code>). Screens use <code>colors.page</code> or <code>colors.canvas</code> (see-through in dark) as their background.</li>
+<li><code>ThemeToggle</code> (sun/moon) sits at the top of the home screens. The choice is saved in secure storage.</li>
+<li><strong>Note:</strong> after editing styles on a running dev server, restart Expo with <code>--clear</code> if the old look persists.</li>
+</ul>
+<h3 id="49-input-rules-utilsinputrulests">4.9 Input rules (<code>utils/inputRules.ts</code>)</h3><p><code>AppInput</code> takes a <code>kind</code> (for example <code>name</code>, <code>business</code>, <code>address</code>, <code>regNo</code>, <code>integer</code>, <code>decimal</code>, <code>phone</code>, <code>pin</code>, <code>otp</code>, <code>ifsc</code>, <code>upi</code>, <code>account</code>, <code>petName</code>, <code>time</code>, <code>note</code>). Each kind says which characters may be typed (emoji and hidden characters are always removed), a maximum length, the keyboard type, and a check that runs when the person leaves the field. Registration, pet and profile forms also check these rules on submit. Backend rules repeat the emoji rule for every JSON text field.</p>
+<h3 id="410-guided-tour-srctour">4.10 Guided tour (<code>src/tour</code>)</h3><p><code>TourProvider</code> dims the screen, lights up the element a step points to, and shows a card. Targets are registered with <code>tour.ref(&#39;some-id&#39;)</code> on views. Steps per role are in <code>tours.ts</code>. The tour opens once after sign-in unless &quot;Hide this on launch&quot; is ticked, and can be replayed from the Profile screen (<code>TakeTourButton</code>).</p>
+<h3 id="411-utilities-and-data">4.11 Utilities and data</h3><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>utils/helpers.ts</code></td>
+<td>Money and currency formatting, date/time helpers, <code>confirmAction</code> and <code>notify</code> (work on both phone and web), error message extraction</td>
+</tr>
+<tr>
+<td><code>utils/validators.ts</code></td>
+<td>Email, password and phone rules (mirror the backend)</td>
+</tr>
+<tr>
+<td><code>utils/petLink.ts</code></td>
+<td>Builds pet QR links, parses scanned codes, the scanned-pet store</td>
+</tr>
+<tr>
+<td><code>utils/petPhoto.ts</code></td>
+<td>Picks and compresses pet photos</td>
+</tr>
+<tr>
+<td><code>utils/maps.ts</code></td>
+<td>Opens directions in the phone&#39;s map app</td>
+</tr>
+<tr>
+<td><code>utils/guideStorage.ts</code>, <code>utils/pendingDocuments.ts</code></td>
+<td>Small storage helpers</td>
+</tr>
+<tr>
+<td><code>data/indianBanks.ts</code></td>
+<td>The bank dropdown list</td>
+</tr>
+<tr>
+<td><code>data/vetCouncils.ts</code></td>
+<td>All State Veterinary Councils plus VCI and Other</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-end-to-end-flows">5. End-to-end flows</h2><p>In each flow: <strong>screen -&gt; API call -&gt; service -&gt; database -&gt; side effects</strong>.</p>
+<h3 id="51-sign-up-and-mobile-verification-pet-owner">5.1 Sign-up and mobile verification (pet owner)</h3><pre><code>RegisterScreen (role: Pet Owner, 3 steps)
+  step 1  choose role           step 2  name, mobile, password
+  step 3  state + district (country is India by default), optional pin
+        |  Create Account
+        v
+POST /api/auth/register      AuthService.register
+  - mobile normalised to +91... (PhoneNumbers); duplicate mobile -&gt; 400
+  - creates User (emailVerified=false), CustomerProfile
+  - EmailOtpService.issue: 6-digit code, valid 10 min, written to jenni.log
+        v
+VerifyOtpScreen  -- types the code --&gt;  POST /api/auth/verify-otp
+  - code checked (5 tries), User.emailVerified=true
+  - returns access + refresh tokens
+        v
+AuthContext stores tokens -&gt; RootNavigator shows the Customer app
+  (isNewRegistration=true -&gt; the guided tour starts)
+</code></pre>
+<p>&quot;Resend&quot; calls <code>POST /api/auth/resend-otp</code> (30-second cooldown, identical answer for unknown numbers so nothing leaks).</p>
+<h3 id="52-vet-or-pet-care-registration-documents-and-admin-approval">5.2 Vet or pet-care registration, documents and admin approval</h3><pre><code>RegisterScreen (role: Veterinarian = 5 steps, Pet Care = 5 steps)
+  account -&gt; clinic/business details -&gt; location + MAP PIN (mandatory, with the
+  pin shown on a map and a confirmation tick) -&gt; credentials + documents
+  -&gt; payment details (UPI or bank, bank from a dropdown)
+        v
+POST /api/auth/register  (server also requires the pin for both roles)
+  creates User + DoctorProfile / ProviderProfile with verificationStatus = PENDING
+        v
+verify OTP (as 5.1) -&gt; queued documents uploaded:  POST /api/documents (multipart)
+  DocumentService: sniff PDF/JPG/PNG, max 5 MB, max 8, random stored name
+        v
+The applicant sees &quot;Waiting for approval&quot;. They are HIDDEN from customers.
+        v
+Admin: AdminDashboardScreen -&gt; DoctorVerificationScreen
+  GET /api/admin/doctors/pending, /providers/pending
+  opens each document (signed 5-minute link: GET /api/documents/{id}/link)
+  PATCH /api/admin/doctors/{id}/verification  { approve | reject, reason }
+        v
+AdminService notifies the applicant.
+  APPROVED  -&gt; visible to customers, shows the small &quot;Verified&quot; badge
+  REJECTED  -&gt; applicant may edit details and upload new documents
+               -&gt; POST /api/doctors/profile/resubmit (or /provider/profile/resubmit)
+               -&gt; status RESUBMITTED -&gt; appears in the admin&#39;s &quot;re-approval&quot; list
+</code></pre>
+<p>Documents can be changed only while <code>PENDING</code> (during sign-up) or <code>REJECTED</code>, so the admin always reviews what they were shown.</p>
+<h3 id="53-login-session-and-sign-out">5.3 Login, session and sign-out</h3><pre><code>LoginScreen -&gt; POST /api/auth/login { mobile, password }
+   AuthService.login: password check, must be verified and active
+   -&gt; access token (24 h) + refresh token (7 d, stored in DB)
+Every request: interceptor adds the Bearer token.
+On 401: one call to POST /api/auth/refresh, retry; if that fails -&gt; signed out.
+Sign out: POST /api/auth/logout (revokes refresh tokens) and clears storage.
+Forgot password: POST /api/auth/forgot-password -&gt; code in the log -&gt;
+   POST /api/auth/reset-password (30 min, 5 tries).
+Delete account: POST /api/account/delete { password } -&gt; refused if there are open
+   bookings or unpaid wallet money; otherwise AccountService scrubs personal data,
+   deletes files, notifications and refresh tokens; the token stops working at once.
+</code></pre>
+<h3 id="54-finding-a-vet">5.4 Finding a vet</h3><pre><code>FindDoctorsScreen -&gt; GET /api/doctors?... (radius, text, speciality, kind chips)
+  DoctorService.searchDoctors: only APPROVED doctors
+  the area rule (LocationMatch): if both sides have a pin, decide by distance
+  (default 25 km, max 100); otherwise the place names must agree.
+&quot;Change&quot; place: the screen sends city/state/country/lat/lng as parameters; the
+  customer&#39;s saved profile is never changed.
+</code></pre>
+<h3 id="55-booking-a-vet-appointment-instant-confirmation">5.5 Booking a vet appointment (instant confirmation)</h3><pre><code>DoctorProfileScreen -&gt; BookAppointmentScreen
+  GET /api/doctors/{id}/availability?date=...  -&gt; free slots
+  (weekly hours minus breaks, blocked slots, leave days, booked slots,
+   and for today only slots that have not already passed)
+        |  Book
+        v
+POST /api/appointments   AppointmentService.bookAppointment
+  - checks: doctor approved, pet belongs to the customer, slot free
+  - computes fee, advance (default 50%), balance
+  - status = AWAITING_PAYMENT, slot HELD for 15 minutes (expiresAt)
+  - CarePaymentService.createAdvance (gateway order created)
+        v
+AppointmentPaymentScreen (pay)
+  simulated:  POST /api/appointments/{id}/payment/simulate {SUCCESS|FAILURE}
+  Razorpay:   RazorpayCheckout -&gt; POST /api/appointments/{id}/payment/confirm
+              { orderId, paymentId, signature }  (signature verified with the secret)
+        v
+AppointmentService.afterPaid
+  - Appointment.status = CONFIRMED      &lt;- no doctor approval step
+  - CarePayment PAID, WalletService.creditAdvance (doctor&#39;s wallet CREDIT)
+  - notification to the customer &quot;Appointment Confirmed&quot;
+  - notification to the doctor &quot;New Appointment Booked&quot;
+        v
+BookingSummaryScreen: &quot;You are booked!&quot;
+</code></pre>
+<p>State machine:</p>
+<pre><code>                      pay ok
+AWAITING_PAYMENT ------------------&gt; CONFIRMED ----&gt; COMPLETED
+   |   (hold 15 min passes)             |  |
+   +--------&gt; EXPIRED                   |  +--&gt; CANCELLED (customer or doctor)
+                                        +-----&gt; REJECTED  (doctor declines)
+</code></pre>
+<p>A failed payment keeps the hold; <code>POST .../payment/retry</code> creates a new attempt while the 15 minutes last.</p>
+<h3 id="56-cancelling-refunds-and-changing-the-time">5.6 Cancelling, refunds and changing the time</h3><pre><code>Customer cancels (Visits tab or details):
+  GET  /api/appointments/{id}/cancellation-preview  -&gt; message + refund amount
+  PATCH /api/appointments/{id}/cancel
+  rule: refund the advance in FULL if the visit is at least 24 hours away,
+        otherwise the advance is kept.
+Doctor rejects or cancels: always a FULL refund.
+Refund = CarePaymentService.refund -&gt; gateway.refund -&gt; payment status
+  REFUNDED/PARTIALLY_REFUNDED -&gt; WalletService.debitRefund (DEBIT row).
+Change the time (customer): PATCH /api/appointments/{id}/reschedule
+  - the new slot must be free; the appointment MOVES AT ONCE (no approval)
+  - the doctor gets an &quot;Appointment moved&quot; notification
+  (approve/reject/withdraw endpoints remain only for requests created before
+   this rule; migration V22 cleared any still open)
+</code></pre>
+<h3 id="57-the-doctor39s-day">5.7 The doctor&#39;s day</h3><pre><code>DoctorDashboardScreen: wallet card, &quot;My day&quot; slots card, stats (Today, Upcoming,
+   Completed this month, Fees this month).
+AvailabilityManagementScreen: PUT /api/doctors/availability (weekly hours, breaks)
+   + leave days: POST/DELETE /api/doctors/me/leave
+DoctorSlotsScreen: GET /api/doctors/me/schedule (booked / free / blocked),
+   POST /api/doctors/me/blocked-slots (block time or add a walk-in with name and
+   phone), DELETE /api/doctors/me/blocked-slots/{id}. Booked slots are locked.
+After the visit: PATCH /api/appointments/{id}/complete, then
+   ConsultationNotesScreen: POST /api/pets/{petId}/medical-records (diagnosis,
+   notes, treatment, weight, prescriptions). The owner sees them on the pet.
+Reviews: the owner rates the vet after a completed visit
+   (POST /api/doctors/{id}/reviews); the doctor&#39;s average rating updates.
+</code></pre>
+<h3 id="58-pet-care-booking-grooming-boarding-training">5.8 Pet-care booking (grooming, boarding, training)</h3><pre><code>CareHomeScreen -&gt; GET /api/care/providers?category=...&amp;radius...  (approved
+   businesses near the customer) -&gt; CareProviderScreen (services, hours, reviews)
+CareBookScreen:
+   grooming/training: GET /api/care/providers/{id}/slots?serviceId&amp;date&amp;petSize
+   boarding:          GET /api/care/providers/{id}/boarding-availability
+   (CareAvailabilityService uses the business&#39;s capacity and hours)
+        v
+POST /api/care/bookings   CareBookingService.create
+   price by pet size, items (main service + add-ons), advance = business&#39;s % (30
+   by default), status AWAITING_PAYMENT, 15-minute hold
+        v
+CarePaymentScreen -&gt; pay (simulate or Razorpay confirm, same as 5.5)
+        v
+afterPaid: status CONFIRMED, wallet credit, notification &quot;New pet-care booking&quot;
+   to the business and &quot;Booking confirmed&quot; to the customer.
+Cancel: customer -&gt; refund in full if at least 24 hours before the start,
+   else none. The business can cancel a confirmed booking with a reason and the
+   customer always gets a full refund (POST /api/provider/bookings/{id}/cancel).
+Complete: the business marks it done on the day
+   (POST /api/provider/bookings/{id}/complete) and the customer can review it
+   (POST /api/care/bookings/{id}/review).
+</code></pre>
+<p>State machine:</p>
+<pre><code>AWAITING_PAYMENT --pay--&gt; CONFIRMED --&gt; COMPLETED
+      |                      |
+      +--&gt; EXPIRED           +--&gt; CANCELLED (customer or business)
+</code></pre>
+<h3 id="59-where-bookings-appear">5.9 Where bookings appear</h3><ul>
+<li><strong>Customer &quot;Visits&quot; tab:</strong> <code>MyAppointmentsScreen</code> loads vet appointments and pet-care bookings for the chosen tab (Coming up, Past, Cancelled) and shows two sections: <strong>Clinic visits</strong> (top, with a &quot;Next visit&quot; card) and <strong>Pet care</strong>. Opening a card goes to the right details or payment screen.</li>
+<li><strong>Doctor:</strong> Today dashboard and Appointments (Upcoming, Completed, Cancelled).</li>
+<li><strong>Business:</strong> home counters (Upcoming, Completed) and the Bookings screen.</li>
+</ul>
+<h3 id="510-payments-and-the-wallet">5.10 Payments and the wallet</h3><pre><code>PaymentGateway (interface)
+   SimulatedPaymentGateway : development. Test buttons, no money moves.
+   RazorpayPaymentGateway  : createOrder, verifySignature, refund via the API
+CarePaymentService
+   createAdvance -&gt; payment CREATED (+ gateway order)
+   markPaid      -&gt; PAID + WalletService.creditAdvance
+   markFailed / expire
+   refund        -&gt; gateway.refund -&gt; refunded amount, status, WalletService.debitRefund
+WalletService / WalletController: GET /api/wallet -&gt; balance + history
+   (the wallet is a LEDGER: it shows what is owed to the doctor or business;
+    nothing is paid out to a bank from it yet)
+</code></pre>
+<p>Security of payments: with Razorpay, a payment counts only when the <strong>signature</strong> returned by Razorpay is verified with the server&#39;s secret key, so forged or replayed results are refused. Card details never touch the app or the server.</p>
+<h3 id="511-pets-id-numbers-and-qr-codes">5.11 Pets, ID numbers and QR codes</h3><pre><code>AddEditPetScreen -&gt; POST /api/pets
+   PetService assigns a unique, unchangeable ID number (999 + 12 digits).
+Photo: POST /api/pets/{id}/photo (multipart) -&gt; PetPhotoStore saves a random-named
+   file; GET /api/pet-photos/{name} serves it (public, unguessable name).
+PetDetailsScreen shows the QR (react-native-qrcode-svg) for
+   &lt;base&gt;/p/&lt;number&gt;, with copy and &quot;download as image&quot;.
+Someone scans the QR:
+   - phone has Jenni  -&gt; DeepLinkHandler -&gt; PetFoundScreen
+                          -&gt; GET /api/pet-finder/{number} (no sign-in)
+   - no Jenni         -&gt; GET /api/p/{number} returns an HTML page
+                          &quot;Download Jenni to view&quot; with store links
+   PetLookupService: 20 scans an hour per IP; the owner is notified of each lookup.
+Signed-in users can also type the number or scan from FindPetOwnerScreen
+   (GET /api/pets/lookup, 10 an hour per user).
+The public page shows only what is needed to reach the owner (name, phone,
+   pet&#39;s name and photo).
+</code></pre>
+<h3 id="512-notifications">5.12 Notifications</h3><p><code>NotificationService.createNotification(user, title, message, type, reference)</code> is called by services when something happens (booking confirmed, cancelled, moved, payment received, approval decisions, reviews, pet lookups). The app reads them through <code>GET /api/notifications</code>, <code>/recent</code>, <code>/unread-count</code> and marks them read with <code>PATCH /api/notifications/{id}/read</code> or <code>/read-all</code>. The home screen bell shows a red dot when anything is unread. There is <strong>no push notification service yet</strong> (see section 8).</p>
+<h3 id="513-location">5.13 Location</h3><ul>
+<li><code>GeoService</code> serves countries, states and districts from bundled data. <code>GET /api/geo/postal-code</code> and <code>/place</code> look a place up, and <code>/reverse</code> turns coordinates into a place using OpenStreetMap Nominatim (rate-limited and timed out).</li>
+<li><code>LocationPicker</code> (frontend): the address boxes (state and district, India by default), a postal-code &quot;Find&quot;, and a single <strong>Set location on map</strong> button. The popup has a small &quot;Use my current location&quot; button. If the phone&#39;s location is off it shows a popup that leads to the right settings screen. Tapping the map drops a pin; &quot;Confirm location&quot; fills the place from the pin.</li>
+<li>For vets and businesses the pin is <strong>mandatory</strong>, is shown on a map, and has to be confirmed with a tick. The server also refuses a vet or business without a pin, on sign-up and on every profile save.</li>
+</ul>
+<h3 id="514-cross-cutting-behaviours">5.14 Cross-cutting behaviours</h3><ul>
+<li><strong>Instant confirmation:</strong> a paid booking is <code>CONFIRMED</code> immediately. Nothing waits for a doctor or a business.</li>
+<li><strong>Today&#39;s slots:</strong> slots earlier than the current time are hidden when booking for today.</li>
+<li><strong>Verified badge:</strong> once approved, a small &quot;Verified&quot; badge replaces the long status card for doctors and businesses.</li>
+<li><strong>Switching the sign-up role clears the form</strong>, so data typed for one role never carries over to another.</li>
+<li><strong>Account screens:</strong> the pet-care business has a separate Account screen for Sign out and Delete account.</li>
+</ul>
+<hr>
+<h2 id="6-rules-and-numbers-worth-remembering">6. Rules and numbers worth remembering</h2><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Access token / refresh token</td>
+<td>24 hours / 7 days</td>
+</tr>
+<tr>
+<td>Sign-up code</td>
+<td>6 digits, 10 minutes, 5 tries, 30 s between codes</td>
+</tr>
+<tr>
+<td>Password reset code</td>
+<td>30 minutes, 5 tries</td>
+</tr>
+<tr>
+<td>Slot hold while paying</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td>Vet advance</td>
+<td>50 percent of the fee (<code>CLINIC_ADVANCE_PERCENT</code>)</td>
+</tr>
+<tr>
+<td>Pet-care advance</td>
+<td>the business&#39;s own percent, 30 by default</td>
+</tr>
+<tr>
+<td>Customer cancellation</td>
+<td>full refund if 24 hours or more before the visit, otherwise none</td>
+</tr>
+<tr>
+<td>Doctor or business cancels / rejects</td>
+<td>full refund</td>
+</tr>
+<tr>
+<td>Search radius</td>
+<td>default 25 km, max 100 km</td>
+</tr>
+<tr>
+<td>Boarding</td>
+<td>at most 30 nights; bookings up to 180 days ahead</td>
+</tr>
+<tr>
+<td>Uploads</td>
+<td>PDF/JPG/PNG (documents) and JPG/PNG (pet photos), 5 MB each, 8 documents per account</td>
+</tr>
+<tr>
+<td>Document links</td>
+<td>signed, valid 5 minutes</td>
+</tr>
+<tr>
+<td>Pet ID number</td>
+<td><code>999</code> plus 12 digits, unique, cannot be changed</td>
+</tr>
+<tr>
+<td>Pet-owner lookups</td>
+<td>10 an hour per user; QR scans 20 an hour per IP</td>
+</tr>
+<tr>
+<td>Wallet</td>
+<td>ledger only (credits and debits); no bank payout yet</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-testing">7. Testing</h2><ul>
+<li><strong>Backend:</strong> 255 JUnit tests (Mockito for services, plus a Spring context test). Run <code>cd backend &amp;&amp; ./mvnw test</code>. They cover auth and OTP, appointments (payment, refunds, reschedule), pet-care bookings and availability, doctor slots and leave, documents, pets and photos, pet lookup, wallet, providers, text rules and the Jackson emoji check, geo and the Razorpay gateway.</li>
+<li><strong>Frontend:</strong> <code>npm run typecheck</code> (TypeScript). There are no automated UI tests in the repository. Flows were checked manually and with throw-away browser scripts.</li>
+<li><strong>Manual check list:</strong> register each role, verify the code from <code>jenni.log</code>, approve the new doctor or business as admin, book and pay as a customer (simulated gateway), cancel and check the refund and the wallet, scan a pet QR.</li>
+</ul>
+<hr>
+<h2 id="8-known-gaps-and-next-steps">8. Known gaps and next steps</h2><ol>
+<li><strong>SMS:</strong> no provider is connected; codes go to the server log. Plug a real SMS service into <code>EmailOtpService</code>.</li>
+<li><strong>Razorpay webhook:</strong> not implemented. If a customer pays and the app closes before reporting back, that payment is not confirmed automatically (the hold expires and it must be refunded from the Razorpay dashboard). Add a webhook before going live.</li>
+<li><strong>Payouts:</strong> the wallet is a ledger only. Real payouts (for example Razorpay Route) are not built.</li>
+<li><strong>Push notifications:</strong> only in-app notifications exist.</li>
+<li><strong>File storage:</strong> uploads are saved on the server&#39;s disk under <code>backend/uploads/</code>, which is erased on most hosts at redeploy. Move to object storage such as S3 (all saving and reading goes through <code>PetPhotoStore</code> and <code>DocumentService</code>) and back the folder up until then.</li>
+<li><strong>QR landing page and links:</strong> the &quot;Download Jenni&quot; page and universal links need a real domain and store URLs (<code>vetconnect.app.android-url</code>, <code>ios-url</code>).</li>
+<li><strong>Unanswered or no-show handling:</strong> there is no automatic rule for a visit that nobody completes.</li>
+<li><strong>Old code paths:</strong> the doctor reschedule approve/reject/withdraw endpoints and the <code>PENDING</code>/<code>REQUESTED</code> statuses remain only for old data and can be removed once no such rows exist.</li>
+<li><strong>Naming:</strong> some packages, the database name and older docs still say &quot;vetconnect&quot; (the app is Jenni).</li>
+<li><strong>Security hardening before launch:</strong> replace the seeded demo data, set a new JWT secret, restrict CORS, and review rate limits.</li>
+</ol>
+<hr>
+<h2 id="9-troubleshooting">9. Troubleshooting</h2><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause and fix</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>App shows old colours or a screen that was changed</td>
+<td>Stale Metro cache. Stop Expo and run <code>npx expo start --clear</code> (always after installing packages).</td>
+</tr>
+<tr>
+<td>&quot;Cannot find module ...&quot; on the phone after adding a package</td>
+<td>Same: restart with <code>--clear</code>.</td>
+</tr>
+<tr>
+<td>Backend will not start: Flyway checksum error</td>
+<td>A migration that already ran was edited. Restore it and add a new migration instead.</td>
+</tr>
+<tr>
+<td>Backend will not start: schema validation error</td>
+<td>An entity changed without a migration (<code>ddl-auto: validate</code>). Add the migration.</td>
+</tr>
+<tr>
+<td>No sign-up code arrives</td>
+<td>Read it from <code>backend/logs/jenni.log</code> (<code>[SIMULATED SMS]</code>).</td>
+</tr>
+<tr>
+<td>Prices show <code>$</code></td>
+<td>Start the backend with <code>CARE_CURRENCY=INR</code> and <code>CARE_CURRENCY_SYMBOL=₹</code>.</td>
+</tr>
+<tr>
+<td>Phone cannot reach the backend</td>
+<td>Same Wi-Fi, the PC&#39;s firewall, and <code>EXPO_PUBLIC_API_URL</code> set to the PC&#39;s address.</td>
+</tr>
+<tr>
+<td>Scan from a phone fails</td>
+<td>The PC&#39;s IP changed; regenerate the Expo QR code from the new address.</td>
+</tr>
+<tr>
+<td>Location button does nothing</td>
+<td>The phone&#39;s location is off or not allowed; the app shows a popup that opens the right settings.</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="10-appendix-all-api-endpoints">10. Appendix: all API endpoints</h2><p>All paths start with <code>/api</code>. &quot;Public&quot; means no token is needed.</p>
+<h3 id="auth-auth">Auth (<code>/auth</code>)</h3><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/auth/register</code></td>
+<td>Create an account (public)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/auth/verify-otp</code></td>
+<td>Verify the mobile number, returns tokens (public)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/auth/resend-otp</code></td>
+<td>Send a new code (public)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/auth/login</code></td>
+<td>Sign in (public)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/auth/refresh</code></td>
+<td>New access token (public)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/auth/logout</code></td>
+<td>Sign out</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/auth/forgot-password</code>, <code>/auth/reset-password</code></td>
+<td>Reset flow (public)</td>
+</tr>
+</tbody></table>
+<h3 id="account-customer-pets">Account, customer, pets</h3><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td><code>/account/delete</code></td>
+<td>Delete my account (needs the password; refused with open bookings or unpaid wallet money)</td>
+</tr>
+<tr>
+<td>GET, PUT</td>
+<td><code>/customers/me</code></td>
+<td>My profile</td>
+</tr>
+<tr>
+<td>GET, POST</td>
+<td><code>/pets</code></td>
+<td>My pets, add a pet</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/pets/lookup</code></td>
+<td>Find a pet&#39;s owner by number</td>
+</tr>
+<tr>
+<td>GET, PUT, DELETE</td>
+<td><code>/pets/{petId}</code></td>
+<td>One pet</td>
+</tr>
+<tr>
+<td>POST, DELETE</td>
+<td><code>/pets/{petId}/photo</code></td>
+<td>Pet photo</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/pet-photos/{name}</code></td>
+<td>Photo file (public)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/pet-finder/{number}</code></td>
+<td>QR scan lookup (public, rate-limited)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/p/{number}</code></td>
+<td>&quot;Download Jenni&quot; HTML page (public)</td>
+</tr>
+<tr>
+<td>GET, POST</td>
+<td><code>/pets/{petId}/medical-records</code></td>
+<td>Records (vet writes)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/pets/{petId}/prescriptions</code></td>
+<td>Prescriptions</td>
+</tr>
+</tbody></table>
+<h3 id="doctors-and-appointments">Doctors and appointments</h3><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td><code>/doctors</code></td>
+<td>Search vets</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/doctors/{id}</code>, <code>/doctors/{id}/availability</code></td>
+<td>A vet, free slots for a date</td>
+</tr>
+<tr>
+<td>GET, POST</td>
+<td><code>/doctors/{id}/reviews</code></td>
+<td>Reviews (GET is public)</td>
+</tr>
+<tr>
+<td>GET, PUT, POST</td>
+<td><code>/doctors/profile/me</code>, <code>/doctors/profile</code></td>
+<td>My doctor profile, update, create</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/doctors/profile/resubmit</code></td>
+<td>Ask for another review after rejection</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/doctors/availability</code></td>
+<td>Weekly hours</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/doctors/appointments</code></td>
+<td>The doctor&#39;s appointments</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/doctors/me/schedule</code></td>
+<td>Today&#39;s slots (booked, free, blocked)</td>
+</tr>
+<tr>
+<td>POST, DELETE</td>
+<td><code>/doctors/me/blocked-slots</code>, <code>.../{blockId}</code></td>
+<td>Block or unblock a slot</td>
+</tr>
+<tr>
+<td>GET, POST, DELETE</td>
+<td><code>/doctors/me/leave</code>, <code>.../{leaveId}</code></td>
+<td>Leave days</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/specializations</code></td>
+<td>Speciality list (public)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/appointments</code></td>
+<td>Book (starts the hold)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/appointments/my</code>, <code>/appointments/{id}</code></td>
+<td>My visits, one visit</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/appointments/{id}/payment/simulate</code>, <code>/confirm</code>, <code>/failed</code>, <code>/retry</code></td>
+<td>Payment steps</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/appointments/{id}/cancellation-preview</code></td>
+<td>What a cancel would refund</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/appointments/{id}/cancel</code>, <code>/reject</code>, <code>/complete</code>, <code>/confirm</code></td>
+<td>Status changes (<code>confirm</code> is for old waiting rows)</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/appointments/{id}/reschedule</code></td>
+<td>Move to a free slot (instant)</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/appointments/{id}/reschedule/approve</code>, <code>/reject</code>, <code>/withdraw</code></td>
+<td>Only for requests made before the instant rule</td>
+</tr>
+</tbody></table>
+<h3 id="pet-care">Pet care</h3><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td><code>/care/config</code></td>
+<td>Currency, advance %, gateway (public)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/care/providers</code>, <code>/care/providers/{id}</code></td>
+<td>Search and view businesses</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/care/providers/{id}/slots</code>, <code>/boarding-availability</code>, <code>/reviews</code></td>
+<td>Availability and reviews</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/care/bookings</code></td>
+<td>Book (starts the hold)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/care/bookings/my</code>, <code>/care/bookings/{id}</code></td>
+<td>My bookings</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/care/bookings/{id}/payment/simulate</code>, <code>/confirm</code>, <code>/failed</code>, <code>/retry</code></td>
+<td>Payment steps</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/care/bookings/{id}/cancellation-preview</code></td>
+<td>Refund preview</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/care/bookings/{id}/cancel</code>, <code>/review</code></td>
+<td>Cancel, review</td>
+</tr>
+<tr>
+<td>GET, POST, PUT</td>
+<td><code>/provider/profile/me</code>, <code>/provider/profile</code></td>
+<td>The business profile</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/provider/hours</code></td>
+<td>Weekly hours and capacity</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/provider/profile/resubmit</code></td>
+<td>Ask for another review</td>
+</tr>
+<tr>
+<td>GET, POST, PUT, DELETE</td>
+<td><code>/provider/services</code>, <code>.../{serviceId}</code></td>
+<td>The business&#39;s menu</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/provider/bookings</code></td>
+<td>Bookings by group</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/provider/bookings/{id}/accept</code>, <code>/reject</code>, <code>/cancel</code>, <code>/complete</code></td>
+<td>Provider actions (<code>accept</code> and <code>reject</code> apply only to old waiting rows)</td>
+</tr>
+</tbody></table>
+<h3 id="admin-documents-wallet-notifications-geo">Admin, documents, wallet, notifications, geo</h3><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td><code>/admin/dashboard</code></td>
+<td>Platform numbers</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/admin/doctors/pending</code>, <code>/resubmitted</code>, <code>/providers/pending</code>, <code>/resubmitted</code></td>
+<td>Review queues</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/admin/doctors/{id}/verification</code>, <code>/admin/providers/{id}/verification</code></td>
+<td>Approve or reject with a reason</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/admin/appointments</code></td>
+<td>All appointments</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/admin/documents/{ownerType}/{ownerId}</code></td>
+<td>An applicant&#39;s documents</td>
+</tr>
+<tr>
+<td>POST, GET</td>
+<td><code>/documents</code></td>
+<td>Upload (multipart), list mine</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/documents/{id}</code></td>
+<td>Remove a document (only while pending or rejected)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/documents/{id}/link</code></td>
+<td>Signed 5-minute link</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/documents/{id}/file?exp=&amp;sig=</code></td>
+<td>The file (public, signature-protected)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/wallet</code></td>
+<td>Wallet balance and history</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/notifications</code>, <code>/recent</code>, <code>/unread-count</code></td>
+<td>Read notifications</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/notifications/{id}/read</code>, <code>/read-all</code></td>
+<td>Mark read</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/geo/countries</code>, <code>/countries/{c}/states</code>, <code>/countries/{c}/states/{s}/districts</code></td>
+<td>Place lists (public)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/geo/postal-code</code>, <code>/geo/place</code>, <code>/geo/reverse</code></td>
+<td>Place lookups (public, rate-limited)</td>
+</tr>
+</tbody></table>
+
+</body></html>

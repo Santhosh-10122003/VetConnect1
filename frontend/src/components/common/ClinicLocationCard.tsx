@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { OsmMap } from './OsmMap';
 import { openDirections } from '../../utils/maps';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   clinicName?: string;
@@ -60,7 +61,7 @@ export const ClinicLocationCard: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   row: { flexDirection: 'row', alignItems: 'flex-start' },
   name: { fontSize: 15, fontWeight: '700', color: colors.text },
   address: { fontSize: 13, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
@@ -76,4 +77,4 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15 },
   note: { fontSize: 11, color: colors.textSecondary, marginTop: 6 },
-});
+}));

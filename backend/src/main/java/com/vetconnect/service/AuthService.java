@@ -101,6 +101,10 @@ public class AuthService {
             log.warn("Registration rejected: doctor without a pinned clinic location ({})", email);
             throw new BadRequestException("Please pin your clinic on the map so pet owners can find and navigate to you.");
         }
+        if (role == Role.ROLE_PROVIDER && request.getLatitude() == null) {
+            log.warn("Registration rejected: pet-care business without a pinned location ({})", email);
+            throw new BadRequestException("Please pin your business on the map so pet owners can find and navigate to you.");
+        }
 
         User user = User.builder()
                 .email(email)

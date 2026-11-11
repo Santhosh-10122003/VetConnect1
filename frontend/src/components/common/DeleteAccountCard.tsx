@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { AppInput } from './AppInput';
 import { accountApi } from '../../api/accountApi';
 import { useAuth } from '../../context/AuthContext';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 /** "Delete my account": asks for the password, then a last confirmation, then signs out. */
 export const DeleteAccountCard: React.FC = () => {
@@ -61,17 +62,17 @@ export const DeleteAccountCard: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   wrap: { marginTop: 18, marginBottom: 30 },
   link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
   linkText: { color: colors.danger, fontWeight: '700', fontSize: 13 },
-  box: { borderWidth: 1, borderColor: colors.danger, borderRadius: 18, padding: 14, backgroundColor: '#FEF2F2' },
+  box: { borderWidth: 1, borderColor: colors.danger, borderRadius: 18, padding: 14, backgroundColor: colors.dangerBg },
   title: { fontSize: 15, fontWeight: '800', color: colors.danger },
   text: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 4, marginBottom: 12 },
   error: { color: colors.danger, fontSize: 13, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 10 },
   btn: { flex: 1, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
-  cancel: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.border },
+  cancel: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   danger: { backgroundColor: colors.danger },
   btnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
-});
+}));

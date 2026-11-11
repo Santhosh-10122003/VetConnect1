@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Switch, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Switch } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
@@ -11,6 +11,7 @@ import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
 import { ProviderStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderServiceEdit'>;
 
@@ -108,8 +109,8 @@ export const ProviderServiceEditScreen: React.FC<Props> = ({ navigation, route }
           ))}
         </View>
 
-        <AppInput label="Name *" placeholder={boarding ? 'e.g. Standard Boarding' : 'e.g. Full Groom'} value={name} onChangeText={setName} error={errors.name} />
-        <AppInput label="Description" value={description} onChangeText={setDescription} multiline style={{ height: 80, textAlignVertical: 'top', paddingTop: 12 }} />
+        <AppInput kind="business" label="Name *" placeholder={boarding ? 'e.g. Standard Boarding' : 'e.g. Full Groom'} value={name} onChangeText={setName} error={errors.name} />
+        <AppInput kind="note" label="Description" value={description} onChangeText={setDescription} multiline style={{ height: 80, textAlignVertical: 'top', paddingTop: 12 }} />
 
         <View style={[shared.card, styles.switchRow]}>
           <View style={{ flex: 1 }}>
@@ -120,12 +121,13 @@ export const ProviderServiceEditScreen: React.FC<Props> = ({ navigation, route }
         </View>
 
         {!boarding && (
-          <AppInput label={isAddon ? 'Extra time it takes (minutes, optional)' : 'How long one session takes (minutes) *'} value={duration} onChangeText={setDuration} keyboardType="number-pad" error={errors.duration} icon="time-outline" />
+          <AppInput kind="integer" label={isAddon ? 'Extra time it takes (minutes, optional)' : 'How long one session takes (minutes) *'} value={duration} onChangeText={setDuration} keyboardType="number-pad" error={errors.duration} icon="time-outline" />
         )}
 
         <Text style={shared.sectionTitle}>Price {unit}, by pet size</Text>
         {SIZES.map((s) => (
           <AppInput
+            kind="decimal"
             key={s.key}
             label={`${s.label} (${s.hint})`}
             value={prices[s.key]}
@@ -137,7 +139,7 @@ export const ProviderServiceEditScreen: React.FC<Props> = ({ navigation, route }
           />
         ))}
         <TouchableOpacity onPress={() => setPrices({ SMALL: prices.SMALL, MEDIUM: prices.SMALL, LARGE: prices.SMALL, GIANT: prices.SMALL })} style={{ marginBottom: 14 }}>
-          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 13 }}>Use the small price for every size</Text>
+          <Text style={{ color: colors.ink, fontWeight: '700', fontSize: 13 }}>Use the small price for every size</Text>
         </TouchableOpacity>
 
         <View style={[shared.card, styles.switchRow]}>
@@ -157,8 +159,8 @@ export const ProviderServiceEditScreen: React.FC<Props> = ({ navigation, route }
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   switchTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
   switchSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
-});
+}));

@@ -5,7 +5,6 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
 
 @Configuration
 @ConfigurationProperties(prefix = "vetconnect")
@@ -22,6 +21,7 @@ public class AppProperties {
     private Payments payments = new Payments();
     private Clinic clinic = new Clinic();
     private Uploads uploads = new Uploads();
+    private App app = new App();
 
     @Getter
     @Setter
@@ -101,6 +101,14 @@ public class AppProperties {
     public static class Clinic {
         /** Share of the consultation fee paid up front (the rest is paid at the clinic). */
         private int advancePercent = 50;
+    }
+
+    /** Where people without the app can get it (shown on the page a pet's QR code opens). */
+    @Getter
+    @Setter
+    public static class App {
+        private String androidUrl = "";
+        private String iosUrl = "";
     }
 
     @Getter

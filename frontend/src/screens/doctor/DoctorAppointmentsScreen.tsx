@@ -20,14 +20,13 @@ type Props = CompositeScreenProps<
 
 // The API groups statuses into tabs, so filtering by individual status happens client-side.
 const FILTERS: { key: string; label: string; match: (a: Appointment) => boolean }[] = [
-  { key: 'PENDING', label: 'Pending', match: (a) => a.status === 'PENDING' || (!!a.rescheduleRequest && ['PENDING', 'CONFIRMED'].includes(a.status)) },
-  { key: 'CONFIRMED', label: 'Confirmed', match: (a) => a.status === 'CONFIRMED' },
+  { key: 'CONFIRMED', label: 'Upcoming', match: (a) => a.status === 'CONFIRMED' },
   { key: 'COMPLETED', label: 'Completed', match: (a) => a.status === 'COMPLETED' },
   { key: 'CANCELLED', label: 'Cancelled', match: (a) => ['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(a.status) },
 ];
 
 export const DoctorAppointmentsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const [filter, setFilter] = useState(route.params?.initialStatus ?? 'PENDING');
+  const [filter, setFilter] = useState(route.params?.initialStatus ?? 'CONFIRMED');
   const [all, setAll] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

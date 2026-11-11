@@ -69,6 +69,22 @@ public class DoctorService {
                                                         BigDecimal minRating,
                                                         Double radiusKm,
                                                         Pageable pageable) {
+        return searchDoctors(viewer, query, specializationId, maxFee, minRating, radiusKm, null, pageable);
+    }
+
+    /**
+     * Same search, but a customer can look somewhere else for a while: `around` is the place they picked on the Doctors
+     * screen, used instead of their saved address. Nothing about their profile changes.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<DoctorProfileDto> searchDoctors(UserPrincipal viewer,
+                                                        String query,
+                                                        Long specializationId,
+                                                        BigDecimal maxFee,
+                                                        BigDecimal minRating,
+                                                        Double radiusKm,
+                                                        LocationMatch.Place around,
+                                                        Pageable pageable) {
         List<DoctorProfile> candidates = doctorProfileRepository.searchDoctors(
                 VerificationStatus.APPROVED,
                 query != null && !query.isBlank() ? query.trim() : null,
@@ -82,19 +98,20 @@ public class DoctorService {
         if (viewer != null && viewer.getRole() == Role.ROLE_CUSTOMER) {
             CustomerProfile customer = customerProfileRepository.findByUserId(viewer.getId()).orElse(null);
             double radius = effectiveRadius(radiusKm);
-            if (customer == null || (!hasText(customer.getCity()) && !hasCoordinates(customer))) {
+            LocationMatch.Place origin = around != null && around.hasAnyLocation() ? around : (customer == null ? null : placeOf(customer));
+            if (origin == null || !origin.hasAnyLocation()) {
                 log.warn("Doctor search: customer userId={} has no location, returning nothing", viewer.getId());
                 results = List.of();
             } else {
                 results = candidates.stream()
-                        .filter(d -> isInServiceArea(customer, d, radius))
-                        .map(d -> toDto(d, distanceKm(customer, d)))
+                        .filter(d -> LocationMatch.inArea(origin, placeOf(d), radius))
+                        .map(d -> toDto(d, LocationMatch.distanceKm(origin, placeOf(d))))
                         .sorted(Comparator
                                 .comparing(DoctorProfileDto::getDistanceKm, Comparator.nullsLast(Comparator.naturalOrder()))
                                 .thenComparing(DoctorProfileDto::getRatingAvg, Comparator.reverseOrder()))
                         .collect(Collectors.toList());
-                log.debug("Doctor search for customerId={} city={} radius={}km: {} of {} doctors in range",
-                        customer.getId(), customer.getCity(), radius, results.size(), candidates.size());
+                log.debug("Doctor search for userId={} city={} radius={}km: {} of {} doctors in range",
+                        viewer.getId(), origin.city(), radius, results.size(), candidates.size());
             }
         } else {
             results = candidates.stream()
@@ -140,17 +157,15 @@ public class DoctorService {
     }
 
     /**
-     * A customer may only open or book a veterinarian that is approved and inside their reach
-     * (the same set the search can return, i.e. up to the maximum radius).
+     * A customer may open or book any approved veterinarian. Where they are looking is decided by the search (their saved
+     * address, or a place they picked on the Doctors screen), so a vet found there can always be opened and booked.
      */
     public void assertCustomerCanAccess(CustomerProfile customer, DoctorProfile doctor) {
-        boolean ok = customer != null
-                && doctor.getVerificationStatus() == VerificationStatus.APPROVED
-                && isInServiceArea(customer, doctor, appProperties.getLocation().getMaxRadiusKm());
+        boolean ok = customer != null && doctor.getVerificationStatus() == VerificationStatus.APPROVED;
         if (!ok) {
             log.warn("Doctor access denied: doctorId={} is not available to customerId={}",
                     doctor.getId(), customer != null ? customer.getId() : null);
-            throw new ResourceNotFoundException("This veterinarian is not available in your area.");
+            throw new ResourceNotFoundException("This veterinarian is not available.");
         }
     }
 
@@ -223,6 +238,12 @@ public class DoctorService {
             // Old GPS position no longer describes the new city.
             doctor.setLatitude(null);
             doctor.setLongitude(null);
+        }
+        if (doctor.getLatitude() == null || doctor.getLongitude() == null) {
+            // the pin is how customers navigate to the clinic: a profile cannot be saved without it
+            throw new BadRequestException(cityChanged
+                    ? "You changed the location: please pin the new spot of your clinic on the map."
+                    : "Please pin your clinic's exact location on the map so pet owners can navigate to you.");
         }
 
         applyPayout(doctor, request);

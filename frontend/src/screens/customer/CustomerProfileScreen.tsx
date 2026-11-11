@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { DeleteAccountCard } from '../../components/common/DeleteAccountCard';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { TakeTourButton } from '../../tour/TakeTourButton';
+import { AccountMenu } from '../../components/common/AccountMenu';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,22 +10,28 @@ import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { customerApi, CustomerProfile } from '../../api/customerApi';
 import { useAuth } from '../../context/AuthContext';
-import { AppHeader } from '../../components/common/AppHeader';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppInput } from '../../components/common/AppInput';
 import { LocationPicker } from '../../components/common/LocationPicker';
 import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { CustomerStackParamList, CustomerTabParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify, visibleEmail } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
+import { inputError } from '../../utils/inputRules';
+import { useTopPad } from '../../utils/useTopPad';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<CustomerTabParamList, 'Profile'>,
   NativeStackScreenProps<CustomerStackParamList>
 >;
 
+type IconName = keyof typeof Ionicons.glyphMap;
+
 export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { logout, updateUserData } = useAuth();
+  const topPad = useTopPad(58);
+  const { updateUserData } = useAuth();
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,6 +68,7 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const save = async () => {
     if (!form.fullName.trim()) return setNameError('Full name is required');
+    if (inputError('name', form.fullName)) return setNameError(inputError('name', form.fullName) as string);
     if (!form.city.trim()) return setCityError('City is required to find veterinarians near you');
     setNameError('');
     setCityError('');
@@ -78,40 +86,69 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const signOut = async () => {
-    if (await confirmAction('Sign out', 'You will need to sign in again.', 'Sign out', true)) await logout();
-  };
-
   if (!profile) return <LoadingView />;
 
-  const Row: React.FC<{ icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }> = ({ icon, label, onPress }) => (
-    <TouchableOpacity style={styles.menuRow} onPress={onPress}>
-      <Ionicons name={icon} size={20} color={colors.primary} />
-      <Text style={styles.menuText}>{label}</Text>
+  const Info: React.FC<{ icon: IconName; label: string; value?: string | null; last?: boolean }> = ({ icon, label, value, last }) => (
+    <View style={[styles.infoRow, !last && styles.infoDivider]}>
+      <View style={styles.infoIcon}><Ionicons name={icon} size={18} color={colors.primary} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value || 'Not added'}</Text>
+      </View>
+    </View>
+  );
+
+  const Row: React.FC<{ icon: IconName; label: string; sub: string; onPress: () => void; last?: boolean }> = ({ icon, label, sub, onPress, last }) => (
+    <TouchableOpacity style={[styles.menuRow, !last && styles.infoDivider]} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.menuIcon}><Ionicons name={icon} size={20} color={colors.primary} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.menuText}>{label}</Text>
+        <Text style={styles.menuSub}>{sub}</Text>
+      </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
     </TouchableOpacity>
   );
 
+  const place = [profile.city, profile.state].filter(Boolean).join(', ');
+
   return (
-    <View style={shared.screen}>
-      <AppHeader
-        title="Profile"
-        rightAction={{ icon: editing ? 'close' : 'create-outline', onPress: () => setEditing((v) => !v) }}
-      />
-      <KeyboardScroll contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{profile.fullName.charAt(0).toUpperCase()}</Text>
+    <View style={styles.page}>
+      <View style={styles.blob} pointerEvents="none" />
+      <KeyboardScroll contentContainerStyle={[styles.content, { paddingTop: topPad }]} keyboardShouldPersistTaps="handled">
+        <View style={styles.topBar}>
+          <Text style={styles.title}>Profile</Text>
+          <View style={styles.topButtons}>
+            <ThemeToggle style={styles.round} />
+            <AccountMenu style={styles.round} onEdit={() => setEditing((v) => !v)} editing={editing} />
           </View>
-          <Text style={styles.name}>{profile.fullName}</Text>
-          <Text style={styles.email}>{profile.phone || visibleEmail(profile.email)}</Text>
+        </View>
+
+        <View style={styles.hero}>
+          <View style={styles.avatarRing}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{profile.fullName.charAt(0).toUpperCase()}</Text>
+            </View>
+          </View>
+          <Text style={styles.name} numberOfLines={2}>{profile.fullName}</Text>
+          <View style={styles.chips}>
+            <View style={styles.chip}>
+              <Ionicons name="call" size={13} color={colors.primary} />
+              <Text style={styles.chipText}>{profile.phone || visibleEmail(profile.email) || 'No number'}</Text>
+            </View>
+            {!!place && (
+              <View style={styles.chip}>
+                <Ionicons name="location" size={13} color={colors.primary} />
+                <Text style={styles.chipText} numberOfLines={1}>{place}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {editing ? (
           <View style={shared.card}>
-            <AppInput label="Full name" value={form.fullName} error={nameError} onChangeText={(v) => setForm({ ...form, fullName: v })} />
-            <AppInput label="Phone" value={form.phone} keyboardType="phone-pad" onChangeText={(v) => setForm({ ...form, phone: v })} />
-            <AppInput label="Address" value={form.address} onChangeText={(v) => setForm({ ...form, address: v })} />
+            <AppInput kind="name" label="Full name" value={form.fullName} error={nameError} onChangeText={(v) => setForm({ ...form, fullName: v })} />
+            <AppInput kind="phone" label="Phone" value={form.phone} keyboardType="phone-pad" onChangeText={(v) => setForm({ ...form, phone: v })} />
+            <AppInput kind="address" label="Address" value={form.address} onChangeText={(v) => setForm({ ...form, address: v })} />
             <LocationPicker
               value={{
                 country: form.country, countryCode: form.countryCode, state: form.state, stateCode: form.stateCode,
@@ -120,55 +157,61 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
               onChange={(l) => setForm((f) => ({ ...f, ...l }))}
               errors={cityError ? { city: cityError } : undefined}
             />
-            <AppInput label="Emergency contact" value={form.emergencyContact} keyboardType="phone-pad" onChangeText={(v) => setForm({ ...form, emergencyContact: v })} />
+            <AppInput kind="phone" label="Emergency contact" value={form.emergencyContact} keyboardType="phone-pad" onChangeText={(v) => setForm({ ...form, emergencyContact: v })} />
             <AppButton title="Save Changes" onPress={save} loading={saving} />
           </View>
         ) : (
-          <View style={shared.card}>
-            {[
-              ['Phone', profile.phone],
-              ['Address', profile.address],
-              ['Country', profile.country],
-              ['State', profile.state],
-              ['District / City', [profile.city, profile.postalCode].filter(Boolean).join(' ')],
-              ['Location', profile.latitude != null ? 'GPS location saved' : 'City only (add GPS for distance-based results)'],
-              ['Emergency contact', profile.emergencyContact],
-            ].map(([label, value]) => (
-              <View key={label} style={{ marginBottom: 10 }}>
-                <Text style={shared.label}>{label}</Text>
-                <Text style={shared.value}>{value || '-'}</Text>
-              </View>
-            ))}
-          </View>
+          <>
+            <Text style={styles.section}>My details</Text>
+            <View style={styles.card}>
+              <Info icon="call-outline" label="Phone" value={profile.phone} />
+              <Info icon="home-outline" label="Address" value={profile.address} />
+              <Info icon="map-outline" label="District / City" value={[profile.city, profile.postalCode].filter(Boolean).join(' ')} />
+              <Info icon="earth-outline" label="State and country" value={[profile.state, profile.country].filter(Boolean).join(', ')} />
+              <Info icon="navigate-outline" label="Location" value={profile.latitude != null ? 'GPS location saved' : 'City only (add GPS for distance-based results)'} />
+              <Info icon="medkit-outline" label="Emergency contact" value={profile.emergencyContact} last />
+            </View>
+          </>
         )}
 
-        <View style={shared.card}>
-          <Row icon="play-circle-outline" label="Screen Stories & Guide" onPress={() => navigation.navigate('AppGuide')} />
-          <Row icon="notifications-outline" label="Notifications" onPress={() => navigation.navigate('Notifications')} />
-          <Row icon="storefront-outline" label="Run a pet-care business?" onPress={() => navigation.navigate('BecomeBusiness')} />
-          <Row icon="help-circle-outline" label="Help & Support" onPress={() => navigation.navigate('HelpSupport')} />
+        <Text style={styles.section}>More</Text>
+        <View style={styles.card}>
+          <Row icon="search-outline" label="Find a pet's owner" sub="Scan a pet's QR code or type its number" onPress={() => navigation.navigate('FindPetOwner')} />
+          <Row icon="notifications-outline" label="Notifications" sub="Booking updates and reminders" onPress={() => navigation.navigate('Notifications')} />
+          <Row icon="help-circle-outline" label="Help & Support" sub="Questions about Jenni" onPress={() => navigation.navigate('HelpSupport')} last />
         </View>
 
-        <AppButton title="Sign Out" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger }} onPress={signOut} />
-        <DeleteAccountCard />
+        <TakeTourButton />
       </KeyboardScroll>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  hero: { alignItems: 'center', marginBottom: 18 },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 34, fontWeight: '800', color: '#FFFFFF' },
-  name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10 },
-  email: { fontSize: 13, color: colors.textSecondary },
+const styles = themedStyles(() => ({
+  page: { flex: 1, backgroundColor: colors.canvas },
+  blob: { position: 'absolute', top: -150, right: -110, width: 380, height: 360, borderRadius: 190, backgroundColor: colors.mintDark, opacity: 0.55 },
+  content: { padding: 22, paddingTop: 58, paddingBottom: 40 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  title: { fontSize: 30, fontWeight: '800', color: colors.ink },
+  topButtons: { flexDirection: 'row', gap: 8 },
+  round: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.iconBorder },
+  hero: { alignItems: 'center', marginBottom: 20 },
+  avatarRing: { width: 108, height: 108, borderRadius: 54, borderWidth: 2, borderColor: colors.iconBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
+  avatar: { width: 92, height: 92, borderRadius: 46, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 38, fontWeight: '800', color: '#FFFFFF' },
+  name: { fontSize: 24, fontWeight: '800', color: colors.ink, marginTop: 12, textAlign: 'center' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 10 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 240, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.iconBorder },
+  chipText: { fontSize: 12, fontWeight: '700', color: colors.text },
+  section: { fontSize: 16, fontWeight: '800', color: colors.ink, marginBottom: 10, marginTop: 4 },
+  card: { backgroundColor: colors.card, borderRadius: 22, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 18 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  infoDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  infoIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
+  infoLabel: { fontSize: 11, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4 },
+  infoValue: { fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 2 },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  menuText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
-});
+  menuIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
+  menuText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  menuSub: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
+}));

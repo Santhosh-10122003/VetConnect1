@@ -2,12 +2,12 @@ import React from 'react';
 import {
   TouchableOpacity,
   Text,
-  StyleSheet,
   ActivityIndicator,
   ViewStyle,
   TextStyle,
 } from 'react-native';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
 
 interface AppButtonProps {
   title: string;
@@ -89,7 +89,7 @@ export const AppButton: React.FC<AppButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   button: {
     height: 54,
     borderRadius: 28,
@@ -108,4 +108,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.2,
   },
-});
+}));

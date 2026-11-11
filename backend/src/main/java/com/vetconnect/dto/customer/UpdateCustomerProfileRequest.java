@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateCustomerProfileRequest {
     @NotBlank(message = "Full name is required")
+    @jakarta.validation.constraints.Size(max = 60, message = "Name is too long (60 letters at most)")
+    @jakarta.validation.constraints.Pattern(regexp = "^[\\p{L}\\p{M}][\\p{L}\\p{M} .'’-]*$", message = "Name can have only letters, spaces and . ' -")
     private String fullName;
     private String phone;
     private String address;

@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Animated, Easing, LayoutChangeEvent, PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, LayoutChangeEvent, PanResponder, Platform, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   label: string;
@@ -105,10 +106,10 @@ export const SlideToStart: React.FC<Props> = ({ label, onComplete, testID }) => 
 // on the web, stop the browser from selecting text or scrolling instead of sliding
 const webOnly = Platform.OS === 'web' ? ({ touchAction: 'none', userSelect: 'none', cursor: 'grab' } as object) : {};
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   track: { flex: 1, height: 58, borderRadius: 29, backgroundColor: '#14171C', justifyContent: 'center', padding: PAD, overflow: 'hidden', ...webOnly },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 29, backgroundColor: 'rgba(143, 208, 244, 0.35)' },
   labelWrap: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingLeft: THUMB },
   label: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', marginRight: 8 },
   thumb: { width: THUMB, height: THUMB, borderRadius: THUMB / 2, backgroundColor: colors.mintDark, alignItems: 'center', justifyContent: 'center', ...webOnly },
-});
+}));

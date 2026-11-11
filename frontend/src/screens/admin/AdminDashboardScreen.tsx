@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
 import { AdminStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'AdminDashboard'>;
 
@@ -50,7 +51,7 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={shared.screen}>
-      <AppHeader title="Admin Overview" subtitle="Platform analytics" rightAction={{ icon: 'log-out-outline', onPress: signOut }} />
+      <AppHeader themeToggle title="Admin Overview" subtitle="Platform analytics" rightAction={{ icon: 'log-out-outline', onPress: signOut }} />
       <ScrollView
         contentContainerStyle={shared.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
@@ -129,15 +130,15 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   queue: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.primary, borderRadius: 16, padding: 18, marginBottom: 16 },
   queueResubmitted: { backgroundColor: colors.warning },
   queuePet: { backgroundColor: colors.secondary },
   queuePetAgain: { backgroundColor: colors.info },
   queueTitle: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
-  queueSub: { color: colors.mintDark, fontSize: 13, marginTop: 2 },
+  queueSub: { color: colors.skyOnDark, fontSize: 13, marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   tile: { flexGrow: 1, flexBasis: '45%', backgroundColor: colors.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border },
   value: { fontSize: 26, fontWeight: '800', color: colors.text, marginTop: 6 },
   label: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-});
+}));

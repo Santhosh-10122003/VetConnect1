@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
@@ -7,6 +7,7 @@ import { doctorApi, DoctorLeave } from '../../api/doctorApi';
 import { DateField } from '../common/DateField';
 import { AppInput } from '../common/AppInput';
 import { confirmAction, getErrorMessage, notify, todayIso } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 const MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const pretty = (iso: string) => {
@@ -80,7 +81,7 @@ export const LeaveCard: React.FC<{ leave: DoctorLeave[]; onChanged: () => void }
         <View style={styles.form}>
           <DateField label="First day" value={from} minimumDate={new Date(new Date().setHours(0, 0, 0, 0))} onChange={(v) => v && setFrom(v)} testID="leave-from" />
           <DateField label="Last day (leave empty for one day)" value={to} minimumDate={new Date(new Date().setHours(0, 0, 0, 0))} onChange={(v) => setTo(v ?? '')} clearable testID="leave-to" />
-          <AppInput label="Reason (optional)" placeholder="e.g. Conference" value={reason} onChangeText={setReason} maxLength={255} testID="leave-reason" />
+          <AppInput kind="text" label="Reason (optional)" placeholder="e.g. Conference" value={reason} onChangeText={setReason} maxLength={255} testID="leave-reason" />
           <TouchableOpacity style={[styles.save, busy && { opacity: 0.6 }]} onPress={add} disabled={busy} activeOpacity={0.85} testID="leave-save">
             <Text style={styles.saveText}>{busy ? 'Adding...' : 'Add leave'}</Text>
           </TouchableOpacity>
@@ -90,7 +91,7 @@ export const LeaveCard: React.FC<{ leave: DoctorLeave[]; onChanged: () => void }
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { marginTop: 16, borderColor: colors.mintDark },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
@@ -106,4 +107,4 @@ const styles = StyleSheet.create({
   form: { marginTop: 14, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
   save: { backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 13, alignItems: 'center' },
   saveText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
-});
+}));

@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
+import { stripEmoji } from '../../utils/inputRules';
 
 export interface SelectOption {
   value: string;
@@ -108,7 +110,7 @@ export const SelectField: React.FC<Props> = ({
               placeholder={searchPlaceholder}
               placeholderTextColor={colors.textMuted}
               value={query}
-              onChangeText={setQuery}
+              onChangeText={(t) => setQuery(stripEmoji(t))}
               autoCorrect={false}
               autoCapitalize="none"
             />
@@ -139,7 +141,7 @@ export const SelectField: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
   box: {
@@ -150,14 +152,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   disabled: { opacity: 0.5 },
   errorBorder: { borderColor: colors.danger },
   value: { flex: 1, fontSize: 15, color: colors.text },
   placeholder: { color: colors.textMuted },
   error: { color: colors.danger, fontSize: 12, marginTop: 4 },
-  modal: { flex: 1, backgroundColor: colors.background },
+  modal: { flex: 1, backgroundColor: colors.page },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
   searchBox: {
@@ -169,7 +171,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 46,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -184,6 +186,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowText: { fontSize: 15, color: colors.text, flex: 1 },
-  rowTextActive: { fontWeight: '800', color: colors.primary },
+  rowTextActive: { fontWeight: '800', color: colors.ink },
   empty: { textAlign: 'center', color: colors.textSecondary, padding: 30 },
-});
+}));

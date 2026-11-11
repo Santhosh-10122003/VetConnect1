@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -13,6 +13,7 @@ import { ClinicLocationCard } from '../../components/common/ClinicLocationCard';
 import { careWhat, careWhen } from '../../components/care/BookingCard';
 import { CustomerStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'CareBookingDetails'>;
 
@@ -116,7 +117,7 @@ export const CareBookingDetailsScreen: React.FC<Props> = ({ navigation, route })
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   title: { fontSize: 17, fontWeight: '800', color: colors.text, flex: 1, marginRight: 8 },
   sub: { fontSize: 13, color: colors.textSecondary, marginTop: 2, marginBottom: 6 },
   k: { fontSize: 13, color: colors.textSecondary, flex: 1 },
@@ -125,4 +126,4 @@ const styles = StyleSheet.create({
   test: { fontSize: 11, color: colors.info, marginTop: 8 },
   phone: { fontSize: 13, color: colors.text, marginTop: 10, fontWeight: '600' },
   reviewed: { textAlign: 'center', color: colors.textSecondary, fontSize: 13, marginTop: 6 },
-});
+}));

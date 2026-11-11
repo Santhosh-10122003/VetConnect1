@@ -11,6 +11,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { ClinicLocationCard } from '../../components/common/ClinicLocationCard';
 import { CustomerStackParamList } from '../../navigation/types';
 import { getErrorMessage, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'CareProvider'>;
 
@@ -138,10 +139,10 @@ export const CareProviderScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   rating: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   ratingText: { fontSize: 14, fontWeight: '700', color: colors.text },
-  distance: { fontSize: 13, fontWeight: '700', color: colors.primary },
+  distance: { fontSize: 13, fontWeight: '700', color: colors.ink },
   about: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginTop: 10 },
   advance: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colors.mint, padding: 10, borderRadius: 10, marginTop: 12 },
   advanceText: { flex: 1, fontSize: 12, color: colors.text, lineHeight: 17 },
@@ -164,4 +165,4 @@ const styles = StyleSheet.create({
   reviewer: { fontSize: 13, fontWeight: '700', color: colors.text },
   stars: { color: colors.star, fontSize: 13 },
   comment: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-});
+}));

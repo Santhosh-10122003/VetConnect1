@@ -174,7 +174,7 @@ class AppointmentPaymentTest {
     void booking_freeConsultationNeedsNoPayment() {
         doctor.setConsultationFee(BigDecimal.ZERO);
         AppointmentDto dto = service.bookAppointment(1L, request());
-        assertEquals(AppointmentStatus.PENDING, dto.getStatus());
+        assertEquals(AppointmentStatus.CONFIRMED, dto.getStatus());
         assertNull(dto.getPayment());
         verify(notificationService, times(2)).createNotification(any(), anyString(), anyString(), any(), anyString());
     }
@@ -185,7 +185,7 @@ class AppointmentPaymentTest {
     void payingMovesTheAppointmentToTheDoctorAndNotifiesBoth() {
         held();
         AppointmentDto dto = service.settleTestPayment(1L, 99L, Outcome.SUCCESS);
-        assertEquals(AppointmentStatus.PENDING, dto.getStatus());
+        assertEquals(AppointmentStatus.CONFIRMED, dto.getStatus());
         assertNull(dto.getExpiresAt());
         assertEquals(PaymentStatus.PAID, dto.getPayment().getStatus());
         verify(notificationService, times(3)).createNotification(any(), anyString(), anyString(), any(), anyString());
@@ -199,7 +199,7 @@ class AppointmentPaymentTest {
         assertEquals(PaymentStatus.FAILED, failed.getPayment().getStatus());
         AppointmentDto retried = service.retryPayment(1L, 99L);
         assertEquals(PaymentStatus.CREATED, retried.getPayment().getStatus());
-        assertEquals(AppointmentStatus.PENDING, service.settleTestPayment(1L, 99L, Outcome.SUCCESS).getStatus());
+        assertEquals(AppointmentStatus.CONFIRMED, service.settleTestPayment(1L, 99L, Outcome.SUCCESS).getStatus());
     }
 
     @Test
@@ -243,7 +243,7 @@ class AppointmentPaymentTest {
         held();
         payments.get(0).setGatewayOrderId("order_VC-1");
         AppointmentDto dto = service.confirmCheckout(1L, 99L, checkout());
-        assertEquals(AppointmentStatus.PENDING, dto.getStatus());
+        assertEquals(AppointmentStatus.CONFIRMED, dto.getStatus());
         assertEquals("pay_9", payments.get(0).getGatewayPaymentId());
     }
 

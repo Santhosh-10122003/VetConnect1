@@ -194,16 +194,17 @@ public class CareBookingService {
     }
 
     private BookingDto afterPaid(CareBooking b, CarePayment payment, Long userId) {
-        b.setStatus(CareBookingStatus.REQUESTED);
+        // the slot is taken and paid for: that is the confirmation, the business does not have to approve it
+        b.setStatus(CareBookingStatus.CONFIRMED);
         b.setExpiresAt(null);
         bookingRepository.save(b);
-        log.info("Care booking paid and requested: ref={}", b.getReference());
+        log.info("Care booking paid and confirmed: ref={}", b.getReference());
 
-        notify(b.getProvider().getUser(), "New pet-care booking request",
-                b.getCustomer().getFullName() + " booked " + describe(b) + " (advance paid). Please accept or reject it.",
+        notify(b.getProvider().getUser(), "New pet-care booking",
+                b.getCustomer().getFullName() + " booked " + describe(b) + " (advance paid). It is confirmed and added to your bookings.",
                 NotificationType.CARE_BOOKING_REQUEST, b);
-        notify(b.getCustomer().getUser(), "Payment received",
-                "We received your advance of " + money(b.getAdvanceAmount(), b) + " for " + describe(b) + ". Waiting for " + b.getProvider().getBusinessName() + " to confirm.",
+        notify(b.getCustomer().getUser(), "Booking confirmed",
+                "We received your advance of " + money(b.getAdvanceAmount(), b) + " for " + describe(b) + ". Your booking with " + b.getProvider().getBusinessName() + " is confirmed.",
                 NotificationType.CARE_PAYMENT, b);
         return toDto(b, payment, userId);
     }
@@ -376,11 +377,11 @@ public class CareBookingService {
     public PageResponse<BookingDto> providerBookings(Long userId, String group, Pageable pageable) {
         ProviderProfile p = providerRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("You have not set up a pet-care profile yet."));
-        Set<CareBookingStatus> statuses = switch (group == null ? "REQUESTED" : group.toUpperCase(Locale.ROOT)) {
+        Set<CareBookingStatus> statuses = switch (group == null ? "CONFIRMED" : group.toUpperCase(Locale.ROOT)) {
             case "CONFIRMED" -> EnumSet.of(CareBookingStatus.CONFIRMED);
             case "COMPLETED" -> EnumSet.of(CareBookingStatus.COMPLETED);
             case "CANCELLED" -> EnumSet.of(CareBookingStatus.CANCELLED, CareBookingStatus.REJECTED);
-            default -> EnumSet.of(CareBookingStatus.REQUESTED);
+            default -> EnumSet.of(CareBookingStatus.CONFIRMED);
         };
         return PageResponse.of(bookingRepository
                 .findByProviderIdAndStatusInOrderByBookingDateAscIdAsc(p.getId(), statuses, pageable)

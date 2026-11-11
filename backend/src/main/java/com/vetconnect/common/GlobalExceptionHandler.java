@@ -124,6 +124,7 @@ public class GlobalExceptionHandler {
         log.warn("Malformed request: {}", ex.getMessage());
         String msg = ex instanceof MissingServletRequestParameterException m
                 ? "Required parameter '" + m.getParameterName() + "' is missing"
+                : ex.getMessage() != null && ex.getMessage().contains(TextRules.MESSAGE) ? TextRules.MESSAGE
                 : "Malformed request: please check the request parameters and body.";
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(msg));
     }

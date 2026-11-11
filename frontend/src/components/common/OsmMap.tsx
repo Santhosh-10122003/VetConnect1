@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { themedStyles } from '../../theme/themed';
+import { colors } from '../../theme/colors';
 
 // The package's bundled typings clash with this React/TypeScript version (every prop resolves to `never`).
 const NativeWebView = WebView as unknown as React.ComponentType<any>;
@@ -145,7 +147,7 @@ function buildHtml(cfg: { lat: number; lng: number; zoom: number; pin: boolean; 
 </script></body></html>`;
 }
 
-const styles = StyleSheet.create({
-  wrap: { width: '100%', borderRadius: 14, overflow: 'hidden', backgroundColor: '#E8EEF0' },
+const styles = themedStyles(() => ({
+  wrap: { width: '100%', borderRadius: 14, overflow: 'hidden', backgroundColor: colors.subtle },
   web: { flex: 1, backgroundColor: 'transparent' },
-});
+}));

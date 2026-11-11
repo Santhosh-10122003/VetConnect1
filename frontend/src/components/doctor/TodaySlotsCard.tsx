@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { doctorApi, ScheduleSlot } from '../../api/doctorApi';
 import { hhmm, todayIso } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 /** Today's slots at a glance on the doctor's home: booked by customers, free, and the ones the doctor blocked. */
 export const TodaySlotsCard: React.FC<{ onPress: () => void }> = ({ onPress }) => {
@@ -61,8 +62,8 @@ export const TodaySlotsCard: React.FC<{ onPress: () => void }> = ({ onPress }) =
   );
 };
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: colors.mintDark },
+const styles = themedStyles(() => ({
+  card: { backgroundColor: colors.card, borderRadius: 20, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: colors.mintDark },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { width: 42, height: 42, borderRadius: 14, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 15, fontWeight: '800', color: colors.text },
@@ -73,13 +74,13 @@ const styles = StyleSheet.create({
   seg: { height: 8, borderRadius: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10, borderWidth: 1 },
-  chipFree: { backgroundColor: '#FFFFFF', borderColor: colors.border },
+  chipFree: { backgroundColor: colors.card, borderColor: colors.border },
   chipBooked: { backgroundColor: colors.mint, borderColor: colors.mintDark },
   chipBlocked: { backgroundColor: '#14171C', borderColor: '#14171C' },
-  chipPast: { backgroundColor: '#F1F5F9', borderColor: '#F1F5F9' },
+  chipPast: { backgroundColor: colors.subtle, borderColor: colors.subtle },
   chipText: { fontSize: 12, fontWeight: '700' },
   textDark: { color: colors.text },
   textLight: { color: '#FFFFFF' },
   textMuted: { color: colors.textMuted },
   hint: { fontSize: 11, color: colors.textMuted, marginTop: 10, lineHeight: 15 },
-});
+}));

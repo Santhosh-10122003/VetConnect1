@@ -1,6 +1,6 @@
 import { ClinicLocationCard } from '../../components/common/ClinicLocationCard';
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { TimeSlotPicker } from '../../components/appointment/TimeSlotPicker';
 import { CustomerStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, hhmm, notify, todayIso, drName, money } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'AppointmentDetails'>;
 
@@ -76,7 +77,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
     setBusy(true);
     try {
       const preview = await appointmentApi.cancellationPreview(appt.id);
-      if (!(await confirmAction('Cancel appointment', `${preview.message}\n\nThis will release your slot.`, 'Cancel appointment', true))) return;
+      if (!(await confirmAction('Cancel this visit?', `${preview.message}\n\nYour time will be given to someone else.`, 'Cancel visit', true))) return;
       await appointmentApi.cancelAppointment(appt.id, 'Cancelled by customer');
       await load();
     } catch (e) {
@@ -87,7 +88,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
   };
 
   const withdraw = async () => {
-    if (!(await confirmAction('Withdraw request', 'Your appointment stays at its current time.', 'Withdraw', true))) return;
+    if (!(await confirmAction('Take back your request?', 'Your visit stays at its current time.', 'Take it back', true))) return;
     setBusy(true);
     try {
       await appointmentApi.withdrawReschedule(appt.id);
@@ -100,7 +101,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
   };
 
   const reschedule = async () => {
-    if (!slot) return notify('Select a slot', 'Pick a new date and time first.');
+    if (!slot) return notify('Pick a time', 'Choose a new day and time first.');
     setBusy(true);
     try {
       await appointmentApi.rescheduleAppointment(appt.id, {
@@ -112,7 +113,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
       setRescheduling(false);
       setRescheduleNote('');
       await load();
-      notify('Request sent', 'The doctor will approve or decline the new time. Your current appointment stays until then.');
+      notify('Time changed', 'Your appointment has moved to the new time and the doctor has been told.');
     } catch (e) {
       notify('Could not reschedule', getErrorMessage(e));
     } finally {
@@ -122,7 +123,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
 
   return (
     <View style={shared.screen}>
-      <AppHeader title="Appointment" subtitle={appt.bookingReference} showBack onBack={() => navigation.goBack()} />
+      <AppHeader title="Your visit" subtitle={appt.bookingReference} showBack onBack={() => navigation.goBack()} />
       <KeyboardScroll contentContainerStyle={shared.content}>
         <View style={shared.card}>
           <View style={shared.rowBetween}>
@@ -137,7 +138,7 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
         <View style={shared.card}>
           <Text style={shared.sectionTitle}>Doctor</Text>
           <Field label="Name" value={drName(appt.doctorName)} />
-          <Field label="Consultation fee" value={money(appt.totalAmount || appt.consultationFee)} />
+          <Field label="Vet fee" value={money(appt.totalAmount || appt.consultationFee)} />
         </View>
 
         {appt.advanceAmount > 0 && (
@@ -169,10 +170,10 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
 
         {record && (
           <View style={shared.card}>
-            <Text style={shared.sectionTitle}>Consultation summary</Text>
-            <Field label="Diagnosis" value={record.diagnosis} />
+            <Text style={shared.sectionTitle}>What the vet noted</Text>
+            <Field label="What the vet found" value={record.diagnosis} />
             {record.symptoms ? <Field label="Symptoms" value={record.symptoms} /> : null}
-            {record.treatmentPlan ? <Field label="Treatment plan" value={record.treatmentPlan} /> : null}
+            {record.treatmentPlan ? <Field label="Treatment" value={record.treatmentPlan} /> : null}
             {record.prescriptions.map((p) => (
               <View key={p.id} style={styles.rx}>
                 <Ionicons name="medical-outline" size={16} color={colors.primary} />
@@ -194,17 +195,17 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
               onSelectDate={setDate}
               loading={slotsLoading}
             />
-            <AppInput label="Why do you need another time? (optional)" placeholder="e.g. Work meeting that day" value={rescheduleNote} onChangeText={setRescheduleNote} maxLength={500} />
+            <AppInput kind="text" label="Why do you need another time? (optional)" placeholder="e.g. Work meeting that day" value={rescheduleNote} onChangeText={setRescheduleNote} maxLength={500} />
             <Text style={styles.hint}>The doctor has to approve the new time. Until then your current appointment stays as it is.</Text>
-            <AppButton title="Send Reschedule Request" onPress={reschedule} loading={busy} />
-            <AppButton title="Keep Current Time" variant="outline" style={{ marginTop: 8 }} onPress={() => setRescheduling(false)} />
+            <AppButton title="Move to this time" onPress={reschedule} loading={busy} />
+            <AppButton title="Keep my time" variant="outline" style={{ marginTop: 8 }} onPress={() => setRescheduling(false)} />
           </View>
         )}
 
         {awaitingPayment && (
           <View style={{ gap: 10 }}>
             <AppButton title={`Pay the advance (${money(appt.advanceAmount)})`} onPress={() => navigation.navigate('AppointmentPayment', { appointmentId: appt.id })} />
-            <AppButton title="Cancel Appointment" variant="danger" loading={busy} onPress={cancel} />
+            <AppButton title="Cancel visit" variant="danger" loading={busy} onPress={cancel} />
           </View>
         )}
 
@@ -214,17 +215,17 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
               <View style={styles.pending} testID="reschedule-pending">
                 <Ionicons name="hourglass-outline" size={20} color={colors.warning} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.pendingTitle}>Reschedule request sent</Text>
+                  <Text style={styles.pendingTitle}>New time requested</Text>
                   <Text style={styles.pendingText}>
                     Waiting for {drName(appt.doctorName)} to approve {appt.rescheduleRequest.appointmentDate} · {hhmm(appt.rescheduleRequest.startTime)}-{hhmm(appt.rescheduleRequest.endTime)}. Your current time stays until then.
                   </Text>
-                  <AppButton title="Withdraw request" variant="outline" style={{ marginTop: 10, height: 42 }} loading={busy} onPress={withdraw} />
+                  <AppButton title="Take back my request" variant="outline" style={{ marginTop: 10, height: 42 }} loading={busy} onPress={withdraw} />
                 </View>
               </View>
             ) : (
-              <AppButton title="Reschedule" variant="outline" onPress={() => setRescheduling(true)} />
+              <AppButton title="Change time" variant="outline" onPress={() => setRescheduling(true)} />
             )}
-            <AppButton title="Cancel Appointment" variant="danger" loading={busy} onPress={cancel} />
+            <AppButton title="Cancel visit" variant="danger" loading={busy} onPress={cancel} />
           </View>
         )}
 
@@ -241,13 +242,13 @@ export const AppointmentDetailsScreen: React.FC<Props> = ({ navigation, route })
   );
 };
 
-const styles = StyleSheet.create({
-  when: { fontSize: 13, fontWeight: '600', color: colors.primary },
+const styles = themedStyles(() => ({
+  when: { fontSize: 13, fontWeight: '600', color: colors.ink },
   hint: { fontSize: 12, color: colors.textSecondary, marginBottom: 10, lineHeight: 17 },
-  pending: { flexDirection: 'row', gap: 10, backgroundColor: '#FFFBEB', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.warning },
+  pending: { flexDirection: 'row', gap: 10, backgroundColor: colors.warnBg, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: colors.warning },
   pendingTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
   pendingText: { fontSize: 13, color: colors.textSecondary, marginTop: 4, lineHeight: 18 },
   cancelNote: { marginTop: 10, fontSize: 13, color: colors.danger },
   rx: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingVertical: 4 },
   rxText: { flex: 1, fontSize: 13, color: colors.text },
-});
+}));

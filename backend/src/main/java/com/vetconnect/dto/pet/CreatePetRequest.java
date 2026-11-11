@@ -19,6 +19,8 @@ import java.time.LocalDate;
 public class CreatePetRequest {
 
     @NotBlank(message = "Pet name is required")
+    @jakarta.validation.constraints.Size(max = 40, message = "Pet name is too long (40 characters at most)")
+    @jakarta.validation.constraints.Pattern(regexp = "^[\\p{L}\\p{M}\\p{N}][\\p{L}\\p{M}\\p{N} .'’-]*$", message = "Pet name can have only letters, numbers, spaces and . ' -")
     private String name;
 
     @NotNull(message = "Species is required (DOG, CAT, BIRD, RABBIT, OTHER)")

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, Animated, Easing, TouchableWithoutFeedback } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { AuthStackParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
@@ -100,16 +101,16 @@ const PAW_POS: { top: number; left?: number; right?: number; size: number; rot: 
   { top: -26, left: -30, size: 18, rot: '-30deg' },
 ];
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' },
+const styles = themedStyles(() => ({
+  container: { flex: 1, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center', padding: 24, overflow: 'hidden' },
   blob: { position: 'absolute', borderRadius: 999, backgroundColor: colors.mintDark },
   logoWrap: { marginBottom: 22 },
   paw: { position: 'absolute' },
   logoCircle: { width: 110, height: 110, borderRadius: 55, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row' },
-  appName: { fontSize: 46, fontWeight: '800', color: colors.primary, letterSpacing: -0.5 },
+  appName: { fontSize: 46, fontWeight: '800', color: colors.ink, letterSpacing: -0.5 },
   tagline: { fontSize: 16, fontWeight: '700', color: colors.primaryLight, marginTop: 8, textAlign: 'center' },
   about: { fontSize: 14, color: colors.textSecondary, marginTop: 10, textAlign: 'center', lineHeight: 21, maxWidth: 300 },
   dots: { flexDirection: 'row', gap: 8, marginTop: 36 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-});
+}));

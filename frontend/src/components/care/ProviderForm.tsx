@@ -76,6 +76,7 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
   else if (!f.location.state) loc.state = 'Select a state';
   else if (!f.location.city.trim()) loc.city = 'Select a district';
   if (f.location.latitude == null) loc.pin = 'Pin your business on the map so pet owners can navigate to you.';
+  else if (!f.location.pinConfirmed) loc.pin = 'Check the pin on the map and tick the box to confirm it is your exact location.';
 
   const payErr = reusePayout ? {} : payoutErrors(f.payout);
 
@@ -90,7 +91,7 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
 
   return (
     <View>
-      <AppInput label="Business name *" value={f.businessName} onChangeText={(v) => set('businessName', v)} error={tried ? errors.businessName : undefined} icon="storefront-outline" />
+      <AppInput kind="business" label="Business name *" value={f.businessName} onChangeText={(v) => set('businessName', v)} error={tried ? errors.businessName : undefined} icon="storefront-outline" />
       <Text style={shared.label}>What do you offer? *</Text>
       <View style={shared.chipRow}>
         {CATEGORIES.map((c) => (
@@ -100,12 +101,12 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
         ))}
       </View>
       {tried && errors.categories ? <Text style={{ color: colors.danger, fontSize: 12, marginTop: -10, marginBottom: 12 }}>{errors.categories}</Text> : null}
-      <AppInput label="About your business" value={f.description} onChangeText={(v) => set('description', v)} multiline style={{ height: 90, textAlignVertical: 'top', paddingTop: 12 }} />
-      <AppInput label="Phone" value={f.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
-      <AppInput label="Trade licence number *" placeholder="From your municipal corporation" value={f.registrationNumber} onChangeText={(v) => set('registrationNumber', v)} error={tried ? errors.registrationNumber : undefined} icon="shield-checkmark-outline" />
-      <AppInput label="Veterinarian you work with *" placeholder="On-call or partner vet" value={f.vetPartnerName} onChangeText={(v) => set('vetPartnerName', v)} error={tried ? errors.vetPartnerName : undefined} icon="medkit-outline" autoCapitalize="words" />
+      <AppInput kind="note" label="About your business" value={f.description} onChangeText={(v) => set('description', v)} multiline style={{ height: 90, textAlignVertical: 'top', paddingTop: 12 }} />
+      <AppInput kind="phone" label="Phone" value={f.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
+      <AppInput kind="regNo" label="Trade licence number *" placeholder="From your municipal corporation" value={f.registrationNumber} onChangeText={(v) => set('registrationNumber', v)} error={tried ? errors.registrationNumber : undefined} icon="shield-checkmark-outline" />
+      <AppInput kind="name" label="Veterinarian you work with *" placeholder="On-call or partner vet" value={f.vetPartnerName} onChangeText={(v) => set('vetPartnerName', v)} error={tried ? errors.vetPartnerName : undefined} icon="medkit-outline" autoCapitalize="words" />
       <PhoneField label="Veterinarian's mobile number *" value={f.vetPartnerPhone} onChange={(v) => set('vetPartnerPhone', v)} forceError={tried} />
-      <AppInput label="Street address *" placeholder="Street, area" value={f.address} onChangeText={(v) => set('address', v)} error={tried ? errors.address : undefined} icon="map-outline" />
+      <AppInput kind="address" label="Street address *" placeholder="Street, area" value={f.address} onChangeText={(v) => set('address', v)} error={tried ? errors.address : undefined} icon="map-outline" />
       <LocationPicker
         pinRequired
         districtLabel="District / City *"

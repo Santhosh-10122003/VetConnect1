@@ -34,7 +34,7 @@ const checkoutOptions = (p: CarePayment, description: string, prefill: Props['pr
   name: 'Jenni',
   description,
   prefill: prefill ?? {},
-  theme: { color: colors.primary },
+  theme: { color: colors.ink },
 });
 
 /** One script for both the phone (inside a WebView) and the browser: opens Razorpay and reports back by message. */
@@ -128,5 +128,5 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 16, fontWeight: '800', color: colors.text },
-  close: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  close: { fontSize: 14, fontWeight: '700', color: colors.ink },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
 
 interface LoadingViewProps {
   message?: string;
@@ -15,12 +16,12 @@ export const LoadingView: React.FC<LoadingViewProps> = ({ message = 'Loading...'
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.page,
     padding: 20,
   },
   message: {
@@ -29,4 +30,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
   },
-});
+}));

@@ -6,7 +6,6 @@ import com.vetconnect.common.security.JwtTokenProvider;
 import com.vetconnect.config.AppProperties;
 import com.vetconnect.domain.entities.CustomerProfile;
 import com.vetconnect.domain.entities.DoctorProfile;
-import com.vetconnect.domain.entities.RefreshToken;
 import com.vetconnect.domain.entities.User;
 import com.vetconnect.domain.enums.Role;
 import com.vetconnect.domain.enums.VerificationStatus;

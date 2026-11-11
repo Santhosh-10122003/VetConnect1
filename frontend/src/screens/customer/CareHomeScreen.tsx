@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoid } from '../../components/common/KeyboardScroll';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +13,8 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { ProviderCard } from '../../components/care/ProviderCard';
 import { CustomerStackParamList, CustomerTabParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
+import { stripEmoji } from '../../utils/inputRules';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<CustomerTabParamList, 'PetCare'>,
@@ -67,7 +69,7 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
             placeholder="Search by business name or area"
             placeholderTextColor={colors.textMuted}
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(t) => setQuery(stripEmoji(t))}
             returnKeyType="search"
           />
           {query.length > 0 && (
@@ -88,7 +90,7 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
               >
                 <Ionicons name={c.icon as any} size={22} color={active ? '#FFFFFF' : colors.primary} />
                 <Text style={[styles.tileTitle, active && { color: '#FFFFFF' }]}>{c.label}</Text>
-                <Text style={[styles.tileSub, active && { color: '#DBEAFE' }]} numberOfLines={1}>{c.blurb}</Text>
+                <Text style={[styles.tileSub, active && { color: colors.infoBorder }]} numberOfLines={1}>{c.blurb}</Text>
               </TouchableOpacity>
             );
           })}
@@ -113,7 +115,7 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       {loading ? (
-        <LoadingView message="Finding pet-care providers..." />
+        <LoadingView message="Finding pet-care businesses..." />
       ) : (
         <FlatList
           data={providers}
@@ -124,10 +126,10 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           ListEmptyComponent={
             <EmptyState
               icon="paw-outline"
-              title="No providers found"
+              title="Nothing found nearby"
               message={city
                 ? `No approved providers matched near ${city}. Try another service type${hasPin ? ', a wider distance' : ''}, or update your location.`
-                : 'Add your place in your profile so we can show pet-care providers near you.'}
+                : 'Add your place in your profile so we can show pet-care businesses near you.'}
               actionTitle={city ? 'Show all services' : 'Set My Location'}
               onAction={() => (city ? (setCategory(undefined), setQuery('')) : navigation.navigate('Profile'))}
             />
@@ -138,9 +140,9 @@ export const CareHomeScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  top: { backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+const styles = themedStyles(() => ({
+  container: { flex: 1, backgroundColor: colors.page },
+  top: { backgroundColor: colors.card, paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   search: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 12, paddingHorizontal: 12, height: 46, marginTop: 10 },
   searchInput: { flex: 1, fontSize: 14, color: colors.text },
   tiles: { flexDirection: 'row', gap: 8, marginTop: 12 },
@@ -150,9 +152,9 @@ const styles = StyleSheet.create({
   tileSub: { fontSize: 10, color: colors.textSecondary, marginTop: 1 },
   where: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 4 },
   whereText: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.text },
-  change: { fontSize: 13, fontWeight: '700', color: colors.primary },
+  change: { fontSize: 13, fontWeight: '700', color: colors.ink },
   radius: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.background, marginRight: 8, marginTop: 6 },
   radiusActive: { backgroundColor: colors.primary },
   radiusText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   list: { padding: 16, paddingBottom: 40 },
-});
+}));

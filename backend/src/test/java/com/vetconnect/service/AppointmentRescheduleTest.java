@@ -86,31 +86,30 @@ class AppointmentRescheduleTest {
         return RescheduleRequest.builder().appointmentDate(newDate).startTime(LocalTime.of(14, 0)).endTime(LocalTime.of(14, 30)).note(note).build();
     }
 
+    /** A request that was already waiting before bookings moved instantly (older data): the doctor can still answer it. */
+    private void legacyRequest() {
+        appt.setRescheduleDate(newDate);
+        appt.setRescheduleStartTime(LocalTime.of(14, 0));
+        appt.setRescheduleEndTime(LocalTime.of(14, 30));
+        appt.setRescheduleRequestedAt(java.time.Instant.parse("2026-11-01T10:00:00Z"));
+    }
+
     @Test
-    void aRequestLeavesTheAppointmentWhereItIsAndTellsTheDoctor() {
+    void movingToAFreeSlotChangesTheAppointmentAtOnceAndTellsTheDoctor() {
         AppointmentDto dto = service.rescheduleAppointment(99L, 1L, request("Work meeting"));
-        assertEquals(oldDate, dto.getAppointmentDate(), "the appointment has not moved");
-        assertEquals(LocalTime.of(10, 0), dto.getStartTime());
+        assertEquals(newDate, dto.getAppointmentDate(), "no approval: it moved");
+        assertEquals(LocalTime.of(14, 0), dto.getStartTime());
+        assertEquals(LocalTime.of(14, 30), dto.getEndTime());
         assertEquals(AppointmentStatus.CONFIRMED, dto.getStatus());
-        assertNotNull(dto.getRescheduleRequest());
-        assertEquals(newDate, dto.getRescheduleRequest().getAppointmentDate());
-        assertEquals(LocalTime.of(14, 0), dto.getRescheduleRequest().getStartTime());
-        assertEquals("Work meeting", dto.getRescheduleRequest().getNote());
-        verify(notificationService).createNotification(eq(doctorUser), eq("Reschedule requested"), contains("Work meeting"), any(), anyString());
-        verify(notificationService).createNotification(eq(customerUser), eq("Reschedule request sent"), anyString(), any(), anyString());
+        assertNull(dto.getRescheduleRequest());
+        verify(notificationService).createNotification(eq(doctorUser), eq("Appointment moved"), contains("Work meeting"), any(), anyString());
+        verify(notificationService).createNotification(eq(customerUser), eq("New time confirmed"), anyString(), any(), anyString());
     }
 
     @Test
     void onlyTheOwnerCanAsk() {
         assertThrows(BadRequestException.class, () -> service.rescheduleAppointment(99L, 2L, request(null)));
         assertFalse(appt.hasRescheduleRequest());
-    }
-
-    @Test
-    void aSecondRequestWaitsUntilTheFirstIsAnswered() {
-        service.rescheduleAppointment(99L, 1L, request(null));
-        BadRequestException e = assertThrows(BadRequestException.class, () -> service.rescheduleAppointment(99L, 1L, request(null)));
-        assertTrue(e.getMessage().contains("already have a reschedule request"));
     }
 
     @Test
@@ -123,13 +122,13 @@ class AppointmentRescheduleTest {
     void aTakenSlotCannotBeRequested() {
         when(appointmentRepository.existsByDoctorIdAndAppointmentDateAndStartTimeAndStatusNotIn(eq(20L), eq(newDate), eq(LocalTime.of(14, 0)), any())).thenReturn(true);
         assertThrows(BookingConflictException.class, () -> service.rescheduleAppointment(99L, 1L, request(null)));
-        assertFalse(appt.hasRescheduleRequest());
+        assertEquals(oldDate, appt.getAppointmentDate(), "it stays where it was");
     }
 
     @Test
     void approvingMovesTheAppointmentAndConfirmsIt() {
         appt.setStatus(AppointmentStatus.PENDING);
-        service.rescheduleAppointment(99L, 1L, request(null));
+        legacyRequest();
         AppointmentDto dto = service.approveReschedule(99L, 2L);
         assertEquals(newDate, dto.getAppointmentDate());
         assertEquals(LocalTime.of(14, 0), dto.getStartTime());
@@ -141,7 +140,7 @@ class AppointmentRescheduleTest {
 
     @Test
     void approvingFailsCleanlyIfSomeoneTookTheSlotMeanwhile() {
-        service.rescheduleAppointment(99L, 1L, request(null));
+        legacyRequest();
         when(appointmentRepository.existsByDoctorIdAndAppointmentDateAndStartTimeAndStatusNotIn(eq(20L), eq(newDate), eq(LocalTime.of(14, 0)), any())).thenReturn(true);
         assertThrows(BookingConflictException.class, () -> service.approveReschedule(99L, 2L));
         assertEquals(oldDate, appt.getAppointmentDate(), "the appointment did not move");
@@ -150,7 +149,7 @@ class AppointmentRescheduleTest {
 
     @Test
     void decliningKeepsTheTimeAndGivesTheOwnerTheReason() {
-        service.rescheduleAppointment(99L, 1L, request(null));
+        legacyRequest();
         assertThrows(BadRequestException.class, () -> service.rejectReschedule(99L, 2L, StatusUpdateRequest.builder().reason(" ").build()));
         AppointmentDto dto = service.rejectReschedule(99L, 2L, StatusUpdateRequest.builder().reason("Fully booked that day").build());
         assertEquals(oldDate, dto.getAppointmentDate());
@@ -161,7 +160,7 @@ class AppointmentRescheduleTest {
 
     @Test
     void theOwnerCanWithdrawAndTheDoctorIsTold() {
-        service.rescheduleAppointment(99L, 1L, request(null));
+        legacyRequest();
         AppointmentDto dto = service.withdrawReschedule(99L, 1L);
         assertNull(dto.getRescheduleRequest());
         verify(notificationService).createNotification(eq(doctorUser), eq("Reschedule withdrawn"), anyString(), any(), anyString());
@@ -169,7 +168,7 @@ class AppointmentRescheduleTest {
 
     @Test
     void onlyTheAssignedDoctorCanAnswer() {
-        service.rescheduleAppointment(99L, 1L, request(null));
+        legacyRequest();
         assertThrows(UnauthorizedException.class, () -> service.approveReschedule(99L, 3L));
         assertThrows(UnauthorizedException.class, () -> service.rejectReschedule(99L, 3L, StatusUpdateRequest.builder().reason("no").build()));
         assertTrue(appt.hasRescheduleRequest());
@@ -183,7 +182,7 @@ class AppointmentRescheduleTest {
 
     @Test
     void cancellingAnAppointmentDropsItsRequest() {
-        service.rescheduleAppointment(99L, 1L, request(null));
+        legacyRequest();
         service.cancelAppointment(99L, 1L, null);
         assertFalse(appt.hasRescheduleRequest());
         assertEquals(AppointmentStatus.CANCELLED, appt.getStatus());

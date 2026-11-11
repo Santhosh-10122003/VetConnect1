@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   Image,
   TouchableOpacity,
@@ -18,6 +17,7 @@ import { reviewApi, Review } from '../../api/reviewApi';
 import { AppHeader } from '../../components/common/AppHeader';
 import { AppButton } from '../../components/common/AppButton';
 import { CustomerStackParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'DoctorProfile'>;
 
@@ -56,7 +56,7 @@ export const DoctorProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <AppHeader
-        title="Doctor Profile"
+        title="About the vet"
         showBack
         onBack={() => navigation.goBack()}
       />
@@ -125,7 +125,7 @@ export const DoctorProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {/* Specializations */}
         <View style={styles.cardSection}>
-          <Text style={styles.sectionTitle}>Specializations</Text>
+          <Text style={styles.sectionTitle}>What they treat</Text>
           <View style={styles.chipsContainer}>
             {doctor.specializations?.map((s) => (
               <View key={s.id} style={styles.specChip}>
@@ -178,11 +178,11 @@ export const DoctorProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* Floating Bottom Booking CTA */}
       <View style={styles.bottomBar}>
         <View>
-          <Text style={styles.bottomFeeLabel}>Consultation Fee</Text>
+          <Text style={styles.bottomFeeLabel}>Vet fee</Text>
           <Text style={styles.bottomFee}>{money(doctor.consultationFee)}</Text>
         </View>
         <AppButton
-          title="Book Consultation"
+          title="Book a visit"
           onPress={() => navigation.navigate('BookAppointment', { doctorId: doctor.id })}
           style={styles.bookBtn}
         />
@@ -191,10 +191,10 @@ export const DoctorProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.page,
   },
   center: {
     flex: 1,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   headerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mintDark,
   },
   cardSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   specChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.ink,
   },
   bioText: {
     fontSize: 14,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingHorizontal: 20,
@@ -389,9 +389,9 @@ const styles = StyleSheet.create({
   bottomFee: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.primary,
+    color: colors.ink,
   },
   bookBtn: {
     minWidth: 180,
   },
-});
+}));

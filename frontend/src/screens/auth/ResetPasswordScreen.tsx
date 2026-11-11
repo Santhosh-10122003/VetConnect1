@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { AppHeader } from '../../components/common/AppHeader';
@@ -10,6 +10,7 @@ import { phoneForServer } from '../../components/common/PhoneField';
 import { authApi } from '../../api/authApi';
 import { AuthStackParamList } from '../../navigation/types';
 import { getErrorMessage } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
@@ -49,7 +50,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.title}>Create New Password</Text>
         <Text style={styles.subtitle}>Choose a strong password with at least 6 characters.</Text>
 
-        <AppInput
+        <AppInput kind="phone"
           label="Mobile number"
           placeholder="+91 98765 43210"
           value={mobile}
@@ -60,6 +61,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         />
 
         <AppInput
+          kind="code"
           label="Reset Code"
           placeholder="8-character code"
           value={code}
@@ -98,10 +100,10 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.canvas,
   },
   content: {
     padding: 24,
@@ -120,4 +122,4 @@ const styles = StyleSheet.create({
   btn: {
     marginTop: 10,
   },
-});
+}));

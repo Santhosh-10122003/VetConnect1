@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -9,6 +9,7 @@ import { AppHeader } from '../../components/common/AppHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { LoadingView } from '../../components/common/LoadingView';
 import { getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 // Shared by the customer and doctor stacks, so it only needs goBack.
 interface Props {
@@ -101,7 +102,7 @@ export const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   item: {
     flexDirection: 'row',
     gap: 12,
@@ -125,4 +126,4 @@ const styles = StyleSheet.create({
   msg: { fontSize: 13, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
   time: { fontSize: 11, color: colors.textMuted, marginTop: 6 },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.primary, marginTop: 4 },
-});
+}));

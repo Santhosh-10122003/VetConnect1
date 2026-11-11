@@ -25,6 +25,7 @@ import java.util.List;
 public class PetController {
 
     private final PetService petService;
+    private final com.vetconnect.service.PetLookupService petLookupService;
 
     @GetMapping
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -32,6 +33,15 @@ public class PetController {
     public ResponseEntity<ApiResponse<List<PetDto>>> getMyPets(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         List<PetDto> pets = petService.getCustomerPets(userPrincipal.getId());
         return ResponseEntity.ok(ApiResponse.ok(pets));
+    }
+
+    @GetMapping("/lookup")
+    @Operation(summary = "Find a pet's owner from the pet's ID number (limited to a few tries per hour; the owner is told)")
+    public ResponseEntity<ApiResponse<com.vetconnect.dto.pet.PetOwnerLookupDto>> lookup(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam String number
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(petLookupService.find(userPrincipal.getId(), number)));
     }
 
     @GetMapping("/{petId}")
@@ -65,6 +75,24 @@ public class PetController {
     ) {
         PetDto updated = petService.updatePet(petId, userPrincipal.getId(), request);
         return ResponseEntity.ok(ApiResponse.ok("Pet updated successfully", updated));
+    }
+
+    @PostMapping(value = "/{petId}/photo", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Set my pet's profile photo (JPG or PNG, up to 5 MB)")
+    public ResponseEntity<ApiResponse<PetDto>> setPhoto(
+            @PathVariable Long petId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Photo saved", petService.setPhoto(petId, userPrincipal.getId(), file)));
+    }
+
+    @DeleteMapping("/{petId}/photo")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @Operation(summary = "Remove my pet's profile photo")
+    public ResponseEntity<ApiResponse<PetDto>> removePhoto(@PathVariable Long petId, @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return ResponseEntity.ok(ApiResponse.ok("Photo removed", petService.removePhoto(petId, userPrincipal.getId())));
     }
 
     @DeleteMapping("/{petId}")

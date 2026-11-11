@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { PayPanel } from '../../components/payment/PayPanel';
 import { CustomerStackParamList } from '../../navigation/types';
 import { confirmAction, drName, getErrorMessage, hhmm, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'AppointmentPayment'>;
 type Busy = 'pay' | 'fail' | 'retry' | 'cancel' | null;
@@ -67,7 +68,7 @@ export const AppointmentPaymentScreen: React.FC<Props> = ({ navigation, route })
   };
 
   const cancelHold = async () => {
-    if (!(await confirmAction('Cancel booking', 'Nothing has been charged. The held slot will be released.', 'Cancel booking', true))) return;
+    if (!(await confirmAction('Cancel this booking?', 'Nothing has been charged. The time we are holding for you will be released.', 'Cancel booking', true))) return;
     await run('cancel', async () => { await appointmentApi.cancelAppointment(appt.id, 'Cancelled before paying'); goHome(); });
   };
 
@@ -79,7 +80,7 @@ export const AppointmentPaymentScreen: React.FC<Props> = ({ navigation, route })
           <View style={[shared.card, styles.center]}>
             <Ionicons name="time-outline" size={56} color={colors.warning} />
             <Text style={styles.big} testID="pay-ended">The hold has ended</Text>
-            <Text style={styles.sub}>The slot was released because the advance was not paid in time. Nothing was charged. Please book again.</Text>
+            <Text style={styles.sub}>Your time was released because the advance was not paid in time. Nothing was charged. Please book again.</Text>
           </View>
           <AppButton title="Back to my appointments" onPress={goHome} />
         </ScrollView>
@@ -98,11 +99,11 @@ export const AppointmentPaymentScreen: React.FC<Props> = ({ navigation, route })
         </View>
 
         <View style={shared.card}>
-          <Text style={styles.what}>Consultation with {drName(appt.doctorName)}</Text>
+          <Text style={styles.what}>Visit with {drName(appt.doctorName)}</Text>
           <Text style={styles.sub}>{appt.clinicName}</Text>
           <Text style={styles.sub}>{appt.appointmentDate} · {hhmm(appt.startTime)} - {hhmm(appt.endTime)} · {appt.petName}</Text>
           <View style={styles.lines}>
-            <View style={shared.rowBetween}><Text style={styles.sub}>Consultation fee</Text><Text style={styles.val}>{money(appt.totalAmount)}</Text></View>
+            <View style={shared.rowBetween}><Text style={styles.sub}>Vet fee</Text><Text style={styles.val}>{money(appt.totalAmount)}</Text></View>
             <View style={[shared.rowBetween, styles.totalRow]}><Text style={styles.val}>Advance now</Text><Text style={styles.val}>{money(appt.advanceAmount)}</Text></View>
             <View style={shared.rowBetween}><Text style={styles.sub}>Pay at the clinic</Text><Text style={styles.val}>{money(appt.balanceAmount)}</Text></View>
           </View>
@@ -130,7 +131,7 @@ export const AppointmentPaymentScreen: React.FC<Props> = ({ navigation, route })
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   center: { alignItems: 'center' },
   big: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10, textAlign: 'center' },
   sub: { fontSize: 13, color: colors.textSecondary, marginTop: 4, lineHeight: 19 },
@@ -138,9 +139,9 @@ const styles = StyleSheet.create({
   lines: { marginTop: 12, gap: 6 },
   val: { fontSize: 13, fontWeight: '700', color: colors.text },
   totalRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
-  timer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFBEB', borderRadius: 12, padding: 10, marginBottom: 14 },
+  timer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.warnBg, borderRadius: 12, padding: 10, marginBottom: 14 },
   timerText: { fontSize: 13, color: colors.text },
   due: { backgroundColor: colors.primary, borderRadius: 16, padding: 18, marginBottom: 14, alignItems: 'center' },
-  dueLabel: { color: colors.mintDark, fontSize: 13, fontWeight: '700' },
+  dueLabel: { color: colors.skyOnDark, fontSize: 13, fontWeight: '700' },
   dueValue: { color: '#FFFFFF', fontSize: 32, fontWeight: '800' },
-});
+}));

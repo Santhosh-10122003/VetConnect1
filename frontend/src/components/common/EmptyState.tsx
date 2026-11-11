@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { AppButton } from './AppButton';
+import { themedStyles } from '../../theme/themed';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -37,7 +38,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -73,4 +74,4 @@ const styles = StyleSheet.create({
   button: {
     minWidth: 160,
   },
-});
+}));

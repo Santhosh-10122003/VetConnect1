@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Switch, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, Switch, TextInput, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -10,6 +10,8 @@ import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
 import { DAY_NAMES, getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
+import { cleanInput } from '../../utils/inputRules';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
@@ -46,7 +48,7 @@ const TimeField: React.FC<{ label: string; value: string; onChange: (v: string) 
     <TextInput
       style={[styles.input, !editable && styles.inputOff]}
       value={value}
-      onChangeText={onChange}
+      onChangeText={(t) => onChange(cleanInput('time', t))}
       editable={editable}
       placeholder={placeholder}
       placeholderTextColor={colors.textMuted}
@@ -192,7 +194,7 @@ export const AvailabilityManagementScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   daysCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.mint, borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.mintDark },
   daysTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
   daysSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
@@ -207,7 +209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 15,
     color: colors.text,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
-  inputOff: { backgroundColor: '#F1F5F9' },
-});
+  inputOff: { backgroundColor: colors.subtle },
+}));

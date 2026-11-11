@@ -53,31 +53,7 @@ public class AccountService {
     private final NotificationRepository notificationRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final DocumentService documentService;
-    private final ProviderService providerService;
-
-    /**
-     * A pet owner who runs a pet-care business turns their account into a business account. The pets and the history
-     * stay with the account, but the app then opens as a business (an account has one role). The business is
-     * reviewed by an admin like any other, and it is refused while the owner still has bookings open.
-     */
-    @Transactional
-    public com.vetconnect.dto.care.CareDtos.ProviderDto becomeBusiness(Long userId, com.vetconnect.dto.care.CareDtos.ProviderRequest request) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (user.getRole() != Role.ROLE_CUSTOMER) {
-            throw new BadRequestException("Only a pet-owner account can be turned into a pet-care business.");
-        }
-        CustomerProfile customer = customerProfileRepository.findByUserId(userId).orElse(null);
-        if (customer != null) {
-            long open = appointmentRepository.countByCustomerIdAndStatusInAndAppointmentDateGreaterThanEqual(customer.getId(), OPEN_APPOINTMENTS, LocalDate.now())
-                    + careBookingRepository.countByCustomerIdAndStatusIn(customer.getId(), OPEN_BOOKINGS);
-            if (open > 0) throw new BadRequestException("You have " + open + " upcoming booking" + (open == 1 ? "" : "s") + " as a pet owner. Cancel " + (open == 1 ? "it" : "them") + " first.");
-        }
-        user.setRole(Role.ROLE_PROVIDER);
-        userRepository.saveAndFlush(user);
-        var created = providerService.createProfile(userId, request); // validates the business details (licence, vet, payment...)
-        log.info("Pet owner turned into a pet-care business: userId={} providerId={}", userId, created.getId());
-        return created;
-    }
+    private final PetPhotoStore petPhotoStore;
 
     @Transactional
     public void deleteAccount(Long userId, String password) {
@@ -140,6 +116,7 @@ public class AccountService {
         for (Pet pet : petRepository.findByCustomerId(c.getId())) {
             boolean hasHistory = appointmentRepository.existsByPetId(pet.getId()) || careBookingRepository.existsByPetId(pet.getId())
                     || !medicalRecordRepository.findByPetIdOrderByVisitDateDesc(pet.getId()).isEmpty();
+            petPhotoStore.delete(pet.getAvatarUrl());
             if (!hasHistory) {
                 petRepository.delete(pet);
             } else { // a record that other people keep: no longer tells who the pet or its owner was

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { PetCard } from '../../components/pet/PetCard';
 import { CustomerStackParamList } from '../../navigation/types';
 import { getErrorMessage, hhmm, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'CareBook'>;
 
@@ -106,7 +107,7 @@ export const CareBookScreen: React.FC<Props> = ({ navigation, route }) => {
       if (checkOut <= date) return setError('Check-out must be after check-in.');
       if (fullNights > 0) return setError('Some of those nights are full. Please choose other dates.');
     } else if (!slot) {
-      return setError('Choose a time slot.');
+      return setError('Choose a time.');
     }
     setSaving(true);
     try {
@@ -196,8 +197,8 @@ export const CareBookScreen: React.FC<Props> = ({ navigation, route }) => {
           </Step>
         )}
 
-        <Step n={extras.length > 0 ? 4 : 3} title="Notes for the provider (optional)">
-          <AppInput placeholder="e.g. Nervous around dryers, allergic to a shampoo..." value={notes} onChangeText={setNotes} multiline style={{ height: 80, textAlignVertical: 'top', paddingTop: 12 }} />
+        <Step n={extras.length > 0 ? 4 : 3} title="Notes for the business (optional)">
+          <AppInput kind="note" placeholder="e.g. Nervous around dryers, allergic to a shampoo..." value={notes} onChangeText={setNotes} multiline style={{ height: 80, textAlignVertical: 'top', paddingTop: 12 }} />
         </Step>
 
         <View style={styles.summary} testID="care-summary">
@@ -222,7 +223,7 @@ export const CareBookScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   step: { marginBottom: 20 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   extra: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, marginBottom: 8 },
   extraOn: { borderColor: colors.primary, backgroundColor: colors.mint },
   extraName: { flex: 1, fontSize: 14, color: colors.text, fontWeight: '600' },
-  extraPrice: { fontSize: 13, fontWeight: '800', color: colors.primary },
+  extraPrice: { fontSize: 13, fontWeight: '800', color: colors.ink },
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
   slotOff: { backgroundColor: colors.background },
@@ -245,6 +246,6 @@ const styles = StyleSheet.create({
   total: { fontSize: 16, fontWeight: '800', color: colors.text },
   dueNow: { backgroundColor: colors.mint, borderRadius: 12, padding: 12, marginTop: 6, gap: 4 },
   dueLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
-  dueValue: { fontSize: 18, fontWeight: '800', color: colors.primary },
+  dueValue: { fontSize: 18, fontWeight: '800', color: colors.ink },
   error: { color: colors.danger, marginBottom: 10, fontSize: 13 },
-});
+}));

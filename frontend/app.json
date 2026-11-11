@@ -2,10 +2,11 @@
   "expo": {
     "name": "Jenni",
     "slug": "jenni",
+    "scheme": "jenni",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jenni.app",
@@ -51,7 +52,21 @@
           "locationWhenInUsePermission": "Jenni uses your location to show veterinarians near you."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Jenni uses your camera to scan a pet's QR code."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Jenni uses your photos so you can add a picture of your pet.",
+          "cameraPermission": "Jenni uses your camera so you can take a picture of your pet."
+        }
+      ],
+      "expo-sharing"
     ]
   }
 }

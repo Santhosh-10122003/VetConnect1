@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, useWindowDimensions, Animated, Easing } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { SlideToStart } from '../../components/common/SlideToStart';
 import { AuthStackParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
@@ -58,16 +59,16 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+const styles = themedStyles(() => ({
+  container: { flex: 1, backgroundColor: colors.canvas },
   hero: { height: '52%', overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
   blob: { position: 'absolute', borderRadius: 999, backgroundColor: colors.mintDark },
-  brand: { position: 'absolute', top: 54, left: 24, fontSize: 24, fontWeight: '800', color: colors.primary },
+  brand: { position: 'absolute', top: 54, left: 24, fontSize: 24, fontWeight: '800', color: colors.ink },
   bottom: { flex: 1, paddingHorizontal: 24, paddingTop: 22 },
-  title: { fontSize: 46, fontWeight: '500', color: colors.primary, lineHeight: 52, letterSpacing: -1 },
+  title: { fontSize: 46, fontWeight: '500', color: colors.ink, lineHeight: 52, letterSpacing: -1 },
   desc: { fontSize: 15, color: colors.textSecondary, marginTop: 12, lineHeight: 22, maxWidth: 330 },
   controls: { flexDirection: 'row', alignItems: 'center', marginTop: 'auto' },
   login: { alignItems: 'center', paddingVertical: 16 },
   loginText: { fontSize: 14, color: colors.textSecondary },
-  loginBold: { fontWeight: '800', color: colors.primary },
-});
+  loginBold: { fontWeight: '800', color: colors.ink },
+}));

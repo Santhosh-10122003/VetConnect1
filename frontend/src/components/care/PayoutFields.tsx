@@ -1,9 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { AppInput } from '../common/AppInput';
+import { SelectField } from '../common/SelectField';
+import { INDIAN_BANKS } from '../../data/indianBanks';
+import { themedStyles } from '../../theme/themed';
 interface HasPayout {
   payoutMethod?: 'UPI' | 'BANK' | null;
   upiId?: string | null;
@@ -100,12 +103,12 @@ export const PayoutFields: React.FC<Props> = ({ value, onChange, showErrors }) =
       {err('method') ? <Text style={styles.error}>{err('method')}</Text> : null}
 
       {value.method === 'UPI' && (
-        <AppInput label="UPI id *" placeholder="name@bank" autoCapitalize="none" value={value.upiId} onChangeText={(v) => set({ upiId: v })} error={err('upiId')} icon="phone-portrait-outline" testID="payout-upi" />
+        <AppInput kind="upi" label="UPI id *" placeholder="name@bank" autoCapitalize="none" value={value.upiId} onChangeText={(v) => set({ upiId: v })} error={err('upiId')} icon="phone-portrait-outline" testID="payout-upi" />
       )}
       {value.method === 'BANK' && (
         <>
-          <AppInput label="Account holder name *" value={value.holder} onChangeText={(v) => set({ holder: v })} error={err('holder')} icon="person-outline" />
-          <AppInput
+          <AppInput kind="name" label="Account holder name *" value={value.holder} onChangeText={(v) => set({ holder: v })} error={err('holder')} icon="person-outline" />
+          <AppInput kind="account"
             label="Account number *"
             placeholder={value.savedAccountMasked ? `Saved: ${value.savedAccountMasked} (leave empty to keep)` : '9 to 18 digits'}
             keyboardType="number-pad"
@@ -114,18 +117,28 @@ export const PayoutFields: React.FC<Props> = ({ value, onChange, showErrors }) =
             error={err('account')}
             icon="card-outline"
           />
-          <AppInput label="IFSC code *" placeholder="e.g. HDFC0001234" autoCapitalize="characters" value={value.ifsc} onChangeText={(v) => set({ ifsc: v })} error={err('ifsc')} icon="business-outline" />
-          <AppInput label="Bank name" value={value.bankName} onChangeText={(v) => set({ bankName: v })} icon="home-outline" />
+          <AppInput kind="ifsc" label="IFSC code *" placeholder="e.g. HDFC0001234" autoCapitalize="characters" value={value.ifsc} onChangeText={(v) => set({ ifsc: v })} error={err('ifsc')} icon="business-outline" />
+          <SelectField
+            testID="payout-bank"
+            label="Bank name"
+            placeholder="Select your bank"
+            icon="home-outline"
+            value={value.bankName}
+            displayValue={value.bankName}
+            options={INDIAN_BANKS}
+            onSelect={(o) => set({ bankName: o.value })}
+            searchPlaceholder="Search bank"
+          />
         </>
       )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   box: { backgroundColor: colors.mint, borderRadius: 16, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: colors.mintBorder },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 15, fontWeight: '800', color: colors.text },
   help: { fontSize: 12, color: colors.textSecondary, marginTop: 6, marginBottom: 12, lineHeight: 17 },
   error: { color: colors.danger, fontSize: 12, marginTop: -8, marginBottom: 10 },
-});
+}));

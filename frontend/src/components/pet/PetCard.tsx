@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { PetAvatar } from './PetAvatar';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconText } from '../common/IconText';
 import { colors } from '../../theme/colors';
 import { Pet } from '../../api/petApi';
+import { themedStyles } from '../../theme/themed';
 
 interface PetCardProps {
   pet: Pet;
@@ -44,13 +46,7 @@ export const PetCard: React.FC<PetCardProps> = ({ pet, onPress, selected = false
       activeOpacity={0.85}
     >
       <View style={styles.imageContainer}>
-        {pet.avatarUrl ? (
-          <Image source={{ uri: pet.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name={getSpeciesIcon(pet.species)} size={32} color={colors.primary} />
-          </View>
-        )}
+        <PetAvatar pet={pet} size={64} />
       </View>
 
       <View style={styles.info}>
@@ -74,7 +70,7 @@ export const PetCard: React.FC<PetCardProps> = ({ pet, onPress, selected = false
 
         {pet.allergies && (
           <View style={styles.alertRow}>
-            <Ionicons name="warning-outline" size={12} color="#DC2626" />
+            <Ionicons name="warning-outline" size={12} color={colors.statusRejected} />
             <Text style={styles.alertText} numberOfLines={1}>
               Allergies: {pet.allergies}
             </Text>
@@ -93,11 +89,11 @@ export const PetCard: React.FC<PetCardProps> = ({ pet, onPress, selected = false
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
@@ -111,7 +107,7 @@ const styles = StyleSheet.create({
   },
   selectedCard: {
     borderColor: colors.primary,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.infoBg,
   },
   imageContainer: {
     marginRight: 14,
@@ -148,7 +144,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   genderTag: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.subtle,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -177,7 +173,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginTop: 6,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerBg,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -191,4 +187,4 @@ const styles = StyleSheet.create({
   chevron: {
     marginLeft: 10,
   },
-});
+}));

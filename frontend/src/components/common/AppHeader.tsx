@@ -1,14 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
+import { useAppTheme } from '../../theme/ThemeProvider';
+import { ThemeToggle } from './ThemeToggle';
+import { AccountMenu } from './AccountMenu';
+import { useTopPad } from '../../utils/useTopPad';
 
 interface AppHeaderProps {
   title: string;
   subtitle?: string;
   showBack?: boolean;
   onBack?: () => void;
+  /** Show the light/dark switch at the left (home screens). */
+  themeToggle?: boolean;
+  /** Show the three-line account menu (sign out, delete account) at the left. */
+  accountMenu?: { onEdit?: () => void; editing?: boolean };
   rightAction?: {
     icon: keyof typeof Ionicons.glyphMap;
     onPress: () => void;
@@ -20,16 +29,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   subtitle,
   showBack,
   onBack,
+  themeToggle,
+  accountMenu,
   rightAction,
 }) => {
+  const topPad = useTopPad(12);
+  const { scheme } = useAppTheme();
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { paddingTop: topPad }]}>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <View style={styles.content}>
         {showBack ? (
           <TouchableOpacity onPress={onBack} style={styles.iconButton} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
+        ) : themeToggle ? (
+          <ThemeToggle style={styles.iconButton} />
         ) : (
           <View style={styles.placeholder} />
         )}
@@ -39,7 +54,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
         </View>
 
-        {rightAction ? (
+        {accountMenu ? (
+          <AccountMenu style={styles.iconButton} onEdit={accountMenu.onEdit} editing={accountMenu.editing} />
+        ) : rightAction ? (
           <TouchableOpacity onPress={rightAction.onPress} style={styles.iconButton} activeOpacity={0.7}>
             <Ionicons name={rightAction.icon} size={22} color={colors.primary} />
           </TouchableOpacity>
@@ -51,9 +68,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     paddingTop: 12,
@@ -70,6 +87,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.mint,
+    borderWidth: 1,
+    borderColor: colors.iconBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -91,4 +110,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-});
+}));

@@ -1,9 +1,9 @@
-import { StyleSheet } from 'react-native';
 import { colors } from './colors';
+import { themedStyles } from './themed';
 
 /** Layout primitives reused by the screens added after the first customer set. */
-export const shared = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+export const shared = themedStyles(() => ({
+  screen: { flex: 1, backgroundColor: colors.page },
   content: { padding: 16, paddingBottom: 40 },
   card: {
     backgroundColor: colors.card,
@@ -37,7 +37,7 @@ export const shared = StyleSheet.create({
   chipTextActive: { color: '#FFFFFF' },
   segment: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border,
     borderRadius: 12,
     padding: 4,
     marginHorizontal: 16,
@@ -47,4 +47,4 @@ export const shared = StyleSheet.create({
   segmentItemActive: { backgroundColor: colors.card },
   segmentText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   segmentTextActive: { color: colors.primary },
-});
+}));

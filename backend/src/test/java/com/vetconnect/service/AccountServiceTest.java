@@ -47,7 +47,7 @@ class AccountServiceTest {
     @Mock private NotificationRepository notificationRepository;
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private DocumentService documentService;
-    @Mock private ProviderService providerService;
+    @Mock private PetPhotoStore petPhotoStore;
 
     private final PasswordEncoder encoder = new BCryptPasswordEncoder(4);
     private AccountService service;
@@ -57,7 +57,7 @@ class AccountServiceTest {
     void setUp() {
         service = new AccountService(userRepository, encoder, customerProfileRepository, doctorProfileRepository, providerProfileRepository,
                 availabilityRepository, careServiceRepository, petRepository, appointmentRepository, careBookingRepository,
-                medicalRecordRepository, walletTransactionRepository, notificationRepository, refreshTokenRepository, documentService, providerService);
+                medicalRecordRepository, walletTransactionRepository, notificationRepository, refreshTokenRepository, documentService, petPhotoStore);
         user = User.builder().id(5L).email("a@b.com").phone("+919876543210").password(encoder.encode("Secret1!")).role(Role.ROLE_CUSTOMER).build();
         when(userRepository.findById(5L)).thenReturn(Optional.of(user));
         when(walletTransactionRepository.total(anyLong(), any())).thenReturn(BigDecimal.ZERO);
@@ -130,28 +130,5 @@ class AccountServiceTest {
         assertNull(d.getUpiId()); assertNull(d.getBio());
         assertEquals(VerificationStatus.REJECTED, d.getVerificationStatus(), "never listed again");
         verify(documentService).deleteAllFor("DOCTOR", 20L);
-    }
-
-    @Test
-    void aPetOwnerCanTurnTheAccountIntoABusinessOnlyWithNothingUpcoming() {
-        CustomerProfile c = CustomerProfile.builder().id(11L).user(user).fullName("Cathy").build();
-        when(customerProfileRepository.findByUserId(5L)).thenReturn(Optional.of(c));
-        var request = com.vetconnect.dto.care.CareDtos.ProviderRequest.builder().businessName("Happy Paws").build();
-
-        when(careBookingRepository.countByCustomerIdAndStatusIn(anyLong(), any())).thenReturn(1L);
-        assertTrue(assertThrows(BadRequestException.class, () -> service.becomeBusiness(5L, request)).getMessage().contains("1 upcoming booking"));
-        assertEquals(Role.ROLE_CUSTOMER, user.getRole());
-
-        when(careBookingRepository.countByCustomerIdAndStatusIn(anyLong(), any())).thenReturn(0L);
-        when(providerService.createProfile(any(), any())).thenReturn(com.vetconnect.dto.care.CareDtos.ProviderDto.builder().id(40L).build());
-        service.becomeBusiness(5L, request);
-        assertEquals(Role.ROLE_PROVIDER, user.getRole());
-        verify(providerService).createProfile(5L, request);
-    }
-
-    @Test
-    void onlyAPetOwnerAccountCanBecomeABusiness() {
-        user.setRole(Role.ROLE_DOCTOR);
-        assertThrows(BadRequestException.class, () -> service.becomeBusiness(5L, com.vetconnect.dto.care.CareDtos.ProviderRequest.builder().build()));
     }
 }

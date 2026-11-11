@@ -1,10 +1,13 @@
-import { BecomeBusinessScreen } from '../screens/customer/BecomeBusinessScreen';
+import { useTour } from '../tour/TourProvider';
+import { FindPetOwnerScreen } from '../screens/shared/FindPetOwnerScreen';
+import { TourTabButton } from '../tour/TourTabButton';
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { tabBarOptions } from '../theme/tabBar';
 import { CustomerStackParamList, CustomerTabParamList } from './types';
 import { HomeScreen } from '../screens/customer/HomeScreen';
@@ -29,8 +32,6 @@ import { CarePaymentScreen } from '../screens/customer/CarePaymentScreen';
 import { CareBookingsScreen } from '../screens/customer/CareBookingsScreen';
 import { CareBookingDetailsScreen } from '../screens/customer/CareBookingDetailsScreen';
 import { CareReviewScreen } from '../screens/customer/CareReviewScreen';
-import { AppGuideScreen } from '../screens/customer/AppGuideScreen';
-import { ScreenStoryWalkthrough } from '../components/common/ScreenStoryWalkthrough';
 import { useAuth } from '../context/AuthContext';
 import { clearNewUserRegistered, isNewUserRegistered, markGuideSeen } from '../utils/guideStorage';
 
@@ -48,24 +49,25 @@ const ICONS: Record<keyof CustomerTabParamList, [keyof typeof Ionicons.glyphMap,
 
 const CustomerTabs: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const { user, isNewRegistration, clearNewRegistrationFlag } = useAuth();
-  const [storyVisible, setStoryVisible] = useState(false);
+  const tour = useTour();
 
-  // Trigger Story Walkthrough ONLY once when a new user has completed registration
+  // A new sign-up gets the guided tour once
   useEffect(() => {
     const checkNewUser = async () => {
       if (!user?.userId) return;
       try {
         const wasJustRegistered = await isNewUserRegistered();
         if (isNewRegistration || wasJustRegistered) {
-          // Immediately consume registration flags so normal logins never trigger it
+          // Immediately consume registration flag so normal logins never trigger it
           await clearNewUserRegistered();
           clearNewRegistrationFlag();
           await markGuideSeen(user.userId);
-          setStoryVisible(true);
+          tour.start();
         }
       } catch (e) {
-        console.warn('Failed to check story guide status', e);
+        console.warn('Failed to check the new-user flag', e);
       }
     };
     checkNewUser();
@@ -76,6 +78,7 @@ const CustomerTabs: React.FC = () => {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           ...tabBarOptions(insets.bottom),
+        tabBarButton: (props: any) => <TourTabButton tourId={`tab-${route.name}`} {...props} />,
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons name={ICONS[route.name][focused ? 0 : 1]} size={size} color={color} />
           ),
@@ -89,12 +92,6 @@ const CustomerTabs: React.FC = () => {
         <Tab.Screen name="Profile" component={CustomerProfileScreen} />
       </Tab.Navigator>
 
-      {/* Interactive Story Walkthrough - Appears ONLY for newly registered users */}
-      <ScreenStoryWalkthrough
-        visible={storyVisible}
-        userId={user?.userId}
-        onClose={() => setStoryVisible(false)}
-      />
     </View>
   );
 };
@@ -116,9 +113,8 @@ export const CustomerNavigator: React.FC = () => (
     <Stack.Screen name="CareBook" component={CareBookScreen} />
     <Stack.Screen name="CarePayment" component={CarePaymentScreen} options={{ gestureEnabled: false }} />
     <Stack.Screen name="CareBookings" component={CareBookingsScreen} />
-    <Stack.Screen name="BecomeBusiness" component={BecomeBusinessScreen} />
+    <Stack.Screen name="FindPetOwner" component={FindPetOwnerScreen} />
     <Stack.Screen name="CareBookingDetails" component={CareBookingDetailsScreen} />
     <Stack.Screen name="CareReview" component={CareReviewScreen} />
-    <Stack.Screen name="AppGuide" component={AppGuideScreen} />
   </Stack.Navigator>
 );

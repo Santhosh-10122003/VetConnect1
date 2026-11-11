@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -12,6 +12,7 @@ import { AppInput } from '../../components/common/AppInput';
 import { AppButton } from '../../components/common/AppButton';
 import { DoctorStackParamList } from '../../navigation/types';
 import { getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<DoctorStackParamList, 'ConsultationNotes'>;
 
@@ -89,11 +90,11 @@ export const ConsultationNotesScreen: React.FC<Props> = ({ navigation, route }) 
     <View style={shared.screen}>
       <AppHeader title="Consultation Notes" subtitle={petName} showBack onBack={() => navigation.goBack()} />
       <KeyboardScroll contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
-        <AppInput label="Diagnosis *" value={diagnosis} onChangeText={setDiagnosis} error={errors.diagnosis} placeholder="e.g. Seasonal dermatitis" />
-        <AppInput label="Symptoms" value={symptoms} onChangeText={setSymptoms} multiline style={styles.multi} />
-        <AppInput label="Clinical notes" value={notes} onChangeText={setNotes} multiline style={styles.multi} />
-        <AppInput label="Treatment plan" value={plan} onChangeText={setPlan} multiline style={styles.multi} />
-        <AppInput label="Weight at visit (kg)" icon="scale-outline" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" error={errors.weight} />
+        <AppInput kind="text" label="Diagnosis *" value={diagnosis} onChangeText={setDiagnosis} error={errors.diagnosis} placeholder="e.g. Seasonal dermatitis" />
+        <AppInput kind="note" label="Symptoms" value={symptoms} onChangeText={setSymptoms} multiline style={styles.multi} />
+        <AppInput kind="note" label="Clinical notes" value={notes} onChangeText={setNotes} multiline style={styles.multi} />
+        <AppInput kind="note" label="Treatment plan" value={plan} onChangeText={setPlan} multiline style={styles.multi} />
+        <AppInput kind="decimal" label="Weight at visit (kg)" icon="scale-outline" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" error={errors.weight} />
 
         <View style={shared.rowBetween}>
           <Text style={shared.sectionTitle}>Prescriptions</Text>
@@ -113,11 +114,11 @@ export const ConsultationNotesScreen: React.FC<Props> = ({ navigation, route }) 
                 <Ionicons name="trash-outline" size={20} color={colors.danger} />
               </TouchableOpacity>
             </View>
-            <AppInput label="Drug name" value={r.medicationName} onChangeText={(v) => updateRx(i, { medicationName: v })} error={errors[`rx${i}`]} />
-            <AppInput label="Dosage" value={r.dosage} onChangeText={(v) => updateRx(i, { dosage: v })} placeholder="e.g. 250 mg" />
-            <AppInput label="Frequency" value={r.frequency} onChangeText={(v) => updateRx(i, { frequency: v })} placeholder="e.g. Twice daily" />
-            <AppInput label="Duration (days)" value={r.durationDays} onChangeText={(v) => updateRx(i, { durationDays: v })} keyboardType="number-pad" />
-            <AppInput label="Special instructions" value={r.instructions} onChangeText={(v) => updateRx(i, { instructions: v })} />
+            <AppInput kind="drug" label="Drug name" value={r.medicationName} onChangeText={(v) => updateRx(i, { medicationName: v })} error={errors[`rx${i}`]} />
+            <AppInput kind="dosage" label="Dosage" value={r.dosage} onChangeText={(v) => updateRx(i, { dosage: v })} placeholder="e.g. 250 mg" />
+            <AppInput kind="text" label="Frequency" value={r.frequency} onChangeText={(v) => updateRx(i, { frequency: v })} placeholder="e.g. Twice daily" />
+            <AppInput kind="integer" label="Duration (days)" value={r.durationDays} onChangeText={(v) => updateRx(i, { durationDays: v })} keyboardType="number-pad" />
+            <AppInput kind="text" label="Special instructions" value={r.instructions} onChangeText={(v) => updateRx(i, { instructions: v })} />
           </View>
         ))}
 
@@ -127,10 +128,10 @@ export const ConsultationNotesScreen: React.FC<Props> = ({ navigation, route }) 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   multi: { height: 90, textAlignVertical: 'top', paddingTop: 12 },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.mint },
-  addText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  addText: { color: colors.ink, fontWeight: '700', fontSize: 13 },
   hint: { fontSize: 13, color: colors.textSecondary, marginBottom: 16 },
   rxTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 10 },
-});
+}));

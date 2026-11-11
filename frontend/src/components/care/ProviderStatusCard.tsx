@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
@@ -7,13 +7,14 @@ import { AppButton } from '../common/AppButton';
 import { AppInput } from '../common/AppInput';
 import { careApi, Provider } from '../../api/careApi';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles, themedTable } from '../../theme/themed';
 
-const COPY = {
-  APPROVED: { label: 'Approved', icon: 'shield-checkmark' as const, color: colors.success, bg: '#ECFDF5', text: 'Your business is visible to pet owners nearby.' },
-  PENDING: { label: 'Pending review', icon: 'time' as const, color: colors.warning, bg: '#FFFBEB', text: 'An admin is reviewing your business. You will be notified once it is approved.' },
-  REJECTED: { label: 'Rejected', icon: 'close-circle' as const, color: colors.danger, bg: '#FEF2F2', text: 'Your profile was not approved. Fix the points below, then send it for approval again.' },
-  RESUBMITTED: { label: 'Sent for re-approval', icon: 'refresh-circle' as const, color: colors.info, bg: '#EFF6FF', text: 'An admin is reviewing your updated details. You will be notified with the result.' },
-};
+const COPY = themedTable(() => ({
+  APPROVED: { label: 'Approved', icon: 'shield-checkmark' as const, color: colors.success, bg: colors.successBg, text: 'Your business is visible to pet owners nearby.' },
+  PENDING: { label: 'Pending review', icon: 'time' as const, color: colors.warning, bg: colors.warnBg, text: 'An admin is reviewing your business. You will be notified once it is approved.' },
+  REJECTED: { label: 'Rejected', icon: 'close-circle' as const, color: colors.danger, bg: colors.dangerBg, text: 'Your profile was not approved. Fix the points below, then send it for approval again.' },
+  RESUBMITTED: { label: 'Sent for re-approval', icon: 'refresh-circle' as const, color: colors.info, bg: colors.infoBg, text: 'An admin is reviewing your updated details. You will be notified with the result.' },
+}));
 
 interface Props {
   profile: Provider;
@@ -42,13 +43,15 @@ export const ProviderStatusCard: React.FC<Props> = ({ profile, onChanged }) => {
 
   return (
     <View>
-      <View style={[styles.banner, { backgroundColor: v.bg }]}>
-        <Ionicons name={v.icon} size={24} color={v.color} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: v.color }]}>{v.label}</Text>
-          <Text style={styles.text}>{v.text}</Text>
+      {profile.verificationStatus !== 'APPROVED' && (
+        <View style={[styles.banner, { backgroundColor: v.bg }]}>
+          <Ionicons name={v.icon} size={24} color={v.color} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: v.color }]}>{v.label}</Text>
+            <Text style={styles.text}>{v.text}</Text>
+          </View>
         </View>
-      </View>
+      )}
 
       {!!profile.verificationReason && profile.verificationStatus !== 'PENDING' && (
         <View style={[shared.card, profile.verificationStatus === 'REJECTED' && styles.rejectedCard]}>
@@ -64,7 +67,7 @@ export const ProviderStatusCard: React.FC<Props> = ({ profile, onChanged }) => {
         <View style={shared.card}>
           <Text style={shared.label}>Fixed the issues?</Text>
           <Text style={styles.text}>Edit your details under Business profile, add new documents if the admin asked for them, then send it for approval again. The admin will see everything you changed.</Text>
-          <AppInput
+          <AppInput kind="note"
             label="Note to the admin (optional)"
             placeholder="e.g. I added my licence number"
             value={note}
@@ -80,10 +83,10 @@ export const ProviderStatusCard: React.FC<Props> = ({ profile, onChanged }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   banner: { flexDirection: 'row', gap: 12, alignItems: 'center', padding: 14, borderRadius: 14, marginBottom: 14 },
   title: { fontSize: 15, fontWeight: '800' },
   text: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
   rejectedCard: { borderColor: colors.danger, borderWidth: 1 },
   when: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
-});
+}));

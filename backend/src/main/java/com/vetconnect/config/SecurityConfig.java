@@ -53,6 +53,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/specializations/**").permitAll()
                         // a document opens through a short-lived signed link, which carries its own proof
                         .requestMatchers(HttpMethod.GET, "/api/documents/*/file").permitAll()
+                        // pet photos are shown on cards and screens; their names cannot be guessed
+                        .requestMatchers(HttpMethod.GET, "/api/pet-photos/*").permitAll()
+                        // a scanned pet QR code needs no account
+                        .requestMatchers(HttpMethod.GET, "/api/pet-finder/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/p/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/geo/**", "/api/care/config").permitAll()
                         // Role-based Endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

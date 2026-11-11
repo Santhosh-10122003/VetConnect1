@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { DOCUMENT_LABEL, DocumentType } from '../../api/documentApi';
 import type { QueuedDocument } from '../../utils/pendingDocuments';
 import { notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 const MAX_FILES = 8;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -65,18 +66,18 @@ export const DocumentsPicker: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 },
   hint: { fontSize: 12, color: colors.textMuted, lineHeight: 17, marginBottom: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.mint, borderRadius: 14, padding: 10, marginBottom: 8 },
-  icon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 13, fontWeight: '700', color: colors.text },
   meta: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4, marginBottom: 10 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: '#F1F5F9' },
+  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: colors.subtle },
   chipOn: { backgroundColor: colors.primary },
   chipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  upload: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.mintDark, borderRadius: 16, paddingVertical: 14, backgroundColor: '#FFFFFF' },
-  uploadText: { fontSize: 14, fontWeight: '800', color: colors.primary },
+  upload: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.mintDark, borderRadius: 16, paddingVertical: 14, backgroundColor: colors.card },
+  uploadText: { fontSize: 14, fontWeight: '800', color: colors.ink },
   small: { fontSize: 11, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
-});
+}));

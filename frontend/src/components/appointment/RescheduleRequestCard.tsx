@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
@@ -7,6 +7,7 @@ import type { Appointment } from '../../api/appointmentApi';
 import { AppButton } from '../common/AppButton';
 import { AppInput } from '../common/AppInput';
 import { confirmAction, hhmm } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   appt: Appointment;
@@ -55,7 +56,7 @@ export const RescheduleRequestCard: React.FC<Props> = ({ appt, busy, onApprove, 
 
       {declining ? (
         <View style={{ marginTop: 12 }}>
-          <AppInput
+          <AppInput kind="note"
             label="Reason for declining (required)"
             placeholder="e.g. That day is fully booked"
             value={reason}
@@ -79,16 +80,16 @@ export const RescheduleRequestCard: React.FC<Props> = ({ appt, busy, onApprove, 
   );
 };
 
-const styles = StyleSheet.create({
-  card: { borderColor: colors.warning, borderWidth: 1.5, backgroundColor: '#FFFBEB' },
+const styles = themedStyles(() => ({
+  card: { borderColor: colors.warning, borderWidth: 1.5, backgroundColor: colors.warnBg },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 16, fontWeight: '800', color: colors.text },
   intro: { fontSize: 13, color: colors.textSecondary, marginTop: 6, lineHeight: 19 },
   times: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12 },
-  timeBox: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border },
+  timeBox: { flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.border },
   newBox: { borderColor: colors.primary, backgroundColor: colors.mint },
   time: { fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 2 },
   note: { fontSize: 13, color: colors.text, marginTop: 10, fontStyle: 'italic' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   btn: { flex: 1, height: 46 },
-});
+}));

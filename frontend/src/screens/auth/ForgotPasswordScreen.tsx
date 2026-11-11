@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, Alert, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { AppHeader } from '../../components/common/AppHeader';
@@ -10,6 +10,7 @@ import { authApi } from '../../api/authApi';
 import { PhoneField, phoneForServer } from '../../components/common/PhoneField';
 import { phoneError } from '../../utils/validators';
 import { AuthStackParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
@@ -71,10 +72,10 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.canvas,
   },
   content: {
     padding: 24,
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.ink,
     marginBottom: 8,
   },
   successText: {
@@ -115,4 +116,4 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
-});
+}));

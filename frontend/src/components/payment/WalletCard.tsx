@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { walletApi } from '../../api/walletApi';
 import { money } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 /** The balance at a glance: tap it to see where the money came from. */
 export const WalletCard: React.FC<{ onPress: () => void }> = ({ onPress }) => {
@@ -29,10 +30,10 @@ export const WalletCard: React.FC<{ onPress: () => void }> = ({ onPress }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.primary, borderRadius: 20, padding: 16, marginBottom: 16 },
   icon: { width: 50, height: 50, borderRadius: 16, backgroundColor: colors.mintDark, alignItems: 'center', justifyContent: 'center' },
-  label: { color: colors.mintDark, fontSize: 12, fontWeight: '700' },
+  label: { color: colors.skyOnDark, fontSize: 12, fontWeight: '700' },
   balance: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginTop: 1 },
   sub: { color: '#9CA3AF', fontSize: 11, marginTop: 2 },
-});
+}));

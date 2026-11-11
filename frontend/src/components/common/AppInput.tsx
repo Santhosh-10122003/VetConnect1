@@ -3,19 +3,22 @@ import {
   View,
   TextInput,
   Text,
-  StyleSheet,
   TouchableOpacity,
   TextInputProps,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
+import { InputKind, cleanInput, inputCapitalize, inputError, inputKeyboard, inputMaxLength, stripEmoji, hasEmoji } from '../../utils/inputRules';
 
 interface AppInputProps extends TextInputProps {
   label?: string;
   error?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   isPassword?: boolean;
+  /** What the field holds: filters what can be typed (no emoji, only the characters that belong) and checks it on leaving. */
+  kind?: InputKind;
 }
 
 export const AppInput: React.FC<AppInputProps> = ({
@@ -23,11 +26,19 @@ export const AppInput: React.FC<AppInputProps> = ({
   error,
   icon,
   isPassword = false,
+  kind,
   style,
+  onChangeText,
+  onBlur,
   ...rest
 }) => {
   const [showPassword, setShowPassword] = useState(!isPassword);
   const [isFocused, setIsFocused] = useState(false);
+  const [leftBad, setLeftBad] = useState<string | null>(null);
+
+  // every field refuses emoji; a kind adds its own rules
+  const clean = (t: string) => (kind ? cleanInput(kind, t) : stripEmoji(t));
+  const shownError = error || leftBad || null;
 
   return (
     <View style={styles.container}>
@@ -37,7 +48,7 @@ export const AppInput: React.FC<AppInputProps> = ({
           styles.inputContainer,
           rest.multiline && styles.multilineContainer,
           isFocused && styles.focused,
-          error ? styles.errorBorder : null,
+          shownError ? styles.errorBorder : null,
         ]}
       >
         {icon && (
@@ -52,9 +63,18 @@ export const AppInput: React.FC<AppInputProps> = ({
           style={[styles.input, rest.multiline && styles.multilineInput, style]}
           placeholderTextColor={colors.textMuted}
           secureTextEntry={isPassword && !showPassword}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          keyboardType={kind ? inputKeyboard(kind) : undefined}
+          autoCapitalize={kind ? inputCapitalize(kind) : undefined}
+          maxLength={kind ? inputMaxLength(kind) : undefined}
           {...rest}
+          onChangeText={onChangeText ? (t) => { const c = clean(t); if (leftBad) setLeftBad(null); onChangeText(c); } : undefined}
+          onFocus={() => setIsFocused(true)}
+          onBlur={(e) => {
+            setIsFocused(false);
+            const v = typeof rest.value === 'string' ? rest.value : '';
+            setLeftBad(kind ? inputError(kind, v) : v && hasEmoji(v) ? 'Emoji and special symbols are not allowed' : null);
+            onBlur?.(e);
+          }}
         />
         {isPassword && (
           <TouchableOpacity
@@ -69,12 +89,12 @@ export const AppInput: React.FC<AppInputProps> = ({
           </TouchableOpacity>
         )}
       </View>
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {!!shownError && <Text style={styles.errorText}>{shownError}</Text>}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     marginBottom: 16,
   },
@@ -88,7 +108,7 @@ const styles = StyleSheet.create({
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 14,
@@ -109,7 +129,7 @@ const styles = StyleSheet.create({
   },
   focused: {
     borderColor: colors.primary,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   errorBorder: {
     borderColor: colors.danger,
@@ -135,4 +155,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
   },
-});
+}));

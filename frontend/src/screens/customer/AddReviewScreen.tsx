@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -11,6 +11,7 @@ import { AppInput } from '../../components/common/AppInput';
 import { AppButton } from '../../components/common/AppButton';
 import { CustomerStackParamList } from '../../navigation/types';
 import { getErrorMessage, notify, drName } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'AddReview'>;
 
@@ -52,7 +53,7 @@ export const AddReviewScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
           <Text style={styles.label}>{LABELS[rating] || 'Tap to rate'}</Text>
         </View>
-        <AppInput
+        <AppInput kind="note"
           label="Share more (optional)"
           value={comment}
           onChangeText={setComment}
@@ -67,9 +68,9 @@ export const AddReviewScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   q: { fontSize: 14, color: colors.textSecondary },
   name: { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 16 },
   stars: { flexDirection: 'row', gap: 8 },
-  label: { marginTop: 10, fontSize: 14, fontWeight: '600', color: colors.primary },
-});
+  label: { marginTop: 10, fontSize: 14, fontWeight: '600', color: colors.ink },
+}));

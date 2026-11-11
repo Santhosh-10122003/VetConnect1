@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
+import { View, Text, ScrollView, Linking } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -14,6 +14,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { DoctorStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, hhmm, money, notify, petAge, visibleEmail } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<DoctorStackParamList, 'DoctorAppointmentDetails'>;
 
@@ -147,8 +148,8 @@ export const DoctorAppointmentDetailsScreen: React.FC<Props> = ({ navigation, ro
   );
 };
 
-const styles = StyleSheet.create({
-  when: { fontSize: 13, fontWeight: '600', color: colors.primary },
+const styles = themedStyles(() => ({
+  when: { fontSize: 13, fontWeight: '600', color: colors.ink },
   reasonLabel: { marginTop: 14, fontSize: 12, fontWeight: '600', color: colors.textSecondary },
   cancel: { marginTop: 10, fontSize: 13, color: colors.danger },
-});
+}));

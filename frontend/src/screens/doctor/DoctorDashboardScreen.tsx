@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { useTour } from '../../tour/TourProvider';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps, useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,7 +18,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { DoctorStackParamList, DoctorTabParamList } from '../../navigation/types';
 import { drName, getErrorMessage, money, notify, todayIso } from '../../utils/helpers';
 import { useAuth } from '../../context/AuthContext';
-import { ScreenGuideModal } from '../../components/common/ScreenGuideModal';
+import { themedStyles } from '../../theme/themed';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<DoctorTabParamList, 'DoctorDashboard'>,
@@ -40,11 +41,11 @@ const Stat: React.FC<{ icon: keyof typeof Ionicons.glyphMap; value: string | num
 
 export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const tour = useTour();
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [appts, setAppts] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [guideVisible, setGuideVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -67,7 +68,8 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const todays = appts
     .filter((a) => a.appointmentDate === today && (a.status === 'CONFIRMED' || a.status === 'PENDING' || a.status === 'COMPLETED'))
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  const pending = appts.filter((a) => a.status === 'PENDING').length;
+  // bookings confirm themselves, so there is nothing to answer: this is just what is coming up
+  const upcoming = appts.filter((a) => a.status === 'CONFIRMED' && a.appointmentDate >= today).length;
   const month = today.substring(0, 7);
   const completedThisMonth = appts.filter((a) => a.status === 'COMPLETED' && a.appointmentDate.startsWith(month));
   const earnings = completedThisMonth.reduce((sum, a) => sum + (a.consultationFee || 0), 0);
@@ -75,9 +77,9 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={shared.screen}>
       <AppHeader
+        themeToggle
         title={drName(doctor.fullName)}
         subtitle="Today's dashboard"
-        rightAction={{ icon: 'compass-outline', onPress: () => setGuideVisible(true) }}
       />
       <ScrollView
         contentContainerStyle={shared.content}
@@ -101,9 +103,13 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <WalletCard onPress={() => navigation.navigate('DoctorWallet')} />
+        <View ref={tour.ref('doc-wallet') as any} collapsable={false}>
+          <WalletCard onPress={() => navigation.navigate('DoctorWallet')} />
+        </View>
 
-        <TodaySlotsCard onPress={() => navigation.navigate('DoctorSlots')} />
+        <View ref={tour.ref('doc-slots') as any} collapsable={false}>
+          <TodaySlotsCard onPress={() => navigation.navigate('DoctorSlots')} />
+        </View>
 
         {doctor.payoutComplete === false && (
           <TouchableOpacity style={styles.payoutWarn} onPress={() => navigation.navigate('DoctorTabs', { screen: 'DoctorProfile' })} activeOpacity={0.9} testID="payout-missing">
@@ -116,11 +122,11 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.stats}>
           <Stat icon="today-outline" value={todays.length} label="Today" tint={colors.primary} />
           <Stat
-            icon="hourglass-outline"
-            value={pending}
-            label="Pending requests"
+            icon="calendar-outline"
+            value={upcoming}
+            label="Upcoming"
             tint={colors.warning}
-            onPress={() => navigation.navigate('DoctorAppointments', { initialStatus: 'PENDING' })}
+            onPress={() => navigation.navigate('DoctorAppointments', { initialStatus: 'CONFIRMED' })}
           />
           <Stat icon="checkmark-done-outline" value={completedThisMonth.length} label="Completed (month)" tint={colors.success} />
           <Stat icon="cash-outline" value={money(earnings, 0)} label="Consult. fees (month)" tint={colors.info} />
@@ -141,37 +147,24 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* Screen Guide Interactive Modal if manually requested */}
-      <ScreenGuideModal
-        visible={guideVisible}
-        role="ROLE_DOCTOR"
-        userId={user?.userId}
-        onClose={() => setGuideVisible(false)}
-        onNavigateToScreen={(target) => {
-          setGuideVisible(false);
-          if (target.tab) {
-            navigation.navigate('DoctorTabs', { screen: target.tab as keyof DoctorTabParamList } as never);
-          }
-        }}
-      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  payoutWarn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FEF2F2', borderRadius: 14, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: '#FECACA' },
+const styles = themedStyles(() => ({
+  payoutWarn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.dangerBg, borderRadius: 14, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: colors.dangerBorder },
   payoutWarnText: { flex: 1, fontSize: 12, color: colors.text, lineHeight: 17 },
   banner: {
     flexDirection: 'row',
     gap: 10,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.warnBg,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.warnBorder,
     marginBottom: 16,
   },
-  bannerText: { flex: 1, fontSize: 13, color: '#92400E', lineHeight: 18 },
+  bannerText: { flex: 1, fontSize: 13, color: colors.warnText, lineHeight: 18 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   stat: {
     flexGrow: 1,
@@ -184,4 +177,4 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 24, fontWeight: '800', color: colors.text, marginTop: 6 },
   statLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-});
+}));

@@ -116,7 +116,8 @@ public class AppointmentService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .reason(request.getReason())
-                .status(AppointmentStatus.PENDING)
+                // booking a free slot is all it takes: the doctor does not have to approve it (they can still decline later)
+                .status(AppointmentStatus.CONFIRMED)
                 .notes(request.getNotes())
                 .build();
 
@@ -145,7 +146,7 @@ public class AppointmentService {
         return toDto(appointment);
     }
 
-    /** The request is in: tell the customer it was submitted and the doctor that there is something to answer. */
+    /** The slot is booked: tell the customer it is confirmed and the doctor that a visit was added to their day. */
     private void notifyRequested(Appointment appointment) {
         CustomerProfile customer = appointment.getCustomer();
         DoctorProfile doctor = appointment.getDoctor();
@@ -153,16 +154,16 @@ public class AppointmentService {
         String refCode = appointment.getBookingReference();
         notificationService.createNotification(
                 customer.getUser(),
-                "Appointment Requested",
-                "Your appointment request (" + refCode + ") with " + displayName(doctor) + " for " + pet.getName() + " on " + appointment.getAppointmentDate() + " at " + appointment.getStartTime() + " has been submitted.",
+                "Appointment Confirmed",
+                "Your appointment (" + refCode + ") with " + displayName(doctor) + " for " + pet.getName() + " on " + appointment.getAppointmentDate() + " at " + appointment.getStartTime() + " is booked.",
                 NotificationType.BOOKING_CONFIRMED,
                 refCode
         );
 
         notificationService.createNotification(
                 doctor.getUser(),
-                "New Appointment Request",
-                "New consultation booking (" + refCode + ") requested by " + customer.getFullName() + " for " + pet.getName() + " on " + appointment.getAppointmentDate() + " at " + appointment.getStartTime() + ".",
+                "New Appointment Booked",
+                "New consultation booking (" + refCode + ") booked by " + customer.getFullName() + " for " + pet.getName() + " on " + appointment.getAppointmentDate() + " at " + appointment.getStartTime() + ".",
                 NotificationType.STATUS_CHANGE,
                 refCode
         );
@@ -404,9 +405,6 @@ public class AppointmentService {
             log.warn("Appointment request rejected: {}", "Cannot reschedule completed or cancelled appointments");
             throw new BadRequestException("Cannot reschedule completed or cancelled appointments");
         }
-        if (appt.hasRescheduleRequest()) {
-            throw new BadRequestException("You already have a reschedule request waiting for the doctor. Withdraw it first to send another.");
-        }
         if (request.getStartTime().isAfter(request.getEndTime()) || request.getStartTime().equals(request.getEndTime())) {
             throw new BadRequestException("Start time must precede end time");
         }
@@ -416,30 +414,32 @@ public class AppointmentService {
         ensureSlotFree(appt.getDoctor().getId(), request.getAppointmentDate(), request.getStartTime(),
                 "The selected reschedule slot is already booked. Please choose another time.");
 
-        appt.setRescheduleDate(request.getAppointmentDate());
-        appt.setRescheduleStartTime(request.getStartTime());
-        appt.setRescheduleEndTime(request.getEndTime());
-        appt.setRescheduleNote(request.getNote() == null || request.getNote().isBlank() ? null : request.getNote().trim());
-        appt.setRescheduleRequestedAt(clock.instant());
+        // a free slot is all it takes: the appointment moves right away and the doctor is told
+        var oldDate = appt.getAppointmentDate();
+        var oldStart = appt.getStartTime();
+        appt.setAppointmentDate(request.getAppointmentDate());
+        appt.setStartTime(request.getStartTime());
+        appt.setEndTime(request.getEndTime());
+        appt.setStatus(AppointmentStatus.CONFIRMED);
+        appt.clearRescheduleRequest();
 
         appt = appointmentRepository.save(appt);
-        log.info("Reschedule requested: appointmentId={} userId={} to {} {}", appt.getId(), userId, request.getAppointmentDate(), request.getStartTime());
+        log.info("Appointment moved: appointmentId={} userId={} to {} {}", appt.getId(), userId, request.getAppointmentDate(), request.getStartTime());
 
+        String note = request.getNote() == null || request.getNote().isBlank() ? "" : " Note: " + request.getNote().trim();
         notificationService.createNotification(
                 appt.getDoctor().getUser(),
-                "Reschedule requested",
-                appt.getCustomer().getFullName() + " asked to move " + appt.getBookingReference() + " from " + appt.getAppointmentDate() + " "
-                        + appt.getStartTime() + " to " + request.getAppointmentDate() + " " + request.getStartTime()
-                        + (appt.getRescheduleNote() != null ? ". Note: " + appt.getRescheduleNote() : "") + ". Please approve or decline.",
+                "Appointment moved",
+                appt.getCustomer().getFullName() + " moved " + appt.getBookingReference() + " from " + oldDate + " " + oldStart
+                        + " to " + request.getAppointmentDate() + " " + request.getStartTime() + "." + note,
                 NotificationType.STATUS_CHANGE,
                 appt.getBookingReference()
         );
         notificationService.createNotification(
                 appt.getCustomer().getUser(),
-                "Reschedule request sent",
-                "Your request to move " + appt.getBookingReference() + " to " + request.getAppointmentDate() + " " + request.getStartTime()
-                        + " was sent to " + displayName(appt.getDoctor()) + ". Your current time stays until they approve.",
-                NotificationType.STATUS_CHANGE,
+                "New time confirmed",
+                "Your appointment " + appt.getBookingReference() + " is now on " + request.getAppointmentDate() + " at " + request.getStartTime() + " with " + displayName(appt.getDoctor()) + ".",
+                NotificationType.BOOKING_CONFIRMED,
                 appt.getBookingReference()
         );
         return toDto(appt);
@@ -655,13 +655,13 @@ public class AppointmentService {
     }
 
     private AppointmentDto afterPaid(Appointment appt) {
-        appt.setStatus(AppointmentStatus.PENDING);
+        appt.setStatus(AppointmentStatus.CONFIRMED);
         appt.setExpiresAt(null);
         appt = appointmentRepository.save(appt);
-        log.info("Appointment paid and requested: ref={}", appt.getBookingReference());
+        log.info("Appointment paid and confirmed: ref={}", appt.getBookingReference());
         notificationService.createNotification(appt.getCustomer().getUser(), "Payment received",
-                "We received your advance of " + money(appt.getAdvanceAmount(), appt) + " for " + appt.getBookingReference() + ". Waiting for "
-                        + displayName(appt.getDoctor()) + " to confirm.", NotificationType.BOOKING_CONFIRMED, appt.getBookingReference());
+                "We received your advance of " + money(appt.getAdvanceAmount(), appt) + " for " + appt.getBookingReference() + ". Your visit with "
+                        + displayName(appt.getDoctor()) + " is booked.", NotificationType.BOOKING_CONFIRMED, appt.getBookingReference());
         notifyRequested(appt);
         return toDto(appt);
     }

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -11,6 +11,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { BookingCard } from '../../components/care/BookingCard';
 import { CustomerStackParamList } from '../../navigation/types';
 import { money } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'CareBookings'>;
 type Tab = 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
@@ -76,12 +77,12 @@ export const CareBookingsScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  tabs: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: colors.border },
+const styles = themedStyles(() => ({
+  tabs: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: colors.background },
   tabActive: { backgroundColor: colors.primary },
   tabText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   foot: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
-  total: { fontSize: 14, fontWeight: '800', color: colors.primary },
+  total: { fontSize: 14, fontWeight: '800', color: colors.ink },
   pay: { fontSize: 12, fontWeight: '700', color: colors.warning },
-});
+}));

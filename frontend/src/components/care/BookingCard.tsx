@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { StatusBadge } from '../common/StatusBadge';
 import { CareBooking, categoryLabel } from '../../api/careApi';
 import { hhmm } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 export const careWhen = (b: CareBooking) =>
   b.checkOutDate ? `${b.date} to ${b.checkOutDate}${b.nights ? ` (${b.nights} night${b.nights === 1 ? '' : 's'})` : ''}` : `${b.date}${b.startTime ? ` · ${hhmm(b.startTime)}${b.endTime ? ' - ' + hhmm(b.endTime) : ''}` : ''}`;
@@ -46,10 +47,10 @@ export const BookingCard: React.FC<Props> = ({ booking: b, viewer, onPress, chil
   </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   ref: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   title: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 8 },
   sub: { fontSize: 13, color: colors.textSecondary, marginTop: 2, marginBottom: 6 },
   line: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   lineText: { fontSize: 13, color: colors.text, flex: 1 },
-});
+}));

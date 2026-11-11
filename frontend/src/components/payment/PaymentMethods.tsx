@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { getPaymentGateway } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 const METHODS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
   { icon: 'phone-portrait-outline', label: 'UPI' },
@@ -36,11 +37,11 @@ export const PaymentMethods: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  box: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
+const styles = themedStyles(() => ({
+  box: { backgroundColor: colors.card, borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
   title: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 10 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.mint, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: colors.mintBorder },
-  chipText: { fontSize: 12, fontWeight: '700', color: colors.primary },
+  chipText: { fontSize: 12, fontWeight: '700', color: colors.ink },
   note: { fontSize: 12, color: colors.textSecondary, marginTop: 8, lineHeight: 17 },
-});
+}));

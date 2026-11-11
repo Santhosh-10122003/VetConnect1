@@ -1,8 +1,9 @@
 import { DateField, toIso } from '../common/DateField';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { AvailableSlot } from '../../api/doctorApi';
+import { themedStyles } from '../../theme/themed';
 
 interface TimeSlotPickerProps {
   slots: AvailableSlot[];
@@ -36,6 +37,18 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
     }
     return list;
   }, []);
+
+  // Today, times that have already gone by are not shown at all (at 2 pm there is no 12 or 1 o'clock to pick).
+  const shown = React.useMemo(() => {
+    if (selectedDate !== toIso(new Date())) return slots;
+    const now = new Date();
+    const minutesNow = now.getHours() * 60 + now.getMinutes();
+    return slots.filter((slot) => {
+      const [h, m] = slot.startTime.split(':').map(Number);
+      return h * 60 + m > minutesNow;
+    });
+  }, [slots, selectedDate]);
+  const today = selectedDate === toIso(new Date());
 
   return (
     <View style={styles.container}>
@@ -71,18 +84,18 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
         })}
       </ScrollView>
 
-      <Text style={styles.sectionTitle}>Available Time Slots</Text>
+      <Text style={styles.sectionTitle}>Pick a time</Text>
       {loading ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Loading available slots...</Text>
+          <Text style={styles.emptyText}>Loading times...</Text>
         </View>
-      ) : slots.length === 0 ? (
+      ) : shown.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No available slots for this date. Please choose another date.</Text>
+          <Text style={styles.emptyText}>{today && slots.length > 0 ? 'No more times today. Please choose another day.' : 'No free times on this day. Please choose another day.'}</Text>
         </View>
       ) : (
         <View style={styles.slotsGrid}>
-          {slots.map((slot, index) => {
+          {shown.map((slot, index) => {
             const isSelected =
               selectedSlot &&
               selectedSlot.date === slot.date &&
@@ -118,7 +131,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   quickLabel: { fontSize: 12, color: '#6B7280', marginBottom: 8, marginTop: -6 },
   container: {
     marginVertical: 10,
@@ -137,7 +150,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 84,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
     borderColor: colors.border,
     alignItems: 'center',
@@ -176,15 +189,15 @@ const styles = StyleSheet.create({
     width: '30%',
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderWidth: 1.5,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   disabledSlot: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
+    backgroundColor: colors.subtle,
+    borderColor: colors.border,
     opacity: 0.5,
   },
   selectedSlot: {
@@ -205,7 +218,7 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -216,4 +229,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-});
+}));

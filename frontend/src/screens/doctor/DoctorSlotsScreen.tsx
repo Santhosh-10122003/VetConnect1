@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, RefreshControl, TouchableOpacity, ScrollView, Animated, Easing, Linking } from 'react-native';
+import { View, Text, RefreshControl, TouchableOpacity, ScrollView, Animated, Easing, Linking } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { KeyboardAvoid } from '../../components/common/KeyboardScroll';
 import { EmptyState } from '../../components/common/EmptyState';
 import { DoctorStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, hhmm, notify, todayIso } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<DoctorStackParamList, 'DoctorSlots'>;
 
@@ -197,7 +198,7 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
             const on = x.iso === date;
             return (
               <TouchableOpacity key={x.iso} style={[styles.dayChip, on && styles.dayChipOn]} onPress={() => pick(x.iso)} activeOpacity={0.85} testID={`day-${x.iso}`}>
-                <Text style={[styles.dayLabel, on && { color: colors.mintDark }]}>{x.label}</Text>
+                <Text style={[styles.dayLabel, on && { color: colors.skyOnDark }]}>{x.label}</Text>
                 <Text style={[styles.dayNum, on && { color: '#FFFFFF' }]}>{x.num}</Text>
               </TouchableOpacity>
             );
@@ -213,7 +214,7 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.heroDay}>{d.getDate()} {MONTH[d.getMonth()]}</Text>
           <View style={styles.bar}>
             {counts.BOOKED > 0 && <View style={[styles.barSeg, { flex: counts.BOOKED, backgroundColor: colors.secondary }]} />}
-            {counts.BLOCKED > 0 && <View style={[styles.barSeg, { flex: counts.BLOCKED, backgroundColor: '#FFFFFF' }]} />}
+            {counts.BLOCKED > 0 && <View style={[styles.barSeg, { flex: counts.BLOCKED, backgroundColor: colors.card }]} />}
             {counts.AVAILABLE > 0 && <View style={[styles.barSeg, { flex: counts.AVAILABLE, backgroundColor: 'rgba(255,255,255,0.18)' }]} />}
             {usable === 0 && <View style={[styles.barSeg, { flex: total, backgroundColor: 'rgba(255,255,255,0.18)' }]} />}
           </View>
@@ -278,12 +279,12 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.sheetTitle}>{selected.length} slot{selected.length === 1 ? '' : 's'} selected</Text>
             <Text style={styles.sheetSub}>{[...selected].sort().map(hhmm).join(' · ')}</Text>
             <Text style={styles.formHint}>Booking for someone? Add their details (optional).</Text>
-            <AppInput label="Customer name" placeholder="Ravi Kumar" value={custName} onChangeText={setCustName} icon="person-outline" autoCapitalize="words" testID="block-name"
+            <AppInput kind="name" label="Customer name" placeholder="Ravi Kumar" value={custName} onChangeText={setCustName} icon="person-outline" autoCapitalize="words" testID="block-name"
               error={tried && !custName.trim() && custPhone.replace(/[s+]/g, '').length > 2 ? 'Enter the customer name' : undefined} />
             <PhoneField label="Mobile number" value={custPhone} onChange={setCustPhone} forceError={tried && custName.trim().length > 0} testID="block-phone" />
             <View style={styles.sheetBtns}>
               <TouchableOpacity style={[styles.sheetBtn, styles.sheetBtnLight]} onPress={() => setSelected([])} activeOpacity={0.85} testID="clear-selection">
-                <Text style={[styles.sheetBtnText, { color: colors.primary }]}>Clear</Text>
+                <Text style={[styles.sheetBtnText, { color: colors.ink }]}>Clear</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.sheetBtn, { flex: 2, marginTop: 0 }]} onPress={blockSelected} disabled={busy} activeOpacity={0.85} testID="block-selected">
                 <Ionicons name="remove-circle-outline" size={16} color="#FFFFFF" />
@@ -305,7 +306,7 @@ export const DoctorSlotsScreen: React.FC<Props> = ({ navigation }) => {
               {!!focused.customerPhone && callButton(focused.customerPhone, 'call-customer')}
               {focused.appointmentId != null && (
                 <TouchableOpacity style={[styles.sheetBtn, !!focused.customerPhone && { backgroundColor: colors.mint, marginTop: 8 }]} onPress={() => navigation.navigate('DoctorAppointmentDetails', { appointmentId: focused.appointmentId! })} activeOpacity={0.85} testID="open-appointment">
-                  <Text style={[styles.sheetBtnText, !!focused.customerPhone && { color: colors.primary }]}>Open appointment</Text>
+                  <Text style={[styles.sheetBtnText, !!focused.customerPhone && { color: colors.ink }]}>Open appointment</Text>
                   <Ionicons name="arrow-forward" size={16} color={focused.customerPhone ? colors.primary : '#FFFFFF'} />
                 </TouchableOpacity>
               )}
@@ -346,15 +347,15 @@ const Legend: React.FC<{ color: string; label: string }> = ({ color, label }) =>
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   days: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, gap: 8 },
-  dayChip: { width: 58, paddingVertical: 10, borderRadius: 18, alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.border },
+  dayChip: { width: 58, paddingVertical: 10, borderRadius: 18, alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   dayChipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   dayLabel: { fontSize: 11, fontWeight: '700', color: colors.textSecondary },
   dayNum: { fontSize: 19, fontWeight: '800', color: colors.text, marginTop: 2 },
 
   hero: { backgroundColor: colors.primary, borderRadius: 24, marginHorizontal: 16, marginTop: 4, padding: 18 },
-  heroDate: { color: colors.mintDark, fontSize: 13, fontWeight: '700' },
+  heroDate: { color: colors.skyOnDark, fontSize: 13, fontWeight: '700' },
   heroDay: { color: '#FFFFFF', fontSize: 30, fontWeight: '800', marginTop: 2 },
   bar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', marginTop: 14, gap: 2 },
   barSeg: { height: 10, borderRadius: 5 },
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
   tools: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18 },
   toolsHint: { fontSize: 12, color: colors.textSecondary },
   toolBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.mint, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.mintDark },
-  toolBtnText: { fontSize: 12, fontWeight: '800', color: colors.primary },
+  toolBtnText: { fontSize: 12, fontWeight: '800', color: colors.ink },
 
   secHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   secTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
@@ -377,11 +378,11 @@ const styles = StyleSheet.create({
   tileTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tileTime: { fontSize: 15, fontWeight: '800', color: colors.text },
   tileSub: { fontSize: 11, color: colors.textSecondary, marginTop: 3 },
-  tFree: { backgroundColor: '#FFFFFF', borderColor: colors.border },
+  tFree: { backgroundColor: colors.card, borderColor: colors.border },
   tSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   tBooked: { backgroundColor: colors.mint, borderColor: colors.mintDark },
   tBlocked: { backgroundColor: '#14171C', borderColor: '#14171C' },
-  tMuted: { backgroundColor: '#F1F5F9', borderColor: '#F1F5F9' },
+  tMuted: { backgroundColor: colors.subtle, borderColor: colors.subtle },
   tFocus: { borderColor: colors.secondary, borderWidth: 2.5 },
 
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 20 },
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
   legendText: { fontSize: 11, color: colors.textSecondary },
 
   sheet: {
-    position: 'absolute', left: 12, right: 12, bottom: 14, backgroundColor: '#FFFFFF', borderRadius: 26, padding: 18,
+    position: 'absolute', left: 12, right: 12, bottom: 14, backgroundColor: colors.card, borderRadius: 26, padding: 18,
     borderWidth: 1, borderColor: colors.border,
     shadowColor: '#000000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 12,
   },
@@ -405,4 +406,4 @@ const styles = StyleSheet.create({
   sheetBtn: { flex: 1, height: 50, borderRadius: 25, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14 },
   sheetBtnLight: { backgroundColor: colors.mint, marginTop: 0 },
   sheetBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-});
+}));

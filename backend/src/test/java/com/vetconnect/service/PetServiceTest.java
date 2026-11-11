@@ -37,6 +37,7 @@ class PetServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AppointmentRepository appointmentRepository;
     @Mock private CareBookingRepository careBookingRepository;
+    @Mock private PetPhotoStore photoStore;
 
     @InjectMocks private PetService petService;
 

@@ -33,6 +33,7 @@ public class PetService {
     private final UserRepository userRepository;
     private final AppointmentRepository appointmentRepository;
     private final CareBookingRepository careBookingRepository;
+    private final PetPhotoStore photoStore;
 
     @Transactional(readOnly = true)
     public List<PetDto> getCustomerPets(Long userId) {
@@ -83,7 +84,7 @@ public class PetService {
                 .weight(request.getWeight())
                 .allergies(request.getAllergies())
                 .existingConditions(request.getExistingConditions())
-                .microchipNumber(request.getMicrochipNumber())
+                .microchipNumber(newIdNumber()) // made by the app: whatever the request says is ignored
                 .avatarUrl(request.getAvatarUrl())
                 .build();
 
@@ -108,7 +109,8 @@ public class PetService {
         pet.setWeight(request.getWeight());
         pet.setAllergies(request.getAllergies());
         pet.setExistingConditions(request.getExistingConditions());
-        pet.setMicrochipNumber(request.getMicrochipNumber());
+        // the ID number never changes once it has been made
+        if (pet.getMicrochipNumber() == null || pet.getMicrochipNumber().isBlank()) pet.setMicrochipNumber(newIdNumber());
         if (request.getAvatarUrl() != null) pet.setAvatarUrl(request.getAvatarUrl());
 
         pet = petRepository.save(pet);
@@ -129,7 +131,49 @@ public class PetService {
             throw new BadRequestException("This pet has appointment or pet-care booking history and cannot be deleted.");
         }
         petRepository.delete(pet);
+        photoStore.delete(pet.getAvatarUrl());
         log.info("Pet deleted: petId={} customerId={}", petId, customer.getId());
+    }
+
+    private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
+
+    /** A new 15-digit ID that no other pet has: 999 and twelve random digits (a million million possibilities, so it cannot be guessed). */
+    String newIdNumber() {
+        for (int i = 0; i < 20; i++) {
+            String candidate = String.format("999%012d", Math.floorMod(RANDOM.nextLong(), 1_000_000_000_000L));
+            if (!petRepository.existsByMicrochipNumber(candidate)) return candidate;
+        }
+        throw new IllegalStateException("Could not make a unique pet ID number");
+    }
+
+    private Pet ownPet(Long petId, Long userId) {
+        CustomerProfile customer = customerProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+        return petRepository.findByIdAndCustomerId(petId, customer.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found or not owned by you: " + petId));
+    }
+
+    /** Sets (or replaces) the pet's profile photo. */
+    @Transactional
+    public PetDto setPhoto(Long petId, Long userId, org.springframework.web.multipart.MultipartFile file) {
+        Pet pet = ownPet(petId, userId);
+        String url = photoStore.save(file);
+        String old = pet.getAvatarUrl();
+        pet.setAvatarUrl(url);
+        pet = petRepository.save(pet);
+        photoStore.delete(old);
+        log.info("Pet photo set: petId={}", petId);
+        return toDto(pet);
+    }
+
+    @Transactional
+    public PetDto removePhoto(Long petId, Long userId) {
+        Pet pet = ownPet(petId, userId);
+        String old = pet.getAvatarUrl();
+        pet.setAvatarUrl(null);
+        pet = petRepository.save(pet);
+        photoStore.delete(old);
+        return toDto(pet);
     }
 
     public PetDto toDto(Pet p) {

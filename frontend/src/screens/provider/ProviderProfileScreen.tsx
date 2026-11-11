@@ -28,7 +28,7 @@ const toForm = (p: Provider): ProviderFormValues => ({
   categories: p.categories,
   location: {
     country: p.country ?? '', state: p.state ?? '', city: p.city, postalCode: p.postalCode ?? '',
-    latitude: p.latitude ?? undefined, longitude: p.longitude ?? undefined,
+    latitude: p.latitude ?? undefined, longitude: p.longitude ?? undefined, pinConfirmed: p.latitude != null,
   },
   payout: payoutFromProvider(p),
 });

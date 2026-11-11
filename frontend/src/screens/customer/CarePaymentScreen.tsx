@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { careWhat, careWhen } from '../../components/care/BookingCard';
 import { CustomerStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, money, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'CarePayment'>;
 type Busy = 'pay' | 'fail' | 'retry' | 'cancel' | null;
@@ -63,7 +64,7 @@ export const CarePaymentScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const cancelHold = async () => {
-    if (!(await confirmAction('Cancel booking', 'Nothing has been charged. The held slot will be released.', 'Cancel booking', true))) return;
+    if (!(await confirmAction('Cancel this booking?', 'Nothing has been charged. The time we are holding for you will be released.', 'Cancel booking', true))) return;
     await run('cancel', async () => { await careApi.cancel(booking.id); goCare(); });
   };
 
@@ -74,9 +75,9 @@ export const CarePaymentScreen: React.FC<Props> = ({ navigation, route }) => {
         <ScrollView contentContainerStyle={shared.content}>
           <View style={[shared.card, styles.center]}>
             <Ionicons name="checkmark-circle" size={64} color={colors.success} />
-            <Text style={styles.big} testID="pay-success">Request sent!</Text>
+            <Text style={styles.big} testID="pay-success">Booking confirmed!</Text>
             <Text style={styles.sub}>
-              We received your advance of {money(payment?.amount ?? booking.advanceAmount)}. {booking.providerName} will confirm your booking shortly.
+              We received your advance of {money(payment?.amount ?? booking.advanceAmount)}. Your booking with {booking.providerName} is confirmed.
             </Text>
             <Text style={styles.ref}>{booking.reference}</Text>
           </View>
@@ -102,7 +103,7 @@ export const CarePaymentScreen: React.FC<Props> = ({ navigation, route }) => {
             <Ionicons name="time-outline" size={56} color={colors.warning} />
             <Text style={styles.big} testID="pay-ended">{held ? 'The hold has ended' : 'This booking is closed'}</Text>
             <Text style={styles.sub}>
-              {held ? 'The slot was released because the advance was not paid in time. Nothing was charged. Please book again.' : 'There is nothing to pay for this booking.'}
+              {held ? 'Your time was released because the advance was not paid in time. Nothing was charged. Please book again.' : 'There is nothing to pay for this booking.'}
             </Text>
           </View>
           <AppButton title="Back to Pet Care" onPress={goCare} />
@@ -155,7 +156,7 @@ export const CarePaymentScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   center: { alignItems: 'center' },
   big: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10, textAlign: 'center' },
   sub: { fontSize: 13, color: colors.textSecondary, marginTop: 4, lineHeight: 19 },
@@ -164,9 +165,9 @@ const styles = StyleSheet.create({
   lines: { marginTop: 12, gap: 6 },
   val: { fontSize: 13, fontWeight: '700', color: colors.text },
   totalRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
-  timer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFBEB', borderRadius: 12, padding: 10, marginBottom: 14 },
+  timer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.warnBg, borderRadius: 12, padding: 10, marginBottom: 14 },
   timerText: { fontSize: 13, color: colors.text },
   due: { backgroundColor: colors.primary, borderRadius: 16, padding: 18, marginBottom: 14, alignItems: 'center' },
-  dueLabel: { color: '#DBEAFE', fontSize: 13, fontWeight: '700' },
+  dueLabel: { color: colors.infoBorder, fontSize: 13, fontWeight: '700' },
   dueValue: { color: '#FFFFFF', fontSize: 32, fontWeight: '800' },
-});
+}));

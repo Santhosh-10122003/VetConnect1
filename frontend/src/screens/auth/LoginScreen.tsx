@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -19,6 +18,7 @@ import { AuthStackParamList } from '../../navigation/types';
 import { getErrorMessage } from '../../utils/helpers';
 import { PhoneField, phoneForServer } from '../../components/common/PhoneField';
 import { phoneError } from '../../utils/validators';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -150,10 +150,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   keyboardView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.canvas,
   },
   scrollContent: {
     padding: 24,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   demoTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.ink,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   demoChip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 8,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   demoChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.ink,
   },
   form: {
     marginTop: 4,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 13,
-    color: colors.primary,
+    color: colors.ink,
     fontWeight: '600',
   },
   errorMessage: {
@@ -254,6 +254,6 @@ const styles = StyleSheet.create({
   signupLink: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.ink,
   },
-});
+}));

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { DOCUMENT_LABEL, DocumentType, VerificationDocument, documentApi } from '../../api/documentApi';
 import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 const sizeText = (b: number) => (b >= 1024 * 1024 ? `${(b / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
@@ -120,7 +121,7 @@ export const DocumentsCard: React.FC<{ types: DocumentType[]; hint: string; edit
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 15, fontWeight: '800', color: colors.text },
   hint: { fontSize: 12, color: colors.textSecondary, marginTop: 6, marginBottom: 10, lineHeight: 17 },
@@ -130,12 +131,12 @@ const styles = StyleSheet.create({
   name: { fontSize: 13, fontWeight: '700', color: colors.text },
   meta: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   action: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: colors.mint },
-  actionText: { fontSize: 12, fontWeight: '800', color: colors.primary },
+  actionText: { fontSize: 12, fontWeight: '800', color: colors.ink },
   remove: { padding: 6 },
   upload: { marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 13 },
   uploadText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   small: { fontSize: 11, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
-});
+}));
 
 /** For the admin: what an applicant uploaded, so it can be checked against the council or municipal records. */
 export const ApplicantDocuments: React.FC<{ ownerType: 'DOCTOR' | 'PROVIDER'; ownerId: number; newSince?: string }> = ({ ownerType, ownerId, newSince }) => {

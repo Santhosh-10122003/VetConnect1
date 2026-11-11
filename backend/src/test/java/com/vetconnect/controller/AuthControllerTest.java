@@ -1,8 +1,6 @@
 package com.vetconnect.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vetconnect.common.security.CustomUserDetailsService;
-import com.vetconnect.common.security.JwtTokenProvider;
 import com.vetconnect.domain.enums.Role;
 import com.vetconnect.dto.auth.AuthResponse;
 import com.vetconnect.dto.auth.LoginRequest;

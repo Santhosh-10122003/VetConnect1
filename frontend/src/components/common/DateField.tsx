@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Modal } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   label?: string;
@@ -67,6 +68,7 @@ export const DateField: React.FC<Props> = ({
             'aria-label': label || placeholder,
             'data-testid': testID,
             onChange: (e: any) => onChange(e.target.value),
+            onClick: (e: any) => { try { e.currentTarget.showPicker?.(); } catch { /* the browser decides */ } },
             style: {
               flex: 1,
               border: 'none',
@@ -74,6 +76,9 @@ export const DateField: React.FC<Props> = ({
               background: 'transparent',
               fontSize: 15,
               fontFamily: 'inherit',
+              colorScheme: 'light',
+              minHeight: 48,
+              cursor: 'pointer',
               color: value ? colors.text : colors.textMuted,
             },
           })}
@@ -108,7 +113,7 @@ export const DateField: React.FC<Props> = ({
           <View style={styles.sheetBackdrop}>
             <View style={styles.sheet}>
               <View style={styles.sheetHeader}>
-                <TouchableOpacity onPress={() => setOpen(false)}>
+                <TouchableOpacity onPress={() => { if (!value) onChange(toIso(current)); setOpen(false); }}>
                   <Text style={styles.sheetAction}>Done</Text>
                 </TouchableOpacity>
               </View>
@@ -116,6 +121,9 @@ export const DateField: React.FC<Props> = ({
                 value={current}
                 mode="date"
                 display="spinner"
+                themeVariant="light"
+                textColor="#000000"
+                style={{ height: 216 }}
                 minimumDate={minimumDate}
                 maximumDate={maximumDate}
                 onChange={(e, d) => {
@@ -130,7 +138,7 @@ export const DateField: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
   box: {
@@ -141,16 +149,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
   },
   errorBorder: { borderColor: colors.danger },
   value: { flex: 1, fontSize: 15, color: colors.text },
   placeholder: { color: colors.textMuted },
   error: { color: colors.danger, fontSize: 12, marginTop: 4 },
   clear: { alignSelf: 'flex-start', marginTop: 6 },
-  clearText: { color: colors.primary, fontWeight: '700', fontSize: 12 },
+  clearText: { color: colors.ink, fontWeight: '700', fontSize: 12 },
   sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#FFFFFF', paddingBottom: 24, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  sheet: { backgroundColor: colors.card, paddingBottom: 24, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'flex-end', padding: 14 },
-  sheetAction: { color: colors.primary, fontWeight: '800', fontSize: 16 },
-});
+  sheetAction: { color: colors.ink, fontWeight: '800', fontSize: 16 },
+}));

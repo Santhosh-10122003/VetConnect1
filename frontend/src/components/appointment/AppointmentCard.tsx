@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { StatusBadge } from '../common/StatusBadge';
 import { Appointment } from '../../api/appointmentApi';
 import { drName } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -38,7 +39,7 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
         <View style={styles.reschedTag} testID="reschedule-tag">
           <Ionicons name="swap-horizontal" size={14} color={colors.warning} />
           <Text style={styles.reschedTagText} numberOfLines={1}>
-            {isDoctorView ? 'Reschedule requested' : 'Reschedule pending'}: {appointment.rescheduleRequest.appointmentDate} {appointment.rescheduleRequest.startTime.substring(0, 5)}
+            {isDoctorView ? 'Reschedule requested' : 'New time requested'}: {appointment.rescheduleRequest.appointmentDate} {appointment.rescheduleRequest.startTime.substring(0, 5)}
           </Text>
         </View>
       )}
@@ -116,11 +117,11 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  reschedTag: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFFBEB', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10, borderWidth: 1, borderColor: '#FDE68A' },
-  reschedTagText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#92400E' },
+const styles = themedStyles(() => ({
+  reschedTag: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.warnBg, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10, borderWidth: 1, borderColor: colors.warnBorder },
+  reschedTagText: { flex: 1, fontSize: 12, fontWeight: '700', color: colors.warnText },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 14,
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   refCode: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.ink,
     letterSpacing: 0.5,
   },
   datetimeBanner: {
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.ink,
   },
   timeBlock: {
     flexDirection: 'row',
@@ -178,7 +179,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.ink,
   },
   body: {
     gap: 10,
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.subtle,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -215,7 +216,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   reasonBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderRadius: 8,
     padding: 8,
     marginTop: 4,
@@ -248,15 +249,15 @@ const styles = StyleSheet.create({
   detailsBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.ink,
   },
   cancelBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerBg,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: colors.dangerBorder,
   },
   cancelBtnText: {
     fontSize: 12,
@@ -277,4 +278,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

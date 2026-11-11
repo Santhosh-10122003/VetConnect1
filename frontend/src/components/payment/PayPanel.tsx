@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import type { CarePayment } from '../../api/careApi';
@@ -7,6 +7,7 @@ import { AppButton } from '../common/AppButton';
 import { PaymentMethods } from './PaymentMethods';
 import { RazorpayCheckout, CheckoutSuccess } from './RazorpayCheckout';
 import { money } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Busy = 'pay' | 'fail' | 'retry' | null;
 
@@ -75,8 +76,8 @@ export const PayPanel: React.FC<Props> = ({ payment, amount, description, prefil
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   test: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: colors.mint, borderRadius: 12, padding: 12, marginBottom: 14 },
   testText: { flex: 1, fontSize: 12, color: colors.text, lineHeight: 17 },
   failed: { color: colors.danger, fontSize: 13, marginBottom: 10, textAlign: 'center' },
-});
+}));

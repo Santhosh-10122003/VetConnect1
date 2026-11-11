@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -14,19 +14,19 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { BookingCard } from '../../components/care/BookingCard';
 import { ProviderStackParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, money, notify, todayIso } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderBookings'>;
-type Group = 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+type Group = 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 
 const TABS: { key: Group; label: string }[] = [
-  { key: 'REQUESTED', label: 'Requests' },
-  { key: 'CONFIRMED', label: 'Confirmed' },
+  { key: 'CONFIRMED', label: 'Upcoming' },
   { key: 'COMPLETED', label: 'Done' },
   { key: 'CANCELLED', label: 'Cancelled' },
 ];
 
 export const ProviderBookingsScreen: React.FC<Props> = ({ navigation, route }) => {
-  const [group, setGroup] = useState<Group>(route.params?.group ?? 'REQUESTED');
+  const [group, setGroup] = useState<Group>((route.params?.group === 'REQUESTED' ? 'CONFIRMED' : route.params?.group) ?? 'CONFIRMED');
   const [items, setItems] = useState<CareBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -94,7 +94,7 @@ export const ProviderBookingsScreen: React.FC<Props> = ({ navigation, route }) =
           keyExtractor={(b) => String(b.id)}
           contentContainerStyle={shared.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(group); }} />}
-          ListEmptyComponent={<EmptyState icon="calendar-outline" title="Nothing here" message={group === 'REQUESTED' ? 'New requests from pet owners will show up here.' : 'No bookings in this list yet.'} />}
+          ListEmptyComponent={<EmptyState icon="calendar-outline" title="Nothing here" message={group === 'CONFIRMED' ? 'New bookings from pet owners show up here as soon as they pay.' : 'No bookings in this list yet.'} />}
           renderItem={({ item: b }) => {
             const open = asking?.id === b.id;
             const canComplete = b.date <= todayIso();
@@ -109,7 +109,7 @@ export const ProviderBookingsScreen: React.FC<Props> = ({ navigation, route }) =
 
                 {open ? (
                   <View style={{ marginTop: 12 }}>
-                    <AppInput
+                    <AppInput kind="note"
                       label={asking!.kind === 'reject' ? 'Why are you declining? (the customer sees this)' : 'Why are you cancelling? (the customer sees this)'}
                       placeholder="e.g. We are fully booked that day"
                       value={reason}
@@ -147,7 +147,7 @@ export const ProviderBookingsScreen: React.FC<Props> = ({ navigation, route }) =
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   money: { marginTop: 10, padding: 10, borderRadius: 10, backgroundColor: colors.mint, gap: 2 },
   moneyText: { fontSize: 12, color: colors.textSecondary },
   bold: { fontWeight: '800', color: colors.text },
@@ -157,4 +157,4 @@ const styles = StyleSheet.create({
   btn: { flex: 1, height: 44 },
   hint: { fontSize: 11, color: colors.textSecondary, marginTop: 6 },
   refundNote: { fontSize: 11, color: colors.textSecondary, marginTop: -8, marginBottom: 4 },
-});
+}));

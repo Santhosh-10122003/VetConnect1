@@ -276,10 +276,10 @@ class CareBookingServiceTest {
     // ================================================================== paying
 
     @Test
-    void payingTheAdvanceSendsTheRequestToTheProvider() {
+    void payingTheAdvanceConfirmsTheBookingAndNotifiesTheProvider() {
         CareBooking b = paidBooking("2027-03-08", "10:00");
 
-        assertEquals(CareBookingStatus.REQUESTED, b.getStatus());
+        assertEquals(CareBookingStatus.CONFIRMED, b.getStatus());
         assertNull(b.getExpiresAt(), "a paid booking no longer expires");
         assertEquals(PaymentStatus.PAID, payments.get(0).getStatus());
         verify(notificationService).createNotification(eq(providerUser), any(), any(), eq(NotificationType.CARE_BOOKING_REQUEST), any());
@@ -301,7 +301,7 @@ class CareBookingServiceTest {
         assertEquals(2, payments.size());
 
         service.settleTestPayment(10L, dto.getId(), Outcome.SUCCESS);
-        assertEquals(CareBookingStatus.REQUESTED, b.getStatus());
+        assertEquals(CareBookingStatus.CONFIRMED, b.getStatus());
     }
 
     @Test
@@ -413,10 +413,10 @@ class CareBookingServiceTest {
     // ================================================================== provider actions
 
     @Test
-    void theProviderAcceptsThenCompletesOnTheDay() {
+    void aPaidBookingIsCompletedOnTheDay() {
         CareBooking b = paidBooking("2027-03-08", "10:00");
 
-        assertEquals(CareBookingStatus.CONFIRMED, service.accept(20L, 900L).getStatus());
+        assertEquals(CareBookingStatus.CONFIRMED, b.getStatus(), "no approval step: paying confirms it");
         verify(notificationService).createNotification(eq(customerUser), eq("Booking confirmed"), any(), any(), any());
 
         BadRequestException early = assertThrows(BadRequestException.class, () -> service.complete(20L, 900L));
@@ -427,22 +427,15 @@ class CareBookingServiceTest {
     }
 
     @Test
-    void rejectingNeedsAReasonAndRefundsInFull() {
-        CareBooking b = paidBooking("2027-03-02", "09:00");   // even inside the 24 hour window
+    void aBookingThatIsAlreadyConfirmedCannotBeRejectedOnlyCancelled() {
+        paidBooking("2027-03-02", "09:00");
 
-        assertThrows(BadRequestException.class, () -> service.reject(20L, 900L, "  "));
-        BookingDto dto = service.reject(20L, 900L, "Fully booked that day");
-
-        assertEquals(CareBookingStatus.REJECTED, dto.getStatus());
-        assertEquals("PROVIDER", dto.getCancelledBy());
-        assertEquals(List.of(b.getAdvanceAmount()), refunds, "a provider decision always refunds everything");
-        verify(notificationService).createNotification(eq(customerUser), eq("Booking declined"), contains("Fully booked"), any(), any());
+        assertThrows(BadRequestException.class, () -> service.reject(20L, 900L, "Fully booked that day"));
     }
 
     @Test
     void aProviderCancellingAConfirmedBookingRefundsInFull() {
         CareBooking b = paidBooking("2027-03-02", "09:00");
-        service.accept(20L, 900L);
 
         assertThrows(BadRequestException.class, () -> service.cancelByProvider(20L, 900L, null));
         BookingDto dto = service.cancelByProvider(20L, 900L, "Groomer is ill");
@@ -455,10 +448,9 @@ class CareBookingServiceTest {
     void stepsOutOfOrderAreRefused() {
         paidBooking("2027-03-08", "10:00");
 
-        assertThrows(BadRequestException.class, () -> service.complete(20L, 900L), "complete before accepting");
-        service.accept(20L, 900L);
-        assertThrows(BadRequestException.class, () -> service.accept(20L, 900L), "accept twice");
-        assertThrows(BadRequestException.class, () -> service.reject(20L, 900L, "too late"), "reject after accepting");
+        assertThrows(BadRequestException.class, () -> service.complete(20L, 900L), "complete before the day");
+        assertThrows(BadRequestException.class, () -> service.accept(20L, 900L), "nothing to accept: it is already confirmed");
+        assertThrows(BadRequestException.class, () -> service.reject(20L, 900L, "too late"), "reject after confirming");
     }
 
     @Test
@@ -474,7 +466,6 @@ class CareBookingServiceTest {
     @Test
     void aCompletedBookingCanBeReviewedOnce_andTheProviderRatingIsUpdated() {
         CareBooking b = paidBooking("2027-03-08", "10:00");
-        service.accept(20L, 900L);
         b.setBookingDate(TODAY);
         service.complete(20L, 900L);
         when(reviewRepository.save(any())).thenAnswer(i -> {

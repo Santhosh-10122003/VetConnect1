@@ -1,6 +1,6 @@
 import { ClinicLocationCard } from '../../components/common/ClinicLocationCard';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -12,6 +12,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { CustomerStackParamList } from '../../navigation/types';
 import { getErrorMessage, hhmm, notify, drName, money } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<CustomerStackParamList, 'BookingSummary'>;
 
@@ -46,14 +47,14 @@ export const BookingSummaryScreen: React.FC<Props> = ({ navigation, route }) => 
 
   return (
     <View style={shared.screen}>
-      <AppHeader title="Booking Summary" />
+      <AppHeader title="Your booking" />
       <ScrollView contentContainerStyle={shared.content}>
         <View style={styles.hero}>
           <View style={styles.check}>
             <Ionicons name="checkmark" size={36} color="#FFFFFF" />
           </View>
-          <Text style={styles.heroTitle}>Request sent!</Text>
-          <Text style={styles.heroSub}>The doctor will confirm your appointment shortly.</Text>
+          <Text style={styles.heroTitle}>You are booked!</Text>
+          <Text style={styles.heroSub}>Your slot is confirmed. Just turn up on time.</Text>
           <Text style={styles.ref}>{appt.bookingReference}</Text>
           <StatusBadge status={appt.status} />
         </View>
@@ -65,7 +66,7 @@ export const BookingSummaryScreen: React.FC<Props> = ({ navigation, route }) => 
           <Line icon="calendar-outline" label="Date" value={appt.appointmentDate} />
           <Line icon="time-outline" label="Time" value={`${hhmm(appt.startTime)} - ${hhmm(appt.endTime)}`} />
           <Line icon="chatbubble-outline" label="Reason" value={appt.reason} />
-          <Line icon="cash-outline" label="Consultation fee" value={money(appt.totalAmount || appt.consultationFee)} />
+          <Line icon="cash-outline" label="Vet fee" value={money(appt.totalAmount || appt.consultationFee)} />
           {appt.advanceAmount > 0 && <Line icon="card-outline" label="Advance paid" value={money(appt.advanceAmount)} />}
           <Line icon="wallet-outline" label="Pay at the clinic" value={money(appt.advanceAmount > 0 ? appt.balanceAmount : appt.consultationFee)} />
         </View>
@@ -81,7 +82,7 @@ export const BookingSummaryScreen: React.FC<Props> = ({ navigation, route }) => 
           />
         </View>
 
-        <AppButton title="View My Appointments" onPress={goToAppointments} />
+        <AppButton title="View my visits" onPress={goToAppointments} />
         <AppButton
           title="Back to Home"
           variant="outline"
@@ -93,7 +94,7 @@ export const BookingSummaryScreen: React.FC<Props> = ({ navigation, route }) => 
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   hero: { alignItems: 'center', marginBottom: 20, gap: 8 },
   check: {
     width: 72,
@@ -105,6 +106,6 @@ const styles = StyleSheet.create({
   },
   heroTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
   heroSub: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
-  ref: { fontSize: 18, fontWeight: '800', color: colors.primary, letterSpacing: 1 },
+  ref: { fontSize: 18, fontWeight: '800', color: colors.ink, letterSpacing: 1 },
   line: { flexDirection: 'row', gap: 12, paddingVertical: 8 },
-});
+}));

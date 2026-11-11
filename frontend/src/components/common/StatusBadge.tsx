@@ -1,10 +1,32 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themed';
 
 interface StatusBadgeProps {
   status: string;
 }
+
+/** The status in everyday words rather than a code like AWAITING_PAYMENT. */
+export const statusWords = (status: string): string => {
+  const known: Record<string, string> = {
+    AWAITING_PAYMENT: 'Waiting for payment',
+    PENDING: 'Waiting for reply',
+    REQUESTED: 'Waiting for reply',
+    CONFIRMED: 'Confirmed',
+    COMPLETED: 'Done',
+    CANCELLED: 'Cancelled',
+    REJECTED: 'Declined',
+    EXPIRED: 'Expired',
+    NO_SHOW: 'Missed',
+    APPROVED: 'Approved',
+    RESUBMITTED: 'Sent again',
+  };
+  const key = status.toUpperCase();
+  if (known[key]) return known[key];
+  const plain = status.replace(/_/g, ' ').toLowerCase();
+  return plain.charAt(0).toUpperCase() + plain.slice(1);
+};
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const getBadgeStyle = () => {
@@ -12,18 +34,18 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       case 'CONFIRMED':
       case 'APPROVED':
         return {
-          bg: '#ECFDF5',
+          bg: colors.successBg,
           text: colors.statusConfirmed,
-          border: '#A7F3D0',
+          border: colors.successBorder,
         };
       case 'PENDING':
       case 'REQUESTED':
       case 'AWAITING_PAYMENT':
       case 'RESUBMITTED':
         return {
-          bg: '#FFFBEB',
+          bg: colors.warnBg,
           text: colors.statusPending,
-          border: '#FDE68A',
+          border: colors.warnBorder,
         };
       case 'COMPLETED':
         return {
@@ -36,13 +58,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       case 'EXPIRED':
       case 'NO_SHOW':
         return {
-          bg: '#FEF2F2',
+          bg: colors.dangerBg,
           text: colors.statusCancelled,
-          border: '#FECACA',
+          border: colors.dangerBorder,
         };
       default:
         return {
-          bg: '#F1F5F9',
+          bg: colors.subtle,
           text: colors.textSecondary,
           border: colors.border,
         };
@@ -58,12 +80,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         { backgroundColor: style.bg, borderColor: style.border },
       ]}
     >
-      <Text style={[styles.text, { color: style.text }]}>{status.replace(/_/g, ' ')}</Text>
+      <Text style={[styles.text, { color: style.text }]}>{statusWords(status)}</Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -76,4 +98,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-});
+}));

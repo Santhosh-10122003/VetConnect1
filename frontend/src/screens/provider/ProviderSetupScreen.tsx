@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
@@ -11,6 +11,7 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { ProviderForm, ProviderFormValues, emptyProviderForm, toPayload } from '../../components/care/ProviderForm';
 import { ProviderStackParamList } from '../../navigation/types';
 import { getErrorMessage } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderSetup'>;
 
@@ -73,6 +74,6 @@ export const ProviderSetupScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   intro: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginBottom: 16 },
-});
+}));

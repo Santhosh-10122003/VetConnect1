@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { AppHeader } from '../../components/common/AppHeader';
@@ -10,6 +10,7 @@ import { authApi } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
 import { AuthStackParamList } from '../../navigation/types';
 import { getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'VerifyOtp'>;
 
@@ -72,7 +73,7 @@ export const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
           We sent a verification code by text message to {mobile}. It expires in 10 minutes.
         </Text>
 
-        <AppInput
+        <AppInput kind="otp"
           label="Verification code"
           placeholder="123456"
           value={code}
@@ -97,10 +98,10 @@ export const VerifyOtpScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+const styles = themedStyles(() => ({
+  container: { flex: 1, backgroundColor: colors.page },
   content: { padding: 20 },
   title: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 8 },
   instructions: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 20 },
   btn: { marginTop: 12 },
-});
+}));

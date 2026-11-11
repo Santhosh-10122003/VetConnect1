@@ -12,4 +12,6 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
     List<Pet> findByCustomerId(Long customerId);
     Optional<Pet> findByIdAndCustomerId(Long id, Long customerId);
     long countByCustomerId(Long customerId);
+    boolean existsByMicrochipNumber(String microchipNumber);
+    Optional<Pet> findByMicrochipNumber(String microchipNumber);
 }

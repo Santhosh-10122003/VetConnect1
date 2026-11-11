@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, TextStyle, ViewStyle } from 'react-native';
+import { View, Text, StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   icon: keyof typeof Ionicons.glyphMap;
@@ -23,8 +24,8 @@ export const IconText: React.FC<Props> = ({ icon, iconColor, size = 13, children
   </View>
 );
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   row: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   icon: { marginRight: 4 },
   text: { flexShrink: 1 },
-});
+}));

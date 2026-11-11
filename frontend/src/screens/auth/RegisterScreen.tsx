@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Easing, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Animated, Easing, Alert } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -10,6 +10,7 @@ import { SelectField } from '../../components/common/SelectField';
 import { VET_COUNCILS } from '../../data/vetCouncils';
 import { KeyboardAvoid } from '../../components/common/KeyboardScroll';
 import { DocumentsPicker } from '../../components/common/DocumentsPicker';
+import { inputError } from '../../utils/inputRules';
 import { LocationPicker, LocationValue, LocationErrors, emptyLocation } from '../../components/common/LocationPicker';
 import { phoneError, passwordError, confirmPasswordError, normalizePhone } from '../../utils/validators';
 import { useAuth } from '../../context/AuthContext';
@@ -18,6 +19,8 @@ import { queueDocuments, QueuedDocument } from '../../utils/pendingDocuments';
 import { CATEGORIES, CareCategory } from '../../api/careApi';
 import { PayoutFields, PayoutValues, emptyPayout, payoutErrors, payoutPayload } from '../../components/care/PayoutFields';
 import { AuthStackParamList } from '../../navigation/types';
+import { themedStyles } from '../../theme/themed';
+import { useTopPad } from '../../utils/useTopPad';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 type Role = 'ROLE_CUSTOMER' | 'ROLE_DOCTOR' | 'ROLE_PROVIDER';
@@ -52,6 +55,7 @@ const STEPS: Record<Role, { title: string; sub: string }[]> = {
 };
 
 export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
+  const topPad = useTopPad(44);
   const { register } = useAuth();
   const [role, setRole] = useState<Role>(route.params?.defaultRole || 'ROLE_CUSTOMER');
   const [step, setStep] = useState(route.params?.defaultRole ? 1 : 0);
@@ -106,6 +110,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   if (role !== 'ROLE_CUSTOMER' && location.latitude == null) locationErrors.pin = role === 'ROLE_DOCTOR'
     ? 'Pin your clinic on the map so pet owners can navigate to you.'
     : 'Pin your place on the map so pet owners can navigate to you.';
+  else if (role !== 'ROLE_CUSTOMER' && !location.pinConfirmed) locationErrors.pin = 'Check the pin on the map and tick the box to confirm it is your exact location.';
 
   // ---- a gentle slide-in whenever the page changes
   const enter = useRef(new Animated.Value(1)).current;
@@ -122,6 +127,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   const problem = (): string | null => {
     if (step === 1) {
       if (!fullName.trim()) return 'Please enter your full name.';
+      const nameBad = inputError('name', fullName); if (nameBad) return `Full name: ${nameBad}.`;
       if (phoneError(mobile) || passwordError(password) || confirmPasswordError(password, confirmPassword)) return 'Please fix the highlighted fields.';
     }
     if (role === 'ROLE_CUSTOMER' && step === 2 && Object.keys(locationErrors).length) {
@@ -131,10 +137,14 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
       if (step === 2) {
         if (!clinicName.trim()) return 'Please enter your clinic name.';
         if (!clinicAddress.trim()) return 'Please enter your clinic address.';
+        const clinicBad = inputError('business', clinicName) || inputError('address', clinicAddress); if (clinicBad) return `Clinic details: ${clinicBad}.`;
         if (Object.keys(locationErrors).length) return 'Please choose your clinic location and pin it on the map so pet owners can find and navigate to you.';
       }
       if (step === 3 && (!degree.trim() || !licenseNumber.trim() || !councilName.trim())) {
         return 'Please enter your degree, veterinary registration number and the State Veterinary Council you are registered with.';
+      }
+      if (step === 3) {
+        const credBad = inputError('degree', degree) || inputError('regNo', licenseNumber); if (credBad) return `Credentials: ${credBad}.`;
       }
     }
     if (role === 'ROLE_PROVIDER') {
@@ -142,11 +152,13 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         if (!businessName.trim()) return 'Please enter your business name.';
         if (categories.length === 0) return 'Choose at least one service: grooming, boarding or training.';
         if (!businessAddress.trim()) return 'Please enter your street address.';
+        const bizBad = inputError('business', businessName) || inputError('address', businessAddress); if (bizBad) return `Business details: ${bizBad}.`;
         if (Object.keys(locationErrors).length) return 'Please choose your business location and pin it on the map so pet owners can find and navigate to you.';
       }
       if (step === 3) {
         if (!licenseNumber.trim()) return 'Please enter your trade licence number.';
         if (!vetName.trim() || phoneError(vetPhone)) return 'Please give the name and mobile number of the veterinarian you work with.';
+        const licBad = inputError('regNo', licenseNumber) || inputError('name', vetName); if (licBad) return `Details: ${licBad}.`;
       }
     }
     if (role !== 'ROLE_CUSTOMER' && step === 4 && Object.keys(payoutErrors(payout)).length) {
@@ -173,9 +185,14 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const chooseRole = (r: Role) => {
     if (r !== role) {
-      // the later pages differ per role, so what was typed there starts fresh
-      setLicenseNumber('');
-      setDocuments([]);
+      // a different kind of account is a fresh form: nothing typed for the other one carries over
+      setFullName(''); setMobile('+91 '); setPassword(''); setConfirmPassword('');
+      setLocation(emptyLocation); setAddress(''); setEmergencyContact('');
+      setClinicName(''); setClinicAddress(''); setLicenseNumber(''); setDegree(''); setCouncilName('');
+      setYearsOfExp('5'); setFee('60'); setBio('');
+      setBusinessName(''); setBusinessAbout(''); setBusinessAddress(''); setCategories([]); setVetName(''); setVetPhone('+91 ');
+      setPayout(emptyPayout); setDocuments([]);
+      setTried(false); setError(null);
     }
     setRole(r);
   };
@@ -258,7 +275,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const pageAccount = (
     <View>
-      <AppInput
+      <AppInput kind="name"
         label="Full Name *"
         placeholder={role === 'ROLE_CUSTOMER' ? 'e.g. John Doe' : role === 'ROLE_PROVIDER' ? 'Your name' : 'e.g. Dr. Sarah Jenkins'}
         value={fullName}
@@ -290,32 +307,32 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const pageCustomer = (
     <View>
-      <LocationPicker value={location} onChange={setLocation} errors={tried ? locationErrors : undefined} />
-      <AppInput label="Emergency Contact" placeholder="Phone number" value={emergencyContact} onChangeText={setEmergencyContact} keyboardType="phone-pad" icon="alert-circle-outline" />
+      <LocationPicker defaultCountry="India" hideCountry value={location} onChange={setLocation} errors={tried ? locationErrors : undefined} />
+      <AppInput kind="phone" label="Emergency Contact" placeholder="Phone number" value={emergencyContact} onChangeText={setEmergencyContact} keyboardType="phone-pad" icon="alert-circle-outline" />
     </View>
   );
 
   const pageClinic = (
     <View>
-      <AppInput label="Clinic Name *" placeholder="e.g. Springfield Animal Clinic" value={clinicName} onChangeText={setClinicName} icon="business-outline" />
-      <AppInput label="Clinic Address *" placeholder="Street address, City" value={clinicAddress} onChangeText={setClinicAddress} icon="map-outline" />
-      <LocationPicker value={location} onChange={setLocation} pinRequired districtLabel="Clinic District / City *" errors={tried ? locationErrors : undefined} />
+      <AppInput kind="business" label="Clinic Name *" placeholder="e.g. Springfield Animal Clinic" value={clinicName} onChangeText={setClinicName} icon="business-outline" />
+      <AppInput kind="address" label="Clinic Address *" placeholder="Street address, City" value={clinicAddress} onChangeText={setClinicAddress} icon="map-outline" />
+      <LocationPicker defaultCountry="India" hideCountry value={location} onChange={setLocation} pinRequired districtLabel="Clinic District / City *" errors={tried ? locationErrors : undefined} />
       <View style={styles.rowInputs}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <AppInput label="Years Exp" placeholder="5" value={yearsOfExp} onChangeText={setYearsOfExp} keyboardType="numeric" />
+          <AppInput kind="integer" label="Years Exp" placeholder="5" value={yearsOfExp} onChangeText={setYearsOfExp} keyboardType="numeric" />
         </View>
         <View style={{ flex: 1, marginLeft: 8 }}>
-          <AppInput label={`Consult Fee (${getCurrencySymbol()})`} placeholder="60" value={fee} onChangeText={setFee} keyboardType="numeric" />
+          <AppInput kind="decimal" label={`Consult Fee (${getCurrencySymbol()})`} placeholder="60" value={fee} onChangeText={setFee} keyboardType="numeric" />
         </View>
       </View>
-      <AppInput label="Professional Bio" placeholder="Brief summary of your veterinary background..." value={bio} onChangeText={setBio} multiline numberOfLines={3} style={{ height: 75 }} />
+      <AppInput kind="note" label="Professional Bio" placeholder="Brief summary of your veterinary background..." value={bio} onChangeText={setBio} multiline numberOfLines={3} style={{ height: 75 }} />
     </View>
   );
 
   const pageCredentials = (
     <View>
-      <AppInput label="Degree *" placeholder="e.g. B.V.Sc. & A.H." value={degree} onChangeText={setDegree} icon="school-outline" testID="reg-degree" error={tried && !degree.trim() ? 'Required' : undefined} />
-      <AppInput label="Veterinary Registration Number *" placeholder="e.g. TNSVC-12345" value={licenseNumber} onChangeText={setLicenseNumber} icon="shield-checkmark-outline" testID="reg-license" error={tried && !licenseNumber.trim() ? 'Required' : undefined} />
+      <AppInput kind="degree" label="Degree *" placeholder="e.g. B.V.Sc. & A.H." value={degree} onChangeText={setDegree} icon="school-outline" testID="reg-degree" error={tried && !degree.trim() ? 'Required' : undefined} />
+      <AppInput kind="regNo" label="Veterinary Registration Number *" placeholder="e.g. TNSVC-12345" value={licenseNumber} onChangeText={setLicenseNumber} icon="shield-checkmark-outline" testID="reg-license" error={tried && !licenseNumber.trim() ? 'Required' : undefined} />
       <SelectField
         testID="reg-council"
         label="State Veterinary Council *"
@@ -338,7 +355,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const pageBusiness = (
     <View>
-      <AppInput label="Business Name *" placeholder="e.g. Happy Paws Grooming" value={businessName} onChangeText={setBusinessName} icon="storefront-outline" />
+      <AppInput kind="business" label="Business Name *" placeholder="e.g. Happy Paws Grooming" value={businessName} onChangeText={setBusinessName} icon="storefront-outline" />
       <Text style={styles.fieldLabel}>What do you offer? *</Text>
       <View style={styles.chips}>
         {CATEGORIES.map((c) => {
@@ -350,16 +367,16 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
           );
         })}
       </View>
-      <AppInput label="About your business" placeholder="A short description for pet owners" value={businessAbout} onChangeText={setBusinessAbout} multiline numberOfLines={3} style={{ height: 75 }} />
-      <AppInput label="Street Address *" placeholder="Street address" value={businessAddress} onChangeText={setBusinessAddress} icon="map-outline" />
-      <LocationPicker value={location} onChange={setLocation} pinRequired districtLabel="District / City *" errors={tried ? locationErrors : undefined} />
+      <AppInput kind="note" label="About your business" placeholder="A short description for pet owners" value={businessAbout} onChangeText={setBusinessAbout} multiline numberOfLines={3} style={{ height: 75 }} />
+      <AppInput kind="address" label="Street Address *" placeholder="Street address" value={businessAddress} onChangeText={setBusinessAddress} icon="map-outline" />
+      <LocationPicker defaultCountry="India" hideCountry value={location} onChange={setLocation} pinRequired districtLabel="District / City *" errors={tried ? locationErrors : undefined} />
     </View>
   );
 
   const pageLicence = (
     <View>
-      <AppInput label="Trade Licence Number *" placeholder="From your municipal corporation" value={licenseNumber} onChangeText={setLicenseNumber} icon="shield-checkmark-outline" testID="reg-trade-licence" error={tried && !licenseNumber.trim() ? 'Required' : undefined} />
-      <AppInput label="Veterinarian you work with *" placeholder="On-call or partner vet, e.g. Dr. Asha" value={vetName} onChangeText={setVetName} icon="medkit-outline" autoCapitalize="words" testID="reg-vet-name" error={tried && !vetName.trim() ? 'Required' : undefined} />
+      <AppInput kind="regNo" label="Trade Licence Number *" placeholder="From your municipal corporation" value={licenseNumber} onChangeText={setLicenseNumber} icon="shield-checkmark-outline" testID="reg-trade-licence" error={tried && !licenseNumber.trim() ? 'Required' : undefined} />
+      <AppInput kind="name" label="Veterinarian you work with *" placeholder="On-call or partner vet, e.g. Dr. Asha" value={vetName} onChangeText={setVetName} icon="medkit-outline" autoCapitalize="words" testID="reg-vet-name" error={tried && !vetName.trim() ? 'Required' : undefined} />
       <PhoneField label="Veterinarian's mobile number *" value={vetPhone} onChange={setVetPhone} forceError={tried} testID="reg-vet-phone" />
       <DocumentsPicker
         types={['TRADE_LICENCE', 'ID_PROOF', 'OTHER']}
@@ -382,7 +399,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <KeyboardAvoid style={styles.container}>
-      <View style={styles.top}>
+      <View style={[styles.top, { paddingTop: topPad }]}>
         <View style={styles.topRow}>
           <TouchableOpacity style={styles.backBtn} onPress={back} accessibilityLabel="Back" testID="reg-back">
             <Ionicons name="arrow-back" size={22} color={colors.text} />
@@ -421,8 +438,8 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+const styles = themedStyles(() => ({
+  container: { flex: 1, backgroundColor: colors.canvas },
   top: { paddingHorizontal: 20, paddingTop: 44, paddingBottom: 6 },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
@@ -433,7 +450,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
   page: { marginTop: 22 },
-  roleCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: colors.border, backgroundColor: '#FFFFFF', marginBottom: 12 },
+  roleCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, marginBottom: 12 },
   roleCardOn: { borderColor: colors.primary, backgroundColor: colors.mint },
   roleIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
   roleIconOn: { backgroundColor: colors.primary },
@@ -442,16 +459,16 @@ const styles = StyleSheet.create({
   roleText: { fontSize: 12, color: colors.textSecondary, marginTop: 3, lineHeight: 17 },
   fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F5F9' },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.subtle },
   chipOn: { backgroundColor: colors.primary },
   chipText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   rowInputs: { flexDirection: 'row' },
-  footer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: '#FFFFFF' },
+  footer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.card },
   footerRow: { flexDirection: 'row', gap: 10 },
   footerBack: { flex: 1, marginTop: 0 },
   footerNext: { flex: 2, marginTop: 0 },
   errorText: { color: colors.danger, fontSize: 13, marginBottom: 8, textAlign: 'center' },
   loginPrompt: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14, marginBottom: 10 },
   loginText: { fontSize: 14, color: colors.textSecondary },
-  loginLink: { fontSize: 14, fontWeight: '700', color: colors.primary },
-});
+  loginLink: { fontSize: 14, fontWeight: '700', color: colors.ink },
+}));

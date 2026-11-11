@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { AppInput } from './AppInput';
 import { emailError, emailSuggestion } from '../../utils/validators';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   value: string;
@@ -50,8 +51,8 @@ export const EmailField: React.FC<Props> = ({ value, onChange, label = 'Email Ad
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   suggestion: { marginTop: -8, marginBottom: 12, paddingVertical: 4 },
   suggestionText: { fontSize: 12, color: colors.textSecondary },
-  suggestionBold: { fontWeight: '800', color: colors.primary },
-});
+  suggestionBold: { fontWeight: '800', color: colors.ink },
+}));

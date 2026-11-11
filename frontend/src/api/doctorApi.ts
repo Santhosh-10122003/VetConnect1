@@ -111,6 +111,12 @@ export const doctorApi = {
     maxFee?: number;
     minRating?: number;
     radiusKm?: number;
+    /** Look somewhere other than the saved address (not saved anywhere). */
+    city?: string;
+    state?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
     page?: number;
     size?: number;
   }) {

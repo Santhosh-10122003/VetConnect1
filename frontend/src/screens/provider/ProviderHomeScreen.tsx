@@ -1,13 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import { DeleteAccountCard } from '../../components/common/DeleteAccountCard';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { TakeTourButton } from '../../tour/TakeTourButton';
+import { useTour } from '../../tour/TourProvider';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
 import { careApi, Provider, categoryLabel } from '../../api/careApi';
-import { useAuth } from '../../context/AuthContext';
 import { AppHeader } from '../../components/common/AppHeader';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppButton } from '../../components/common/AppButton';
@@ -15,28 +15,30 @@ import { LoadingView } from '../../components/common/LoadingView';
 import { WalletCard } from '../../components/payment/WalletCard';
 import { ProviderStatusCard } from '../../components/care/ProviderStatusCard';
 import { ProviderStackParamList } from '../../navigation/types';
-import { confirmAction, getErrorMessage, notify } from '../../utils/helpers';
-import { ScreenGuideModal } from '../../components/common/ScreenGuideModal';
+import { getErrorMessage, notify } from '../../utils/helpers';
+import { themedStyles } from '../../theme/themed';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
+import { VerifiedBadge } from '../../components/common/VerifiedBadge';
+import { useTopPad } from '../../utils/useTopPad';
 
 type Props = NativeStackScreenProps<ProviderStackParamList, 'ProviderHome'>;
 
 export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, logout } = useAuth();
-  const isBusinessAccount = user?.role === 'ROLE_PROVIDER';
+  const topPad = useTopPad(58);
+  const tour = useTour();
   const [profile, setProfile] = useState<Provider | null>(null);
   const [missing, setMissing] = useState(false);
-  const [counts, setCounts] = useState({ requests: 0, confirmed: 0 });
+  const [counts, setCounts] = useState({ upcoming: 0, done: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [guideVisible, setGuideVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const p = await careApi.myProfile();
       setProfile(p);
       setMissing(false);
-      const [r, c] = await Promise.all([careApi.providerBookings('REQUESTED'), careApi.providerBookings('CONFIRMED')]);
-      setCounts({ requests: r.totalElements, confirmed: c.totalElements });
+      const [r, c] = await Promise.all([careApi.providerBookings('CONFIRMED'), careApi.providerBookings('COMPLETED')]);
+      setCounts({ upcoming: r.totalElements, done: c.totalElements });
     } catch (e: any) {
       // a vet doctor has no business profile until they set one up
       if (e?.response?.status === 404) setMissing(true);
@@ -49,16 +51,12 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const signOut = async () => {
-    if (await confirmAction('Sign out', 'You will need to sign in again.', 'Sign out', true)) await logout();
-  };
-
   if (loading) return <LoadingView />;
 
   if (missing || !profile) {
     return (
       <View style={shared.screen}>
-        <AppHeader title="Pet Care" subtitle="Grooming, boarding and training" />
+        <AppHeader themeToggle title="Pet Care" subtitle="Grooming, boarding and training" />
         <ScrollView contentContainerStyle={shared.content}>
           <View style={shared.card}>
             <Ionicons name="paw" size={34} color={colors.primary} />
@@ -74,29 +72,73 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const tiles: { icon: keyof typeof Ionicons.glyphMap; title: string; sub: string; badge?: number; go: () => void }[] = [
-    { icon: 'mail-unread-outline', title: 'Booking requests', sub: 'Accept or decline new requests', badge: counts.requests, go: () => navigation.navigate('ProviderBookings', { group: 'REQUESTED' }) },
-    { icon: 'calendar-outline', title: 'Confirmed bookings', sub: 'Upcoming work and completed jobs', badge: counts.confirmed, go: () => navigation.navigate('ProviderBookings', { group: 'CONFIRMED' }) },
-    { icon: 'pricetags-outline', title: 'My services', sub: 'Menu, prices and extras', go: () => navigation.navigate('ProviderServices') },
-    { icon: 'time-outline', title: 'Hours & capacity', sub: 'Opening hours, places, advance %', go: () => navigation.navigate('ProviderHours') },
-    { icon: 'storefront-outline', title: 'Business profile', sub: 'Details, location and map pin', go: () => navigation.navigate('ProviderProfile') },
+  const manage: { id: string; icon: keyof typeof Ionicons.glyphMap; title: string; go: () => void; tour: number }[] = [
+    { id: 'services', icon: 'pricetags-outline', title: 'My services', go: () => navigation.navigate('ProviderServices'), tour: 2 },
+    { id: 'hours', icon: 'time-outline', title: 'Hours & capacity', go: () => navigation.navigate('ProviderHours'), tour: 3 },
+    { id: 'profile', icon: 'storefront-outline', title: 'Business profile', go: () => navigation.navigate('ProviderProfile'), tour: 4 },
+    { id: 'account', icon: 'person-circle-outline', title: 'Account', go: () => navigation.navigate('ProviderAccount'), tour: 5 },
   ];
+  const approved = profile.verificationStatus === 'APPROVED';
+  const statusWord = approved ? 'Live for pet owners' : profile.verificationStatus === 'REJECTED' ? 'Needs changes' : 'Waiting for approval';
 
   return (
-    <View style={shared.screen}>
-      <AppHeader
-        title={profile.businessName}
-        subtitle={profile.categories.map(categoryLabel).join(' · ')}
-        rightAction={{
-          icon: 'compass-outline',
-          onPress: () => setGuideVisible(true),
-        }}
-      />
+    <View style={styles.page}>
+      <View style={styles.blob} pointerEvents="none" />
       <KeyboardScroll
-        contentContainerStyle={shared.content}
+        contentContainerStyle={[styles.content, { paddingTop: topPad }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
       >
-        <WalletCard onPress={() => navigation.navigate('ProviderWallet')} />
+        <View style={styles.topBar}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.hello}>Hello,</Text>
+            <Text style={styles.business} numberOfLines={2}>{profile.businessName}</Text>
+            <View style={styles.chips}>
+              {approved && <VerifiedBadge />}
+              {profile.categories.map((c) => (
+                <View key={c} style={styles.chip}><Text style={styles.chipText}>{categoryLabel(c)}</Text></View>
+              ))}
+            </View>
+          </View>
+          <ThemeToggle style={styles.round} />
+        </View>
+
+        {!approved && (
+          <View style={[styles.statusPill, approved ? styles.pillOk : styles.pillWait]} testID="prov-status-pill">
+            <Ionicons name={approved ? 'checkmark-circle' : 'time'} size={16} color={approved ? colors.successText : colors.warnText} />
+            <Text style={[styles.pillText, { color: approved ? colors.successText : colors.warnText }]}>{statusWord}</Text>
+          </View>
+        )}
+
+        <View ref={tour.ref('prov-wallet') as any} collapsable={false}>
+          <WalletCard onPress={() => navigation.navigate('ProviderWallet')} />
+        </View>
+
+        <View style={styles.statRow}>
+          <TouchableOpacity
+            ref={tour.ref('prov-tile-0') as any}
+            style={[styles.stat, counts.upcoming > 0 && styles.statHot]}
+            onPress={() => navigation.navigate('ProviderBookings', { group: 'CONFIRMED' })}
+            activeOpacity={0.88}
+            testID="tile-Booking requests"
+          >
+            <View style={[styles.statIcon, { backgroundColor: colors.warnBg }]}><Ionicons name="mail-unread" size={20} color={colors.warnText} /></View>
+            <Text style={styles.statNumber}>{counts.upcoming}</Text>
+            <Text style={styles.statLabel}>Upcoming</Text>
+            <Text style={styles.statHint}>Booked and paid</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            ref={tour.ref('prov-tile-1') as any}
+            style={styles.stat}
+            onPress={() => navigation.navigate('ProviderBookings', { group: 'COMPLETED' })}
+            activeOpacity={0.88}
+            testID="tile-Completed bookings"
+          >
+            <View style={[styles.statIcon, { backgroundColor: colors.successBg }]}><Ionicons name="checkmark-done" size={20} color={colors.successText} /></View>
+            <Text style={styles.statNumber}>{counts.done}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statHint}>Jobs done</Text>
+          </TouchableOpacity>
+        </View>
 
         <ProviderStatusCard profile={profile} onChanged={setProfile} />
 
@@ -111,50 +153,64 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {profile.verificationStatus !== 'APPROVED' && (
+        {!approved && (
           <Text style={styles.notice}>Customers cannot find or book you until you are approved.</Text>
         )}
 
-        {tiles.map((t) => (
-          <TouchableOpacity key={t.title} style={[shared.card, styles.tile]} onPress={t.go} activeOpacity={0.85} testID={`tile-${t.title}`}>
-            <View style={styles.tileIcon}><Ionicons name={t.icon} size={22} color={colors.primary} /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tileTitle}>{t.title}</Text>
-              <Text style={styles.tileSub}>{t.sub}</Text>
-            </View>
-            {t.badge ? <View style={styles.badge}><Text style={styles.badgeText}>{t.badge}</Text></View> : null}
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.section}>Run your business</Text>
+        <View style={styles.grid}>
+          {manage.map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              ref={tour.ref(`prov-tile-${t.tour}`) as any}
+              style={styles.tile}
+              onPress={t.go}
+              activeOpacity={0.85}
+              testID={`tile-${t.title}`}
+            >
+              <View style={styles.tileIcon}><Ionicons name={t.icon} size={26} color={colors.primary} /></View>
+              <Text style={styles.tileLabel} numberOfLines={2}>{t.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {isBusinessAccount && (
-          <AppButton title="Sign Out" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger, marginTop: 6 }} onPress={signOut} />
-        )}
-        {isBusinessAccount && <DeleteAccountCard />}
+        <TakeTourButton />
       </KeyboardScroll>
-
-      {/* Screen Guide Interactive Modal if manually requested */}
-      <ScreenGuideModal
-        visible={guideVisible}
-        role="ROLE_PROVIDER"
-        userId={user?.userId}
-        onClose={() => setGuideVisible(false)}
-      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  payoutWarn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FEF2F2', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#FECACA' },
+const styles = themedStyles(() => ({
+  page: { flex: 1, backgroundColor: colors.canvas },
+  blob: { position: 'absolute', top: -130, left: -90, width: 360, height: 330, borderRadius: 180, backgroundColor: colors.mintDark, opacity: 0.55 },
+  content: { padding: 22, paddingTop: 58, paddingBottom: 40 },
+  topBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
+  hello: { fontSize: 16, fontWeight: '600', color: colors.textSecondary },
+  business: { fontSize: 28, fontWeight: '800', color: colors.ink, lineHeight: 33, marginTop: 2 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.iconBorder },
+  chipText: { fontSize: 11, fontWeight: '700', color: colors.text },
+  round: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.iconBorder },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, marginBottom: 16 },
+  pillOk: { backgroundColor: colors.successBg },
+  pillWait: { backgroundColor: colors.warnBg },
+  pillText: { fontSize: 12, fontWeight: '800' },
+  statRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  stat: { flex: 1, backgroundColor: colors.card, borderRadius: 22, padding: 16, borderWidth: 1, borderColor: colors.border },
+  statHot: { borderColor: colors.warnBorder },
+  statIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  statNumber: { fontSize: 34, fontWeight: '800', color: colors.text, marginTop: 10 },
+  statLabel: { fontSize: 14, fontWeight: '800', color: colors.text },
+  statHint: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  section: { fontSize: 20, fontWeight: '800', color: colors.ink, marginTop: 8, marginBottom: 14 },
+  grid: { flexDirection: 'row', marginBottom: 18 },
+  tile: { width: '25%', alignItems: 'center', paddingHorizontal: 4 },
+  tileIcon: { width: 62, height: 62, borderRadius: 20, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.iconBorder },
+  tileLabel: { fontSize: 12, fontWeight: '700', color: colors.ink, marginTop: 8, textAlign: 'center' },
+  payoutWarn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.dangerBg, borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: colors.dangerBorder },
   payoutWarnTitle: { fontSize: 14, fontWeight: '800', color: colors.danger },
   payoutWarnText: { fontSize: 12, color: colors.text, marginTop: 2, lineHeight: 17 },
   setupTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginTop: 10 },
   setupText: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginVertical: 10 },
   notice: { fontSize: 12, color: colors.textSecondary, marginBottom: 12, textAlign: 'center' },
-  tile: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  tileIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
-  tileTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  tileSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  badge: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
-});
+}));

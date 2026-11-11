@@ -1,4 +1,6 @@
 import React from 'react';
+import { FindPetOwnerScreen } from '../screens/shared/FindPetOwnerScreen';
+import { TourTabButton } from '../tour/TourTabButton';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +13,6 @@ import { DoctorAppointmentDetailsScreen } from '../screens/doctor/DoctorAppointm
 import { AvailabilityManagementScreen } from '../screens/doctor/AvailabilityManagementScreen';
 import { ConsultationNotesScreen } from '../screens/doctor/ConsultationNotesScreen';
 import { DoctorProfileScreen } from '../screens/doctor/DoctorProfileScreen';
-import { ProviderStack } from './ProviderNavigator';
 import { DoctorSlotsScreen } from '../screens/doctor/DoctorSlotsScreen';
 import { WalletScreen } from '../screens/shared/WalletScreen';
 import { NotificationsScreen } from '../screens/customer/NotificationsScreen';
@@ -23,7 +24,6 @@ const ICONS: Record<keyof DoctorTabParamList, [keyof typeof Ionicons.glyphMap, k
   DoctorDashboard: ['today', 'today-outline'],
   DoctorAppointments: ['list', 'list-outline'],
   AvailabilityManagement: ['calendar', 'calendar-outline'],
-  PetCareBusiness: ['cut', 'cut-outline'],
   DoctorProfile: ['person', 'person-outline'],
 };
 
@@ -33,6 +33,7 @@ const DoctorTabs: React.FC = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         ...tabBarOptions(insets.bottom),
+        tabBarButton: (props: any) => <TourTabButton tourId={`tab-${route.name}`} {...props} />,
         tabBarIcon: ({ focused, color, size }) => (
           <Ionicons name={ICONS[route.name][focused ? 0 : 1]} size={size} color={color} />
         ),
@@ -41,7 +42,6 @@ const DoctorTabs: React.FC = () => {
       <Tab.Screen name="DoctorDashboard" component={DoctorDashboardScreen} options={{ title: 'Today' }} />
       <Tab.Screen name="DoctorAppointments" component={DoctorAppointmentsScreen} options={{ title: 'Appointments' }} />
       <Tab.Screen name="AvailabilityManagement" component={AvailabilityManagementScreen} options={{ title: 'Calendar' }} />
-      <Tab.Screen name="PetCareBusiness" component={ProviderStack} options={{ title: 'Pet Care' }} />
       <Tab.Screen name="DoctorProfile" component={DoctorProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
@@ -55,5 +55,6 @@ export const DoctorNavigator: React.FC = () => (
     <Stack.Screen name="DoctorNotifications" component={NotificationsScreen} />
     <Stack.Screen name="DoctorWallet" component={WalletScreen} />
     <Stack.Screen name="DoctorSlots" component={DoctorSlotsScreen} />
+    <Stack.Screen name="FindPetOwner" component={FindPetOwnerScreen} />
   </Stack.Navigator>
 );

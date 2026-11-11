@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { DeleteAccountCard } from '../../components/common/DeleteAccountCard';
-import { View, Text, StyleSheet } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { TakeTourButton } from '../../tour/TakeTourButton';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { shared } from '../../theme/shared';
@@ -18,16 +18,20 @@ import { PayoutFields, PayoutValues, emptyPayout, payoutErrors, payoutFromProvid
 import { DocumentsCard } from '../../components/common/DocumentsCard';
 import { LoadingView } from '../../components/common/LoadingView';
 import { confirmAction, getErrorMessage, money, notify, getCurrencySymbol, visibleEmail } from '../../utils/helpers';
+import { themedStyles, themedTable } from '../../theme/themed';
+import { inputError } from '../../utils/inputRules';
+import { VerifiedBadge } from '../../components/common/VerifiedBadge';
 
-const VERIFY_COPY = {
-  APPROVED: { label: 'Verified', icon: 'shield-checkmark' as const, color: colors.success, bg: '#ECFDF5', text: 'Your profile is visible to pet owners.' },
-  PENDING: { label: 'Pending review', icon: 'time' as const, color: colors.warning, bg: '#FFFBEB', text: 'An admin is reviewing your license. You will be notified once approved.' },
-  REJECTED: { label: 'Rejected', icon: 'close-circle' as const, color: colors.danger, bg: '#FEF2F2', text: 'Your profile was not approved. Fix the points below, then send it for approval again.' },
-  RESUBMITTED: { label: 'Sent for re-approval', icon: 'refresh-circle' as const, color: colors.info, bg: '#EFF6FF', text: 'An admin is reviewing your updated details. You will be notified with the result.' },
-};
+const VERIFY_COPY = themedTable(() => ({
+  APPROVED: { label: 'Verified', icon: 'shield-checkmark' as const, color: colors.success, bg: colors.successBg, text: 'Your profile is visible to pet owners.' },
+  PENDING: { label: 'Pending review', icon: 'time' as const, color: colors.warning, bg: colors.warnBg, text: 'An admin is reviewing your license. You will be notified once approved.' },
+  REJECTED: { label: 'Rejected', icon: 'close-circle' as const, color: colors.danger, bg: colors.dangerBg, text: 'Your profile was not approved. Fix the points below, then send it for approval again.' },
+  RESUBMITTED: { label: 'Sent for re-approval', icon: 'refresh-circle' as const, color: colors.info, bg: colors.infoBg, text: 'An admin is reviewing your updated details. You will be notified with the result.' },
+}));
 
 export const DoctorProfileScreen: React.FC = () => {
-  const { logout, updateUserData } = useAuth();
+  const navigation = useNavigation<any>();
+  const { updateUserData } = useAuth();
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,7 +39,7 @@ export const DoctorProfileScreen: React.FC = () => {
   const [form, setForm] = useState<{
     fullName: string; phone: string; clinicName: string; clinicAddress: string;
     clinicCity: string; clinicPostalCode: string; clinicCountry: string; clinicState: string;
-    countryCode?: string; stateCode?: string; latitude?: number; longitude?: number;
+    countryCode?: string; stateCode?: string; latitude?: number; longitude?: number; pinConfirmed?: boolean;
     yearsOfExperience: string; consultationFee: string; bio: string;
   }>({ fullName: '', phone: '', clinicName: '', clinicAddress: '', clinicCity: '', clinicPostalCode: '', clinicCountry: '', clinicState: '', yearsOfExperience: '', consultationFee: '', bio: '' });
   const [payout, setPayout] = useState<PayoutValues>(emptyPayout);
@@ -58,6 +62,7 @@ export const DoctorProfileScreen: React.FC = () => {
         clinicState: d.clinicState ?? '',
         latitude: d.latitude ?? undefined,
         longitude: d.longitude ?? undefined,
+        pinConfirmed: d.latitude != null,
         yearsOfExperience: String(d.yearsOfExperience ?? 0),
         consultationFee: String(d.consultationFee ?? 0),
         bio: d.bio ?? '',
@@ -73,10 +78,12 @@ export const DoctorProfileScreen: React.FC = () => {
     if (!doctor) return;
     const errs: Record<string, string> = {};
     if (!form.fullName.trim()) errs.fullName = 'Required';
+    else if (inputError('name', form.fullName)) errs.fullName = inputError('name', form.fullName) as string;
     if (!form.clinicName.trim()) errs.clinicName = 'Required';
     if (!form.clinicAddress.trim()) errs.clinicAddress = 'Required';
     if (!form.clinicCity.trim()) errs.clinicCity = 'Required so pet owners nearby can find you';
     if (form.latitude == null) errs.pin = 'Pin your clinic on the map so pet owners can navigate to you.';
+    else if (!form.pinConfirmed) errs.pin = 'Check the pin on the map and tick the box to confirm it is your exact location.';
     if (!/^\d+$/.test(form.yearsOfExperience)) errs.yearsOfExperience = 'Whole number';
     if (Object.keys(payoutErrors(payout)).length) errs.payout = 'Add your payment details';
     if (form.consultationFee === '' || isNaN(Number(form.consultationFee)) || Number(form.consultationFee) < 0) errs.consultationFee = 'Valid amount';
@@ -131,10 +138,6 @@ export const DoctorProfileScreen: React.FC = () => {
     }
   };
 
-  const signOut = async () => {
-    if (await confirmAction('Sign out', 'You will need to sign in again.', 'Sign out', true)) await logout();
-  };
-
   if (!doctor) return <LoadingView />;
   const v = VERIFY_COPY[doctor.verificationStatus];
   const set = (k: keyof typeof form) => (val: string) => setForm((f) => ({ ...f, [k]: val }));
@@ -143,7 +146,7 @@ export const DoctorProfileScreen: React.FC = () => {
     <View style={shared.screen}>
       <AppHeader
         title="Profile & Verification"
-        rightAction={doctor.verificationStatus === 'PENDING' || doctor.verificationStatus === 'RESUBMITTED' ? undefined : { icon: editing ? 'close' : 'create-outline', onPress: () => setEditing((x) => !x) }}
+        accountMenu={{ onEdit: doctor.verificationStatus === 'PENDING' || doctor.verificationStatus === 'RESUBMITTED' ? undefined : () => setEditing((x) => !x), editing }}
       />
       <KeyboardScroll contentContainerStyle={shared.content} keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
@@ -151,6 +154,7 @@ export const DoctorProfileScreen: React.FC = () => {
             <Ionicons name="medkit" size={36} color="#FFFFFF" />
           </View>
           <Text style={styles.name}>{doctor.fullName}</Text>
+          {doctor.verificationStatus === 'APPROVED' && <View style={{ marginTop: 6 }}><VerifiedBadge /></View>}
           <Text style={styles.sub}>{doctor.specializations.map((s) => s.name).join(' · ') || 'General practice'}</Text>
           <View style={styles.rating}>
             <Ionicons name="star" size={14} color={colors.star} />
@@ -160,13 +164,15 @@ export const DoctorProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={[styles.verify, { backgroundColor: v.bg }]}>
-          <Ionicons name={v.icon} size={24} color={v.color} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.verifyTitle, { color: v.color }]}>{v.label}</Text>
-            <Text style={styles.verifyText}>{v.text}</Text>
+        {doctor.verificationStatus !== 'APPROVED' && (
+          <View style={[styles.verify, { backgroundColor: v.bg }]}>
+            <Ionicons name={v.icon} size={24} color={v.color} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.verifyTitle, { color: v.color }]}>{v.label}</Text>
+              <Text style={styles.verifyText}>{v.text}</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {!!doctor.verificationReason && doctor.verificationStatus !== 'PENDING' && (
           <View style={[shared.card, doctor.verificationStatus === 'REJECTED' && styles.reasonCardRejected]}>
@@ -191,7 +197,7 @@ export const DoctorProfileScreen: React.FC = () => {
           <View style={shared.card}>
             <Text style={shared.label}>Fixed the issues?</Text>
             <Text style={styles.verifyText}>Tap the pencil above to edit your details, add new documents below if the admin asked for them, then send your profile for approval again. The admin will see everything you changed.</Text>
-            <AppInput
+            <AppInput kind="note"
               label="Note to the admin (optional)"
               placeholder="e.g. I re-uploaded a clear license number"
               value={note}
@@ -206,27 +212,27 @@ export const DoctorProfileScreen: React.FC = () => {
 
         {editing ? (
           <View style={shared.card}>
-            <AppInput label="Full name" value={form.fullName} onChangeText={set('fullName')} error={errors.fullName} />
-            <AppInput label="Phone" value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
-            <AppInput label="Clinic name" value={form.clinicName} onChangeText={set('clinicName')} error={errors.clinicName} />
-            <AppInput label="Clinic address" value={form.clinicAddress} onChangeText={set('clinicAddress')} error={errors.clinicAddress} />
+            <AppInput kind="name" label="Full name" value={form.fullName} onChangeText={set('fullName')} error={errors.fullName} />
+            <AppInput kind="phone" label="Phone" value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
+            <AppInput kind="business" label="Clinic name" value={form.clinicName} onChangeText={set('clinicName')} error={errors.clinicName} />
+            <AppInput kind="address" label="Clinic address" value={form.clinicAddress} onChangeText={set('clinicAddress')} error={errors.clinicAddress} />
             <LocationPicker
               pinRequired
               districtLabel="Clinic District / City *"
               value={{
                 country: form.clinicCountry, countryCode: form.countryCode, state: form.clinicState, stateCode: form.stateCode,
-                city: form.clinicCity, postalCode: form.clinicPostalCode, latitude: form.latitude, longitude: form.longitude,
+                city: form.clinicCity, postalCode: form.clinicPostalCode, latitude: form.latitude, longitude: form.longitude, pinConfirmed: form.pinConfirmed,
               }}
               onChange={(l) => setForm((f) => ({
                 ...f, clinicCountry: l.country, countryCode: l.countryCode, clinicState: l.state, stateCode: l.stateCode,
-                clinicCity: l.city, clinicPostalCode: l.postalCode, latitude: l.latitude, longitude: l.longitude,
+                clinicCity: l.city, clinicPostalCode: l.postalCode, latitude: l.latitude, longitude: l.longitude, pinConfirmed: l.pinConfirmed,
               }))}
               errors={{ city: errors.clinicCity, pin: errors.pin }}
             />
-            <AppInput label="Years of experience" value={form.yearsOfExperience} onChangeText={set('yearsOfExperience')} keyboardType="number-pad" error={errors.yearsOfExperience} />
-            <AppInput label={`Consultation fee (${getCurrencySymbol()})`} value={form.consultationFee} onChangeText={set('consultationFee')} keyboardType="decimal-pad" error={errors.consultationFee} />
+            <AppInput kind="integer" label="Years of experience" value={form.yearsOfExperience} onChangeText={set('yearsOfExperience')} keyboardType="number-pad" error={errors.yearsOfExperience} />
+            <AppInput kind="decimal" label={`Consultation fee (${getCurrencySymbol()})`} value={form.consultationFee} onChangeText={set('consultationFee')} keyboardType="decimal-pad" error={errors.consultationFee} />
             <PayoutFields value={payout} onChange={setPayout} showErrors={Object.keys(errors).length > 0} />
-            <AppInput label="Bio" value={form.bio} onChangeText={set('bio')} multiline style={{ height: 100, textAlignVertical: 'top', paddingTop: 12 }} />
+            <AppInput kind="note" label="Bio" value={form.bio} onChangeText={set('bio')} multiline style={{ height: 100, textAlignVertical: 'top', paddingTop: 12 }} />
             <AppButton title="Save Changes" onPress={save} loading={saving} />
           </View>
         ) : (
@@ -255,14 +261,22 @@ export const DoctorProfileScreen: React.FC = () => {
           </View>
         )}
 
-        <AppButton title="Sign Out" variant="outline" textStyle={{ color: colors.danger }} style={{ borderColor: colors.danger }} onPress={signOut} />
-        <DeleteAccountCard />
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 16, backgroundColor: colors.mint, marginBottom: 12 }}
+          onPress={() => navigation.navigate('FindPetOwner')}
+          activeOpacity={0.85}
+          testID="find-pet-owner"
+        >
+          <Ionicons name="search" size={18} color={colors.primary} />
+          <Text style={{ fontSize: 14, fontWeight: '800', color: colors.ink }}>Find a pet's owner</Text>
+        </TouchableOpacity>
+        <TakeTourButton />
       </KeyboardScroll>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   hero: { alignItems: 'center', marginBottom: 16 },
   avatar: { width: 84, height: 84, borderRadius: 42, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 10 },
@@ -274,4 +288,4 @@ const styles = StyleSheet.create({
   reviewedAt: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
   verifyTitle: { fontSize: 15, fontWeight: '800' },
   verifyText: { fontSize: 12, color: colors.textSecondary, marginTop: 2, lineHeight: 17 },
-});
+}));

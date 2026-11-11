@@ -37,7 +37,7 @@ public class DoctorController {
     private final AppointmentService appointmentService;
 
     @GetMapping
-    @Operation(summary = "Search veterinary doctors. Customers only see doctors in their area (radiusKm applies when GPS is known).")
+    @Operation(summary = "Search veterinary doctors. Customers see the vets near their saved address, or near the place given in city/state/country/latitude/longitude (that place is not saved). radiusKm applies when GPS is known.")
     public ResponseEntity<ApiResponse<PageResponse<DoctorProfileDto>>> searchDoctors(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(required = false) String query,
@@ -45,11 +45,19 @@ public class DoctorController {
             @RequestParam(required = false) BigDecimal maxFee,
             @RequestParam(required = false) BigDecimal minRating,
             @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        PageResponse<DoctorProfileDto> results = doctorService.searchDoctors(userPrincipal, query, specializationId, maxFee, minRating, radiusKm, pageable);
+        // a place picked on the Doctors screen to look somewhere else (never saved to the profile)
+        com.vetconnect.common.LocationMatch.Place around = (city != null && !city.isBlank()) || (latitude != null && longitude != null)
+                ? new com.vetconnect.common.LocationMatch.Place(city, state, country, latitude, longitude) : null;
+        PageResponse<DoctorProfileDto> results = doctorService.searchDoctors(userPrincipal, query, specializationId, maxFee, minRating, radiusKm, around, pageable);
         return ResponseEntity.ok(ApiResponse.ok(results));
     }
 
