@@ -49,6 +49,9 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/error"
                         ).permitAll()
+                        // health (and its liveness/readiness probes) is public for load balancers; metrics are admin-only
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/doctors/*/reviews").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/specializations/**").permitAll()
                         // a document opens through a short-lived signed link, which carries its own proof

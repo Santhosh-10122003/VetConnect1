@@ -17,6 +17,7 @@ import java.util.*;
 
 @Slf4j
 @Component
+@org.springframework.core.annotation.Order(0) // runs before LoadTestDataSeeder
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 

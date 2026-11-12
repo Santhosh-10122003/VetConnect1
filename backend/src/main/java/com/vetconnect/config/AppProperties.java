@@ -23,6 +23,8 @@ public class AppProperties {
     private Uploads uploads = new Uploads();
     private App app = new App();
     private Seed seed = new Seed();
+    private RateLimit rateLimit = new RateLimit();
+    private LoadTest loadtest = new LoadTest();
 
     @Getter
     @Setter
@@ -44,11 +46,31 @@ public class AppProperties {
     @Setter
     public static class Seed {
         /** The sample vets, customer, pet-care businesses and their bookings (with well-known passwords). */
-        private boolean demoData = true;
+        private boolean demoData = false;
         /** With demoData off: the first admin to create (only if no account has this mobile number yet). */
         private String adminPhone;
         private String adminPassword;
         private String adminName = "Jenni Admin";
+    }
+
+    /** Per-client request limits, kept in memory on each instance. */
+    @Getter
+    @Setter
+    public static class RateLimit {
+        private boolean enabled = true;
+        /** Login, sign-up, OTP and password-reset calls per client per minute (brute-force and SMS/email abuse). */
+        private int authPerMinute = 10;
+        /** Every other /api call per client per minute. */
+        private int apiPerMinute = 300;
+    }
+
+    /** Size of the demo data the "loadtest" profile creates (see LoadTestDataSeeder). */
+    @Getter
+    @Setter
+    public static class LoadTest {
+        private int customers = 2000;
+        private int doctors = 100;
+        private int pastAppointments = 5000;
     }
 
     @Getter

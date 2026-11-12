@@ -73,19 +73,6 @@ $env:EXPO_PUBLIC_API_URL = "http://192.168.1.20:8080/api"; npx expo start
 
 Press `a` for the Android emulator, or scan the QR code with Expo Go.
 
-## Demo accounts (seeded)
-
-| Role | Email | Password |
-|---|---|---|
-| Customer | santhoshp9150491@gmail.com | San1012 |
-| Doctor | vas1012@gmail.com | Vas1012 |
-| Admin | admin@vetconnect.com | Admin@1234 |
-| Groomer (pet care business) | groomer@vetconnect.com | Groomer@1234 |
-| Boarding & training (pet care business) | stay@vetconnect.com | Stay@1234 |
-
-Dr. Sarah's clinic also offers pet care ("Paws & Claws Pet Spa"), so her **Pet Care** tab is a ready example of a vet clinic running a grooming business.
-
-These are development credentials. Remove the seed data and rotate secrets before any real deployment.
 
 ## Tests and checks
 

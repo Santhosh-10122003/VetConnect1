@@ -58,12 +58,6 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const fillQuickAccount = (demoMobile: string, demoPass: string) => {
-    setMobile(demoMobile);
-    setPassword(demoPass);
-    setError(null);
-  };
-
   return (
     <KeyboardAvoidingView
       style={styles.keyboardView}
@@ -76,38 +70,6 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to manage your pets and appointments</Text>
-        </View>
-
-        {/* Quick Demo Fill Buttons */}
-        <View style={styles.demoBox}>
-          <Text style={styles.demoTitle}>Quick Fill Demo Accounts:</Text>
-          <View style={styles.demoButtonsRow}>
-            <TouchableOpacity
-              style={styles.demoChip}
-              onPress={() => fillQuickAccount('+1 555-0201', 'Customer@1234')}
-            >
-              <Text style={styles.demoChipText}>Customer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoChip}
-              onPress={() => fillQuickAccount('+1 555-0111', 'Doctor@1234')}
-            >
-              <Text style={styles.demoChipText}>Doctor</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoChip}
-              onPress={() => fillQuickAccount('+1 555-0100', 'Admin@1234')}
-            >
-              <Text style={styles.demoChipText}>Admin</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.demoChip}
-              onPress={() => fillQuickAccount('+1 555-0301', 'Groomer@1234')}
-              testID="demo-petcare"
-            >
-              <Text style={styles.demoChipText}>Pet Care</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View style={styles.form}>
@@ -186,40 +148,6 @@ const styles = themedStyles(() => ({
     color: colors.textSecondary,
     marginTop: 6,
     textAlign: 'center',
-  },
-  demoBox: {
-    backgroundColor: colors.mint,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.mintBorder,
-    marginBottom: 20,
-  },
-  demoTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.ink,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  demoButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  demoChip: {
-    backgroundColor: colors.card,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.mintDark,
-  },
-  demoChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.ink,
   },
   form: {
     marginTop: 4,

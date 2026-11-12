@@ -1,0 +1,93 @@
+# Load-test stack: Postgres + the backend (profile "loadtest" fills it with test data) + k6 on the same network.
+# Separate ports, container names and volume from the root docker-compose.yml, so both can exist side by side.
+#
+#   docker compose -f loadtest/docker-compose.yml up -d --build postgres backend
+#   docker compose -f loadtest/docker-compose.yml run --rm k6 run /scripts/smoke.js
+# See loadtest/README.md.
+name: jenni-loadtest
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jenni_lt_postgres
+    environment:
+      POSTGRES_DB: vetconnect
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    # a sensible, fixed Postgres setup so runs can be compared
+    command: >
+      postgres -c max_connections=200 -c shared_buffers=256MB -c effective_cache_size=768MB
+      -c work_mem=8MB -c log_min_duration_statement=500
+    ports:
+      - "5434:5432"
+    volumes:
+      - lt_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vetconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: jenni_lt_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${LT_PORT:-8091}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: loadtest
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/vetconnect
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SEED_DEMO_DATA: "false"
+      # an admin, so /actuator/metrics can be read during the test
+      SEED_ADMIN_PHONE: "+919999999999"
+      SEED_ADMIN_PASSWORD: "LoadTest@123"
+      # size of the generated data (the first start takes a little longer while it is created)
+      LOADTEST_CUSTOMERS: ${LOADTEST_CUSTOMERS:-2000}
+      LOADTEST_DOCTORS: ${LOADTEST_DOCTORS:-100}
+      LOADTEST_PAST_APPOINTMENTS: ${LOADTEST_PAST_APPOINTMENTS:-5000}
+      # all k6 traffic comes from one address, so the limiter is off unless you are testing it:
+      #   RATE_LIMIT_ENABLED=true docker compose -f loadtest/docker-compose.yml up -d backend
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-false}
+      # the knobs under test
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      DB_POOL_MIN: ${DB_POOL_MIN:-5}
+      TOMCAT_MAX_THREADS: ${TOMCAT_MAX_THREADS:-200}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
+
+  # k6 runs only on demand ("run --rm k6 ..."), never with a plain "up".
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: ["tools"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BASE_URL: http://backend:8080
+      TOKEN_POOL: ${TOKEN_POOL:-200}
+    volumes:
+      - ./k6:/scripts:ro
+    working_dir: /scripts
+
+volumes:
+  lt_pgdata:
