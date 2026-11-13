@@ -12,6 +12,7 @@ import { customerApi, CustomerProfile } from '../../api/customerApi';
 import { useAuth } from '../../context/AuthContext';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppInput } from '../../components/common/AppInput';
+import { PhoneField } from '../../components/common/PhoneField';
 import { LocationPicker } from '../../components/common/LocationPicker';
 import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
@@ -147,7 +148,7 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
         {editing ? (
           <View style={shared.card}>
             <AppInput kind="name" label="Full name" value={form.fullName} error={nameError} onChangeText={(v) => setForm({ ...form, fullName: v })} />
-            <AppInput kind="phone" label="Phone" value={form.phone} keyboardType="phone-pad" onChangeText={(v) => setForm({ ...form, phone: v })} />
+            <PhoneField label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
             <AppInput kind="address" label="Address" value={form.address} onChangeText={(v) => setForm({ ...form, address: v })} />
             <LocationPicker
               value={{
@@ -157,7 +158,7 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
               onChange={(l) => setForm((f) => ({ ...f, ...l }))}
               errors={cityError ? { city: cityError } : undefined}
             />
-            <AppInput kind="phone" label="Emergency contact" value={form.emergencyContact} keyboardType="phone-pad" onChangeText={(v) => setForm({ ...form, emergencyContact: v })} />
+            <PhoneField label="Emergency contact" value={form.emergencyContact} onChange={(v) => setForm({ ...form, emergencyContact: v })} optional />
             <AppButton title="Save Changes" onPress={save} loading={saving} />
           </View>
         ) : (

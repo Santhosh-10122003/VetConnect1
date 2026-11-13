@@ -308,7 +308,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
   const pageCustomer = (
     <View>
       <LocationPicker defaultCountry="India" hideCountry value={location} onChange={setLocation} errors={tried ? locationErrors : undefined} />
-      <AppInput kind="phone" label="Emergency Contact" placeholder="Phone number" value={emergencyContact} onChangeText={setEmergencyContact} keyboardType="phone-pad" icon="alert-circle-outline" />
+      <PhoneField label="Emergency Contact" value={emergencyContact} onChange={setEmergencyContact} optional />
     </View>
   );
 

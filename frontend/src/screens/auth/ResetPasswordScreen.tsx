@@ -6,7 +6,7 @@ import { AppHeader } from '../../components/common/AppHeader';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppInput } from '../../components/common/AppInput';
 import { AppButton } from '../../components/common/AppButton';
-import { phoneForServer } from '../../components/common/PhoneField';
+import { PhoneField, phoneForServer } from '../../components/common/PhoneField';
 import { authApi } from '../../api/authApi';
 import { AuthStackParamList } from '../../navigation/types';
 import { getErrorMessage } from '../../utils/helpers';
@@ -50,15 +50,7 @@ export const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.title}>Create New Password</Text>
         <Text style={styles.subtitle}>Choose a strong password with at least 6 characters.</Text>
 
-        <AppInput kind="phone"
-          label="Mobile number"
-          placeholder="+91 98765 43210"
-          value={mobile}
-          onChangeText={setMobile}
-          keyboardType="phone-pad"
-          autoCapitalize="none"
-          icon="mail-outline"
-        />
+        <PhoneField label="Mobile number" value={mobile} onChange={setMobile} allowEmail />
 
         <AppInput
           kind="code"

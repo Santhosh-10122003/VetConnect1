@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AppHeader } from '../../components/common/AppHeader';
 import { KeyboardScroll } from '../../components/common/KeyboardScroll';
 import { AppInput } from '../../components/common/AppInput';
+import { PhoneField } from '../../components/common/PhoneField';
 import { LocationPicker } from '../../components/common/LocationPicker';
 import { OsmMap } from '../../components/common/OsmMap';
 import { openDirections } from '../../utils/maps';
@@ -213,7 +214,7 @@ export const DoctorProfileScreen: React.FC = () => {
         {editing ? (
           <View style={shared.card}>
             <AppInput kind="name" label="Full name" value={form.fullName} onChangeText={set('fullName')} error={errors.fullName} />
-            <AppInput kind="phone" label="Phone" value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
+            <PhoneField label="Phone" value={form.phone} onChange={set('phone')} />
             <AppInput kind="business" label="Clinic name" value={form.clinicName} onChangeText={set('clinicName')} error={errors.clinicName} />
             <AppInput kind="address" label="Clinic address" value={form.clinicAddress} onChangeText={set('clinicAddress')} error={errors.clinicAddress} />
             <LocationPicker

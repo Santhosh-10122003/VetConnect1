@@ -102,7 +102,7 @@ export const ProviderForm: React.FC<Props> = ({ initial, submitLabel, saving, on
       </View>
       {tried && errors.categories ? <Text style={{ color: colors.danger, fontSize: 12, marginTop: -10, marginBottom: 12 }}>{errors.categories}</Text> : null}
       <AppInput kind="note" label="About your business" value={f.description} onChangeText={(v) => set('description', v)} multiline style={{ height: 90, textAlignVertical: 'top', paddingTop: 12 }} />
-      <AppInput kind="phone" label="Phone" value={f.phone} onChangeText={(v) => set('phone', v)} keyboardType="phone-pad" icon="call-outline" />
+      <PhoneField label="Phone" value={f.phone} onChange={(v) => set('phone', v)} optional />
       <AppInput kind="regNo" label="Trade licence number *" placeholder="From your municipal corporation" value={f.registrationNumber} onChangeText={(v) => set('registrationNumber', v)} error={tried ? errors.registrationNumber : undefined} icon="shield-checkmark-outline" />
       <AppInput kind="name" label="Veterinarian you work with *" placeholder="On-call or partner vet" value={f.vetPartnerName} onChangeText={(v) => set('vetPartnerName', v)} error={tried ? errors.vetPartnerName : undefined} icon="medkit-outline" autoCapitalize="words" />
       <PhoneField label="Veterinarian's mobile number *" value={f.vetPartnerPhone} onChange={(v) => set('vetPartnerPhone', v)} forceError={tried} />
