@@ -1,9 +1,9 @@
-import { MD3LightTheme, MD3DarkTheme } from 'react-native-paper';
+import { MD3LightTheme } from 'react-native-paper';
 import { colors, Scheme } from './colors';
 
 /** The Paper theme for the colours currently in use. */
 export const paperTheme = (scheme: Scheme) => {
-  const base = scheme === 'dark' ? MD3DarkTheme : MD3LightTheme;
+  const base = MD3LightTheme;
   return {
     ...base,
     colors: {

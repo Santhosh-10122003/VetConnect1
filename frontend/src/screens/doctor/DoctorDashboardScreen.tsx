@@ -77,7 +77,6 @@ export const DoctorDashboardScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={shared.screen}>
       <AppHeader
-        themeToggle
         title={drName(doctor.fullName)}
         subtitle="Today's dashboard"
       />

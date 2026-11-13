@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { petApi, Pet } from '../../api/petApi';
 import { LoadingView } from '../../components/common/LoadingView';
-import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { PetTile, AddPetTile, SPECIES_LABEL } from '../../components/pet/PetTile';
 import { CustomerStackParamList, CustomerTabParamList } from '../../navigation/types';
 import { getErrorMessage, notify } from '../../utils/helpers';
@@ -76,7 +75,6 @@ export const PetListScreen: React.FC<Props> = ({ navigation }) => {
                   {pets.length === 0 ? 'Add your pet to get started' : `${pets.length} ${pets.length === 1 ? 'pet' : 'pets'} in your family`}
                 </Text>
               </View>
-              <ThemeToggle style={styles.round} />
               <TouchableOpacity style={[styles.round, styles.roundAdd]} onPress={add} activeOpacity={0.85} testID="pets-add" accessibilityLabel="Add a pet">
                 <Ionicons name="add" size={26} color="#FFFFFF" />
               </TouchableOpacity>

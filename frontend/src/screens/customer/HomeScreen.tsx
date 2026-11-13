@@ -15,7 +15,6 @@ import { careWhat, careWhen } from '../../components/care/BookingCard';
 import { CustomerTabParamList, CustomerStackParamList } from '../../navigation/types';
 import { drName, hhmm } from '../../utils/helpers';
 import { themedStyles } from '../../theme/themed';
-import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { useTopPad } from '../../utils/useTopPad';
 
 type Props = CompositeScreenProps<
@@ -72,7 +71,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.ask}>what are you{'\n'}looking for?</Text>
         </View>
         <View style={styles.topButtons}>
-          <ThemeToggle style={styles.round} />
           <TouchableOpacity ref={tour.ref('home-search') as any} style={styles.round} onPress={() => tabs('FindDoctors')} activeOpacity={0.85} testID="home-search">
             <Ionicons name="search" size={22} color={colors.text} />
           </TouchableOpacity>

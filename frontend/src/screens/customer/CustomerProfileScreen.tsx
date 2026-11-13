@@ -16,7 +16,6 @@ import { PhoneField } from '../../components/common/PhoneField';
 import { LocationPicker } from '../../components/common/LocationPicker';
 import { AppButton } from '../../components/common/AppButton';
 import { LoadingView } from '../../components/common/LoadingView';
-import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { CustomerStackParamList, CustomerTabParamList } from '../../navigation/types';
 import { confirmAction, getErrorMessage, notify, visibleEmail } from '../../utils/helpers';
 import { themedStyles } from '../../theme/themed';
@@ -119,7 +118,6 @@ export const CustomerProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.topBar}>
           <Text style={styles.title}>Profile</Text>
           <View style={styles.topButtons}>
-            <ThemeToggle style={styles.round} />
             <AccountMenu style={styles.round} onEdit={() => setEditing((v) => !v)} editing={editing} />
           </View>
         </View>

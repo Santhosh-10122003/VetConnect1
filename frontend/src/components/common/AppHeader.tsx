@@ -4,8 +4,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themed';
-import { useAppTheme } from '../../theme/ThemeProvider';
-import { ThemeToggle } from './ThemeToggle';
 import { AccountMenu } from './AccountMenu';
 import { useTopPad } from '../../utils/useTopPad';
 
@@ -15,7 +13,6 @@ interface AppHeaderProps {
   showBack?: boolean;
   onBack?: () => void;
   /** Show the light/dark switch at the left (home screens). */
-  themeToggle?: boolean;
   /** Show the three-line account menu (sign out, delete account) at the left. */
   accountMenu?: { onEdit?: () => void; editing?: boolean };
   rightAction?: {
@@ -29,22 +26,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   subtitle,
   showBack,
   onBack,
-  themeToggle,
   accountMenu,
   rightAction,
 }) => {
   const topPad = useTopPad(12);
-  const { scheme } = useAppTheme();
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
-      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
       <View style={styles.content}>
         {showBack ? (
           <TouchableOpacity onPress={onBack} style={styles.iconButton} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-        ) : themeToggle ? (
-          <ThemeToggle style={styles.iconButton} />
         ) : (
           <View style={styles.placeholder} />
         )}

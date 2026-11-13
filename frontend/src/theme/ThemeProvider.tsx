@@ -1,32 +1,16 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useColorScheme } from 'react-native';
-import { storage } from '../api/client';
-import { applyScheme, Scheme } from './colors';
+import React, { createContext, useContext } from 'react';
+import { Appearance } from 'react-native';
+import type { Scheme } from './colors';
 
-export type ThemeChoice = 'system' | 'light' | 'dark';
-const KEY = 'jenni_theme_choice';
+// Jenni has one look: light. Tell the system too, so native pieces (keyboard, date pickers, alerts)
+// stay light even when the phone itself is in dark mode.
+try { Appearance.setColorScheme('light'); } catch { /* older runtimes: the JS theme is light anyway */ }
 
-interface Ctx { choice: ThemeChoice; scheme: Scheme; setChoice: (c: ThemeChoice) => void }
-const ThemeCtx = createContext<Ctx>({ choice: 'system', scheme: 'light', setChoice: () => {} });
+interface Ctx { scheme: Scheme }
+const ThemeCtx = createContext<Ctx>({ scheme: 'light' });
 
 export const useAppTheme = () => useContext(ThemeCtx);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const system = useColorScheme();
-  const [choice, setChoiceState] = useState<ThemeChoice>('system');
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    storage.getItem(KEY).then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setChoiceState(v); }).finally(() => setLoaded(true));
-  }, []);
-
-  const scheme: Scheme = choice === 'system' ? (system === 'dark' ? 'dark' : 'light') : choice;
-  // Set the colours before any child renders, so the very first frame already has them.
-  applyScheme(scheme);
-
-  const setChoice = useCallback((c: ThemeChoice) => { setChoiceState(c); storage.setItem(KEY, c); }, []);
-  const value = useMemo(() => ({ choice, scheme, setChoice }), [choice, scheme, setChoice]);
-
-  if (!loaded) return null;
-  return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
-};
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ThemeCtx.Provider value={{ scheme: 'light' }}>{children}</ThemeCtx.Provider>
+);

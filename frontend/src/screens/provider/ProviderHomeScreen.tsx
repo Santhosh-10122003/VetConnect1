@@ -17,7 +17,6 @@ import { ProviderStatusCard } from '../../components/care/ProviderStatusCard';
 import { ProviderStackParamList } from '../../navigation/types';
 import { getErrorMessage, notify } from '../../utils/helpers';
 import { themedStyles } from '../../theme/themed';
-import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { VerifiedBadge } from '../../components/common/VerifiedBadge';
 import { useTopPad } from '../../utils/useTopPad';
 
@@ -56,7 +55,7 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
   if (missing || !profile) {
     return (
       <View style={shared.screen}>
-        <AppHeader themeToggle title="Pet Care" subtitle="Grooming, boarding and training" />
+        <AppHeader title="Pet Care" subtitle="Grooming, boarding and training" />
         <ScrollView contentContainerStyle={shared.content}>
           <View style={shared.card}>
             <Ionicons name="paw" size={34} color={colors.primary} />
@@ -99,7 +98,6 @@ export const ProviderHomeScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
           </View>
-          <ThemeToggle style={styles.round} />
         </View>
 
         {!approved && (

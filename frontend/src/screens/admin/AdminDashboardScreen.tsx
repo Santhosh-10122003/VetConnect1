@@ -51,7 +51,7 @@ export const AdminDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={shared.screen}>
-      <AppHeader themeToggle title="Admin Overview" subtitle="Platform analytics" rightAction={{ icon: 'log-out-outline', onPress: signOut }} />
+      <AppHeader title="Admin Overview" subtitle="Platform analytics" rightAction={{ icon: 'log-out-outline', onPress: signOut }} />
       <ScrollView
         contentContainerStyle={shared.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
