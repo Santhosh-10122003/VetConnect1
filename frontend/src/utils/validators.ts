@@ -82,6 +82,7 @@ export const phoneError = (raw: string): string | null => {
   if (!value || value === '+') return 'Enter your mobile number';
   const s = normalizePhone(value);
   if (!s.startsWith('+')) return 'Start with your country code, like +91';
+  if (s.startsWith('+91') && !/^\+91[0-9]{10}$/.test(s)) return 'Enter your 10-digit mobile number';
   if (!/^\+[1-9][0-9]{6,14}$/.test(s)) return 'Enter a valid mobile number, like +91 98765 43210';
   return null;
 };

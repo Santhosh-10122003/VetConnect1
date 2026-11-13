@@ -283,7 +283,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
         icon="person-outline"
         error={tried && !fullName.trim() ? 'Required' : undefined}
       />
-      <PhoneField value={mobile} onChange={setMobile} forceError={tried} testID="reg-mobile" />
+      <PhoneField value={mobile} onChange={setMobile} forceError={tried} fixedCode="+91" testID="reg-mobile" />
       <AppInput
         label="Password *"
         placeholder="At least 6 characters"
@@ -377,7 +377,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation, route }) => {
     <View>
       <AppInput kind="regNo" label="Trade Licence Number *" placeholder="From your municipal corporation" value={licenseNumber} onChangeText={setLicenseNumber} icon="shield-checkmark-outline" testID="reg-trade-licence" error={tried && !licenseNumber.trim() ? 'Required' : undefined} />
       <AppInput kind="name" label="Veterinarian you work with *" placeholder="On-call or partner vet, e.g. Dr. Asha" value={vetName} onChangeText={setVetName} icon="medkit-outline" autoCapitalize="words" testID="reg-vet-name" error={tried && !vetName.trim() ? 'Required' : undefined} />
-      <PhoneField label="Veterinarian's mobile number *" value={vetPhone} onChange={setVetPhone} forceError={tried} testID="reg-vet-phone" />
+      <PhoneField label="Veterinarian's mobile number *" value={vetPhone} onChange={setVetPhone} forceError={tried} fixedCode="+91" testID="reg-vet-phone" />
       <DocumentsPicker
         types={['TRADE_LICENCE', 'ID_PROOF', 'OTHER']}
         value={documents}

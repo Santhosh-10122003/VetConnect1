@@ -17,6 +17,8 @@ interface AppInputProps extends TextInputProps {
   error?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   isPassword?: boolean;
+  /** Fixed text shown before what is typed (like a country code). It cannot be edited. */
+  prefix?: string;
   /** What the field holds: filters what can be typed (no emoji, only the characters that belong) and checks it on leaving. */
   kind?: InputKind;
 }
@@ -26,6 +28,7 @@ export const AppInput: React.FC<AppInputProps> = ({
   error,
   icon,
   isPassword = false,
+  prefix,
   kind,
   style,
   onChangeText,
@@ -59,6 +62,7 @@ export const AppInput: React.FC<AppInputProps> = ({
             style={styles.icon}
           />
         )}
+        {!!prefix && <Text style={styles.prefix}>{prefix}</Text>}
         <TextInput
           style={[styles.input, rest.multiline && styles.multilineInput, style]}
           placeholderTextColor={colors.textMuted}
@@ -136,6 +140,15 @@ const styles = themedStyles(() => ({
   },
   icon: {
     marginRight: 10,
+  },
+  prefix: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginRight: 8,
+    paddingRight: 8,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
   },
   input: {
     flex: 1,
