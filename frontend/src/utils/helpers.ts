@@ -4,8 +4,11 @@ import { Alert, Platform } from 'react-native';
 export const getErrorMessage = (e: any, fallback = 'Something went wrong. Please try again.'): string => {
   const data = e?.response?.data;
   if (data?.message) return data.message;
+  if (e?.code === 'ECONNABORTED' || /timeout/i.test(e?.message || '')) {
+    return 'The server is taking too long to answer. It may be waking up: wait a minute and try again.';
+  }
   if (e?.code === 'ERR_NETWORK' || e?.message === 'Network Error') {
-    return 'Cannot reach the server. Check your connection and API URL.';
+    return 'Cannot reach the server. Check your internet connection, or wait a minute if the server is waking up, then try again.';
   }
   return fallback;
 };

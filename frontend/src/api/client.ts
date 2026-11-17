@@ -58,7 +58,8 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  // the hosted server sleeps when idle and needs up to a minute or two to wake on the first request
+  timeout: 90000,
 });
 
 // Request Interceptor: Attach Access Token
