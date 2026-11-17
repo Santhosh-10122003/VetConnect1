@@ -107,6 +107,12 @@ vetconnect:
     enabled: ${RATE_LIMIT_ENABLED:true}
     auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:10}
     api-per-minute: ${RATE_LIMIT_API_PER_MINUTE:300}
+  # Three sample accounts around pincode 641041 for showing the app. Off by default; each needs its own password.
+  showcase:
+    enabled: ${SEED_SHOWCASE_DATA:false}
+    owner-password: ${SHOWCASE_OWNER_PASSWORD:}
+    vet-password: ${SHOWCASE_VET_PASSWORD:}
+    care-password: ${SHOWCASE_CARE_PASSWORD:}
   # Demo data for load tests (profile "loadtest" only): accounts +91 9000000001.. / password LoadTest@123
   loadtest:
     customers: ${LOADTEST_CUSTOMERS:2000}

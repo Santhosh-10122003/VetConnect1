@@ -63,6 +63,10 @@ services:
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       DB_POOL_MIN: ${DB_POOL_MIN:-5}
       TOMCAT_MAX_THREADS: ${TOMCAT_MAX_THREADS:-200}
+      SEED_SHOWCASE_DATA: ${SEED_SHOWCASE_DATA:-false}
+      SHOWCASE_OWNER_PASSWORD: ${SHOWCASE_OWNER_PASSWORD:-}
+      SHOWCASE_VET_PASSWORD: ${SHOWCASE_VET_PASSWORD:-}
+      SHOWCASE_CARE_PASSWORD: ${SHOWCASE_CARE_PASSWORD:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
       interval: 5s

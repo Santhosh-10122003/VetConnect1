@@ -25,6 +25,7 @@ public class AppProperties {
     private Seed seed = new Seed();
     private RateLimit rateLimit = new RateLimit();
     private LoadTest loadtest = new LoadTest();
+    private Showcase showcase = new Showcase();
 
     @Getter
     @Setter
@@ -62,6 +63,16 @@ public class AppProperties {
         private int authPerMinute = 10;
         /** Every other /api call per client per minute. */
         private int apiPerMinute = 300;
+    }
+
+    /** Three sample accounts (pet owner, vet, pet care) around pincode 641041; passwords come from the environment. */
+    @Getter
+    @Setter
+    public static class Showcase {
+        private boolean enabled = false;
+        private String ownerPassword;
+        private String vetPassword;
+        private String carePassword;
     }
 
     /** Size of the demo data the "loadtest" profile creates (see LoadTestDataSeeder). */
