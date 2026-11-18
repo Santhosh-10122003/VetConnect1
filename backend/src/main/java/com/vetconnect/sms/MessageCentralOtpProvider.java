@@ -90,7 +90,10 @@ public class MessageCentralOtpProvider implements SmsOtpProvider {
                 + "&customerId=" + enc(props.getSms().getCustomerId()) + "&flowType=SMS"
                 + (m.matches() ? "&countryCode=91&mobileNumber=" + m.group(1) : "");
         try {
-            JsonNode body = callWithToken("GET", url);
+            // the docs show GET (sample request and FAQ) but label the call POST in one table: try GET, then POST on a 405
+            Answer a = exchange("GET", url);
+            if (a.status() == 405) a = exchange("POST", url);
+            JsonNode body = a.body();
             if (body == null) return Result.ERROR;
             int rc = body.path("responseCode").asInt();
             String status = body.path("data").path("verificationStatus").asText("");
@@ -112,7 +115,13 @@ public class MessageCentralOtpProvider implements SmsOtpProvider {
     // ------------------------------------------------------------------ http
 
     /** Calls the API with a valid authToken; if the token was refused, gets a new one and tries once more. */
+    private record Answer(int status, JsonNode body) { }
+
     private JsonNode callWithToken(String method, String pathAndQuery) throws IOException, InterruptedException {
+        return exchange(method, pathAndQuery).body();
+    }
+
+    private Answer exchange(String method, String pathAndQuery) throws IOException, InterruptedException {
         for (int attempt = 0; attempt < 2; attempt++) {
             String t = authToken(attempt > 0);
             HttpRequest.Builder rb = HttpRequest.newBuilder(URI.create(base() + pathAndQuery))
@@ -126,9 +135,9 @@ public class MessageCentralOtpProvider implements SmsOtpProvider {
                 log.warn("Message Central refused the authToken; getting a new one");
                 continue;
             }
-            return body;
+            return new Answer(res.statusCode(), body);
         }
-        return null;
+        return new Answer(0, null);
     }
 
     private synchronized String authToken(boolean force) throws IOException, InterruptedException {

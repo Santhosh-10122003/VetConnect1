@@ -25,6 +25,7 @@ class MessageCentralOtpProviderTest {
     private volatile String sendBody = "{\"responseCode\":200,\"message\":\"SUCCESS\",\"data\":{\"verificationId\":\"4242\",\"responseCode\":\"200\",\"timeout\":\"60\"}}";
     private volatile String validateBody = "{\"responseCode\":200,\"message\":\"SUCCESS\",\"data\":{\"verificationStatus\":\"VERIFICATION_COMPLETED\"}}";
     private volatile int refuseTokenOnce = 0;
+    private volatile boolean validateOnlyPost = false;
     private MessageCentralOtpProvider provider;
     private AppProperties props;
 
@@ -49,6 +50,7 @@ class MessageCentralOtpProviderTest {
         });
         server.createContext("/verification/v3/validateOtp", ex -> {
             requests.add(ex.getRequestMethod() + " validate " + ex.getRequestURI().getRawQuery());
+            if (validateOnlyPost && !"POST".equals(ex.getRequestMethod())) { reply(ex, 405, "{\"responseCode\":405,\"message\":\"METHOD_NOT_ALLOWED\"}"); return; }
             reply(ex, 200, validateBody);
         });
         server.start();
@@ -134,6 +136,14 @@ class MessageCentralOtpProviderTest {
         validateBody = "{\"responseCode\":500,\"message\":\"SERVER_ERROR\",\"data\":null}";
         assertEquals(SmsOtpProvider.Result.ERROR, provider.verify("4242", "+919876543210", "123456"));
         assertEquals(SmsOtpProvider.Result.ERROR, provider.verify("4242", "+919876543210", ""));
+    }
+
+    @Test
+    void verify_triesPostWhenTheServerRefusesGet() {
+        validateOnlyPost = true;
+        assertEquals(SmsOtpProvider.Result.OK, provider.verify("4242", "+919876543210", "123456"));
+        assertTrue(requests.stream().anyMatch(r -> r.startsWith("GET validate")));
+        assertTrue(requests.stream().anyMatch(r -> r.startsWith("POST validate")));
     }
 
     @Test
