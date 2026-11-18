@@ -151,7 +151,12 @@ public class MessageCentralOtpProvider implements SmsOtpProvider {
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
         JsonNode body = parse(res.body());
         String t = body == null ? "" : body.path("token").asText("");
-        if (t.isBlank()) throw new IOException("Message Central gave no authToken (HTTP " + res.statusCode() + ")");
+        if (t.isBlank()) {
+            // say why (e.g. wrong customer id or key), without ever logging the key itself
+            throw new IOException("Message Central refused the login (HTTP " + res.statusCode() + "): " + summary(body)
+                    + " - check MESSAGECENTRAL_CUSTOMER_ID and MESSAGECENTRAL_KEY (customerId length " + (c.getCustomerId() == null ? 0 : c.getCustomerId().length())
+                    + ", key length " + (c.getKey() == null ? 0 : c.getKey().length()) + ")");
+        }
         token = t;
         tokenExpires = expiryOf(t).minusSeconds(60);
         return t;
