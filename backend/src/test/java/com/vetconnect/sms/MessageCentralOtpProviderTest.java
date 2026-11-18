@@ -154,6 +154,22 @@ class MessageCentralOtpProviderTest {
     }
 
     @Test
+    void aReadyMadeAuthTokenIsUsedWithoutAskingForOne() {
+        props.getSms().setKey(null);
+        props.getSms().setAuthToken(jwtExpiringInSeconds(3600));
+        assertTrue(provider.enabled());
+        assertEquals("4242", provider.send("+919876543210", 6).orElseThrow());
+        assertEquals(0, tokenCalls.get(), "the console token is used, no token request is made");
+    }
+
+    @Test
+    void anExpiredReadyMadeTokenFallsBackToTheKey() {
+        props.getSms().setAuthToken(jwtExpiringInSeconds(-3600));
+        assertEquals("4242", provider.send("+919876543210", 6).orElseThrow());
+        assertEquals(1, tokenCalls.get());
+    }
+
+    @Test
     void tokenExpiryIsReadFromTheJwt() {
         var at = provider.expiryOf(jwtExpiringInSeconds(120));
         long secs = at.getEpochSecond() - java.time.Instant.now().getEpochSecond();

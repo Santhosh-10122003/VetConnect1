@@ -76,6 +76,8 @@ public class AppProperties {
         /** The "key" shown in the Message Central dashboard (Try with Code): the Base64 of the account password. */
         private String key;
         private String email;
+        /** Optional: the ready-made authToken the console shows in "Try with Code". Used until it expires, then the key is used. */
+        private String authToken;
         private int timeoutMs = 8000;
     }
 

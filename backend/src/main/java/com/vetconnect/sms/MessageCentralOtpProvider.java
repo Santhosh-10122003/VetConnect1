@@ -52,7 +52,7 @@ public class MessageCentralOtpProvider implements SmsOtpProvider {
     @Override
     public boolean enabled() {
         AppProperties.Sms c = props.getSms();
-        return "messagecentral".equalsIgnoreCase(c.getProvider()) && has(c.getCustomerId()) && has(c.getKey());
+        return "messagecentral".equalsIgnoreCase(c.getProvider()) && has(c.getCustomerId()) && (has(c.getKey()) || has(c.getAuthToken()));
     }
 
     @Override
@@ -143,6 +143,14 @@ public class MessageCentralOtpProvider implements SmsOtpProvider {
     private synchronized String authToken(boolean force) throws IOException, InterruptedException {
         if (!force && token != null && Instant.now().isBefore(tokenExpires)) return token;
         AppProperties.Sms c = props.getSms();
+
+        // a ready-made token from the console works until it expires (or is refused); after that the key is used
+        if (!force && has(c.getAuthToken()) && Instant.now().isBefore(expiryOf(c.getAuthToken()).minusSeconds(60))) {
+            token = c.getAuthToken().trim();
+            tokenExpires = expiryOf(token).minusSeconds(60);
+            return token;
+        }
+        if (!has(c.getKey())) throw new IOException("The configured authToken has expired or was refused and no MESSAGECENTRAL_KEY is set");
         StringBuilder q = new StringBuilder("/auth/v1/authentication/token?customerId=").append(enc(c.getCustomerId()))
                 .append("&key=").append(enc(c.getKey())).append("&scope=NEW&country=91");
         if (has(c.getEmail())) q.append("&email=").append(enc(c.getEmail()));

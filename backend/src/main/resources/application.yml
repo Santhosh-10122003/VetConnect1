@@ -114,6 +114,7 @@ vetconnect:
     customer-id: ${MESSAGECENTRAL_CUSTOMER_ID:}
     key: ${MESSAGECENTRAL_KEY:}
     email: ${MESSAGECENTRAL_EMAIL:}
+    auth-token: ${MESSAGECENTRAL_AUTH_TOKEN:}
   # Three sample accounts around pincode 641041 for showing the app. Off by default; each needs its own password.
   showcase:
     enabled: ${SEED_SHOWCASE_DATA:false}
