@@ -26,6 +26,7 @@ public class AppProperties {
     private RateLimit rateLimit = new RateLimit();
     private LoadTest loadtest = new LoadTest();
     private Showcase showcase = new Showcase();
+    private Sms sms = new Sms();
 
     @Getter
     @Setter
@@ -63,6 +64,19 @@ public class AppProperties {
         private int authPerMinute = 10;
         /** Every other /api call per client per minute. */
         private int apiPerMinute = 300;
+    }
+
+    /** Text-message OTP provider. "simulated" (default) writes the code to the server log; "messagecentral" sends real SMS. */
+    @Getter
+    @Setter
+    public static class Sms {
+        private String provider = "simulated";
+        private String baseUrl = "https://cpaas.messagecentral.com";
+        private String customerId;
+        /** The "key" shown in the Message Central dashboard (Try with Code): the Base64 of the account password. */
+        private String key;
+        private String email;
+        private int timeoutMs = 8000;
     }
 
     /** Three sample accounts (pet owner, vet, pet care) around pincode 641041; passwords come from the environment. */

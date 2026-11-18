@@ -42,6 +42,7 @@ class AuthServiceOtpTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private JwtTokenProvider tokenProvider;
     @Mock private EmailOtpService emailOtpService;
+    @Mock private com.vetconnect.sms.SmsOtpProvider smsOtpProvider;
     @Mock private ProviderService providerService;
     @Mock private ProviderProfileRepository providerRepository;
 
@@ -51,7 +52,7 @@ class AuthServiceOtpTest {
     void setUp() {
         authService = new AuthService(userRepository, customerProfileRepository, doctorProfileRepository,
                 specializationRepository, availabilityRepository, refreshTokenRepository, passwordEncoder,
-                authenticationManager, tokenProvider, new AppProperties(), passwordResetTokenRepository, emailOtpService, providerService, providerRepository);
+                authenticationManager, tokenProvider, new AppProperties(), passwordResetTokenRepository, emailOtpService, smsOtpProvider, providerService, providerRepository);
     }
 
     private RegisterRequest.RegisterRequestBuilder customerRequest() {

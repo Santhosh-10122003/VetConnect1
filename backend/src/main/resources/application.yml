@@ -107,6 +107,13 @@ vetconnect:
     enabled: ${RATE_LIMIT_ENABLED:true}
     auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:10}
     api-per-minute: ${RATE_LIMIT_API_PER_MINUTE:300}
+  # OTP by text message. Default "simulated": the code is only written to the log. For real SMS set SMS_PROVIDER=messagecentral
+  # plus the three MESSAGECENTRAL_* values from the Message Central dashboard (keep them in the environment, never in Git).
+  sms:
+    provider: ${SMS_PROVIDER:simulated}
+    customer-id: ${MESSAGECENTRAL_CUSTOMER_ID:}
+    key: ${MESSAGECENTRAL_KEY:}
+    email: ${MESSAGECENTRAL_EMAIL:}
   # Three sample accounts around pincode 641041 for showing the app. Off by default; each needs its own password.
   showcase:
     enabled: ${SEED_SHOWCASE_DATA:false}

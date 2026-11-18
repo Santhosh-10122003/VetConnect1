@@ -43,6 +43,7 @@ class AuthServiceResetPasswordTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private JwtTokenProvider tokenProvider;
     @Mock private EmailOtpService emailOtpService;
+    @Mock private com.vetconnect.sms.SmsOtpProvider smsOtpProvider;
     @Mock private ProviderService providerService;
     @Mock private ProviderProfileRepository providerRepository;
 
@@ -53,7 +54,7 @@ class AuthServiceResetPasswordTest {
     void setUp() {
         authService = new AuthService(userRepository, customerProfileRepository, doctorProfileRepository,
                 specializationRepository, availabilityRepository, refreshTokenRepository, passwordEncoder,
-                authenticationManager, tokenProvider, new AppProperties(), passwordResetTokenRepository, emailOtpService, providerService, providerRepository);
+                authenticationManager, tokenProvider, new AppProperties(), passwordResetTokenRepository, emailOtpService, smsOtpProvider, providerService, providerRepository);
         user = User.builder().id(7L).email("a@b.com").password("old").role(Role.ROLE_CUSTOMER).isActive(true).build();
     }
 

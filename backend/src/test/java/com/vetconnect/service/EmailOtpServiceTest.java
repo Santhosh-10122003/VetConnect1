@@ -28,13 +28,14 @@ import static org.mockito.Mockito.*;
 class EmailOtpServiceTest {
 
     @Mock private EmailVerificationOtpRepository otpRepository;
+    @Mock private com.vetconnect.sms.SmsOtpProvider sms;
 
     private EmailOtpService service;
     private User user;
 
     @BeforeEach
     void setUp() {
-        service = new EmailOtpService(otpRepository, new AppProperties());
+        service = new EmailOtpService(otpRepository, new AppProperties(), sms);
         user = User.builder().id(5L).email("a@b.com").role(Role.ROLE_CUSTOMER).emailVerified(false).build();
     }
 

@@ -5,6 +5,7 @@ import com.vetconnect.config.AppProperties;
 import com.vetconnect.domain.entities.EmailVerificationOtp;
 import com.vetconnect.domain.entities.User;
 import com.vetconnect.repository.EmailVerificationOtpRepository;
+import com.vetconnect.sms.SmsOtpProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,13 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Issues and checks the 6-digit code that confirms a new account's email address.
  * Codes are stored hashed, expire, are single-use and lock after too many wrong guesses.
- * No mail service is configured, so the code is written to the server log as a simulated email.
+ * With a real SMS provider configured (see SmsOtpProvider) the provider texts and checks the code, and only its
+ * reference is stored. Otherwise the code is written to the server log as a simulated text message.
  */
 @Slf4j
 @Service
@@ -34,6 +37,10 @@ public class EmailOtpService {
 
     private final EmailVerificationOtpRepository otpRepository;
     private final AppProperties appProperties;
+    private final SmsOtpProvider sms;
+
+    /** Marks a stored attempt whose code lives with the SMS provider; what follows is the provider's reference. */
+    public static final String PROVIDER_PREFIX = "MC:";
 
     public int expiryMinutes() {
         return (int) (appProperties.getOtp().getExpirationMs() / 60000);
@@ -65,6 +72,20 @@ public class EmailOtpService {
         previous.forEach(o -> o.setUsed(true));
         otpRepository.saveAll(previous);
 
+        // a real SMS provider makes up, texts and later checks the code itself
+        if (sms.enabled() && sms.supports(user.getPhone())) {
+            Optional<String> ref = sms.send(user.getPhone(), 6);
+            if (ref.isPresent()) {
+                otpRepository.save(EmailVerificationOtp.builder()
+                        .user(user)
+                        .codeHash(PROVIDER_PREFIX + ref.get())
+                        .expiryDate(Instant.now().plusMillis(appProperties.getOtp().getExpirationMs()))
+                        .build());
+                return true;
+            }
+            log.error("The SMS provider could not send the code for userId={}; using the simulated (logged) code instead.", user.getId());
+        }
+
         String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
         otpRepository.save(EmailVerificationOtp.builder()
                 .user(user)
@@ -90,9 +111,24 @@ public class EmailOtpService {
                 });
 
         String normalized = submitted == null ? "" : submitted.trim();
-        boolean match = MessageDigest.isEqual(
-                otp.getCodeHash().getBytes(StandardCharsets.UTF_8),
-                hash(user, normalized).getBytes(StandardCharsets.UTF_8));
+        boolean match;
+        if (otp.getCodeHash().startsWith(PROVIDER_PREFIX)) {
+            SmsOtpProvider.Result r = sms.verify(otp.getCodeHash().substring(PROVIDER_PREFIX.length()), user.getPhone(), normalized);
+            if (r == SmsOtpProvider.Result.ERROR) {
+                // the provider could not answer: not the person's fault, so it is not counted as a wrong guess
+                throw new BadRequestException("We could not check the code right now. Please try again in a moment.");
+            }
+            if (r == SmsOtpProvider.Result.EXPIRED) {
+                otp.setUsed(true);
+                otpRepository.save(otp);
+                throw new BadRequestException(INVALID_MESSAGE);
+            }
+            match = r == SmsOtpProvider.Result.OK;
+        } else {
+            match = MessageDigest.isEqual(
+                    otp.getCodeHash().getBytes(StandardCharsets.UTF_8),
+                    hash(user, normalized).getBytes(StandardCharsets.UTF_8));
+        }
 
         if (!match) {
             otp.setFailedAttempts(otp.getFailedAttempts() + 1);

@@ -11,6 +11,7 @@ import com.vetconnect.domain.enums.Role;
 import com.vetconnect.domain.enums.VerificationStatus;
 import com.vetconnect.dto.auth.*;
 import com.vetconnect.repository.*;
+import com.vetconnect.sms.SmsOtpProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -48,6 +49,7 @@ public class AuthService {
     private final AppProperties appProperties;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailOtpService emailOtpService;
+    private final SmsOtpProvider smsOtpProvider;
     private final ProviderService providerService;
     private final ProviderProfileRepository providerRepository;
 
@@ -352,6 +354,20 @@ public class AuthService {
         previous.forEach(t -> t.setUsed(true));
         passwordResetTokenRepository.saveAll(previous);
 
+        // a real SMS provider makes up, texts and later checks the reset code itself (8 digits)
+        if (smsOtpProvider.enabled() && smsOtpProvider.supports(user.getPhone())) {
+            var ref = smsOtpProvider.send(user.getPhone(), 8);
+            if (ref.isPresent()) {
+                passwordResetTokenRepository.save(PasswordResetToken.builder()
+                        .user(user)
+                        .tokenHash(EmailOtpService.PROVIDER_PREFIX + ref.get())
+                        .expiryDate(Instant.now().plusMillis(appProperties.getReset().getTokenExpirationMs()))
+                        .build());
+                return;
+            }
+            log.error("The SMS provider could not send the reset code for userId={}; using the simulated (logged) code instead.", user.getId());
+        }
+
         String code = generateResetCode();
         passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .user(user)
@@ -383,8 +399,24 @@ public class AuthService {
                     return new BadRequestException(invalid);
                 });
 
-        if (!MessageDigest.isEqual(token.getTokenHash().getBytes(StandardCharsets.UTF_8),
-                hash(request.getToken().trim().toUpperCase()).getBytes(StandardCharsets.UTF_8))) {
+        boolean codeOk;
+        if (token.getTokenHash().startsWith(EmailOtpService.PROVIDER_PREFIX)) {
+            var r = smsOtpProvider.verify(token.getTokenHash().substring(EmailOtpService.PROVIDER_PREFIX.length()),
+                    user.getPhone(), request.getToken().trim());
+            if (r == SmsOtpProvider.Result.ERROR) {
+                throw new BadRequestException("We could not check the code right now. Please try again in a moment.");
+            }
+            if (r == SmsOtpProvider.Result.EXPIRED) {
+                token.setUsed(true);
+                passwordResetTokenRepository.save(token);
+                throw new BadRequestException(invalid);
+            }
+            codeOk = r == SmsOtpProvider.Result.OK;
+        } else {
+            codeOk = MessageDigest.isEqual(token.getTokenHash().getBytes(StandardCharsets.UTF_8),
+                    hash(request.getToken().trim().toUpperCase()).getBytes(StandardCharsets.UTF_8));
+        }
+        if (!codeOk) {
             token.setFailedAttempts(token.getFailedAttempts() + 1);
             if (token.getFailedAttempts() >= appProperties.getReset().getMaxFailedAttempts()) {
                 token.setUsed(true);
